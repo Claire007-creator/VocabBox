@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaBox - Flashcard Learning App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-layout">
+                <div class="header-left">
+                    <img src="logo.png" alt="VocaBox Logo" class="app-logo">
+                </div>
+                <div class="header-center">
+                    <img src="Vocab-Box.png" alt="VocaBox" class="app-title-image">
+                </div>
+                <div class="header-right">
+                    <div id="authButtons">
+                        <button class="auth-btn sign-in-btn">Sign In</button>
+                        <button class="auth-btn sign-up-btn">Sign Up</button>
+                    </div>
+                    <div id="userInfo" style="display: none;">
+                        <span class="user-welcome">Welcome, <span id="usernameDisplay"></span>!</span>
+                        <button class="auth-btn sign-out-btn">Sign Out</button>
+                    </div>
+                </div>
+            </div>
+            <p class="app-subtitle">Master English words and sentences</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="addCardBtn">
+                    <span class="btn-icon">➕</span>
+                    Add Card
+                </button>
+                <button class="btn btn-create" id="createTestBtn">
+                    <span class="btn-icon">📝</span>
+                    Create Test
+                </button>
+                <button class="btn btn-success" id="testModeBtn">
+                    <span class="btn-icon">🎯</span>
+                    Test Mode
+                </button>
+            </div>
+
+            <!-- Card Count -->
+            <div class="card-count-container">
+                <div class="count-item">
+                    <p>📚 Cards: <span id="cardCount">0</span></p>
+                </div>
+                <div class="count-item">
+                    <p>📝 Tests: <span id="testCount">0</span></p>
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="two-column-layout">
+                <!-- Cards Column -->
+                <div class="column">
+                    <h3 class="column-title">📚 Cards</h3>
+                    <div class="cards-container" id="cardsContainer">
+                        <!-- Cards will be dynamically inserted here -->
+                    </div>
+                    <div class="empty-state" id="cardsEmptyState">
+                        <div class="empty-icon">📚</div>
+                        <h4>No cards yet!</h4>
+                        <p>Click "Add Card" to create flashcards</p>
+                    </div>
+                </div>
+
+                <!-- Tests Column -->
+                <div class="column">
+                    <h3 class="column-title">📝 Tests</h3>
+                    <div class="cards-container" id="testsContainer">
+                        <!-- Test cards will be dynamically inserted here -->
+                    </div>
+                    <div class="empty-state" id="testsEmptyState">
+                        <div class="empty-icon">📝</div>
+                        <h4>No tests yet!</h4>
+                        <p>Click "Create Test" to make test cards</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Card Modal -->
+    <div class="modal" id="addCardModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Add New Card</h2>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addCardForm">
+                    <div class="form-group">
+                        <label for="addFrontText">Front (Word/Question)</label>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" data-target="addfront" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" data-target="addfront" title="Underline">
+                                <u>U</u>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="addfront" title="Bullet List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <circle cx="3" cy="5" r="1.5"/>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="10" r="1.5"/>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="15" r="1.5"/>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="addfront" title="Numbered List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addfront" title="Custom Color">
+                                <span class="color-indicator-picker">🎨</span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="1" data-color="#FF0000" title="Preset Color 1">
+                                <span class="color-indicator preset-1-addfront" style="background-color: #FF0000;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="2" data-color="#0066FF" title="Preset Color 2">
+                                <span class="color-indicator preset-2-addfront" style="background-color: #0066FF;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="3" data-color="#00AA00" title="Preset Color 3">
+                                <span class="color-indicator preset-3-addfront" style="background-color: #00AA00;"></span>
+                            </button>
+                            <input type="color" class="color-picker-hidden" id="colorPickerAddFront" data-target="addfront" value="#000000">
+                        </div>
+                        <div id="addFrontText" class="rich-editor" contenteditable="true" placeholder="Enter word or question..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="addBackText">Back (Definition/Answer)</label>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" data-target="addback" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" data-target="addback" title="Underline">
+                                <u>U</u>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="addback" title="Bullet List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <circle cx="3" cy="5" r="1.5"/>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="10" r="1.5"/>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="15" r="1.5"/>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="addback" title="Numbered List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addback" title="Custom Color">
+                                <span class="color-indicator-picker">🎨</span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="1" data-color="#FF0000" title="Preset Color 1">
+                                <span class="color-indicator preset-1-addback" style="background-color: #FF0000;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="2" data-color="#0066FF" title="Preset Color 2">
+                                <span class="color-indicator preset-2-addback" style="background-color: #0066FF;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="3" data-color="#00AA00" title="Preset Color 3">
+                                <span class="color-indicator preset-3-addback" style="background-color: #00AA00;"></span>
+                            </button>
+                            <input type="color" class="color-picker-hidden" id="colorPickerAddBack" data-target="addback" value="#000000">
+                        </div>
+                        <div id="addBackText" class="rich-editor" contenteditable="true" placeholder="Enter definition or answer..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Audio (Optional)</label>
+                        <div class="audio-section">
+                            <div id="addCurrentAudio" class="current-audio" style="display: none;">
+                                <div class="audio-player-container">
+                                    <audio id="addAudioPlayer" controls></audio>
+                                    <button type="button" class="btn-icon-small btn-danger-small" id="addRemoveAudioBtn" title="Remove Audio">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="addAudioUploadSection" class="audio-upload-section">
+                                <input type="file" id="addAudioFileInput" accept="audio/*" style="display: none;">
+                                <button type="button" class="btn btn-upload" id="addUploadAudioBtn">
+                                    <span class="btn-icon">📁</span>
+                                    Upload Audio File
+                                </button>
+                                <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Card</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Card Modal -->
+    <div class="modal" id="editCardModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <button class="nav-card-btn" id="editPrevCardBtn" title="Previous Card">←</button>
+                <h2>Edit Card <span id="editCardNum"></span></h2>
+                <button class="nav-card-btn" id="editNextCardBtn" title="Next Card">→</button>
+                <button class="close-btn" id="closeEditModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editCardForm">
+                    <div class="form-group">
+                        <label for="editFrontText">Front (Word/Question)</label>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" data-target="front" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" data-target="front" title="Underline">
+                                <u>U</u>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="front" title="Bullet List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <circle cx="3" cy="5" r="1.5"/>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="10" r="1.5"/>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="15" r="1.5"/>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="front" title="Numbered List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="front" title="Custom Color">
+                                <span class="color-indicator-picker">🎨</span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="1" data-color="#FF0000" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-front" style="background-color: #FF0000;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="2" data-color="#0066FF" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-front" style="background-color: #0066FF;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="3" data-color="#00AA00" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-front" style="background-color: #00AA00;"></span>
+                            </button>
+                            <input type="color" class="color-picker-hidden" id="colorPickerFront" data-target="front" value="#000000">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker1Front" data-preset="1" data-target="front" value="#FF0000">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker2Front" data-preset="2" data-target="front" value="#0066FF">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker3Front" data-preset="3" data-target="front" value="#00AA00">
+                        </div>
+                        <div id="editFrontText" class="rich-editor" contenteditable="true" placeholder="Enter word or question..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editBackText">Back (Definition/Answer)</label>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" data-target="back" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" data-target="back" title="Underline">
+                                <u>U</u>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="back" title="Bullet List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <circle cx="3" cy="5" r="1.5"/>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="10" r="1.5"/>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="15" r="1.5"/>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="back" title="Numbered List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="back" title="Custom Color">
+                                <span class="color-indicator-picker">🎨</span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="1" data-color="#FF0000" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-back" style="background-color: #FF0000;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="2" data-color="#0066FF" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-back" style="background-color: #0066FF;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="3" data-color="#00AA00" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-back" style="background-color: #00AA00;"></span>
+                            </button>
+                            <input type="color" class="color-picker-hidden" id="colorPickerBack" data-target="back" value="#000000">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker1Back" data-preset="1" data-target="back" value="#FF0000">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker2Back" data-preset="2" data-target="back" value="#0066FF">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker3Back" data-preset="3" data-target="back" value="#00AA00">
+                        </div>
+                        <div id="editBackText" class="rich-editor" contenteditable="true" placeholder="Enter definition or answer..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Audio (Optional)</label>
+                        <div class="audio-section">
+                            <div id="currentAudio" class="current-audio" style="display: none;">
+                                <div class="audio-player-container">
+                                    <audio id="editAudioPlayer" controls></audio>
+                                    <button type="button" class="btn-icon-small btn-danger-small" id="removeAudioBtn" title="Remove Audio">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="audioUploadSection" class="audio-upload-section">
+                                <input type="file" id="audioFileInput" accept="audio/*" style="display: none;">
+                                <button type="button" class="btn btn-upload" id="uploadAudioBtn">
+                                    <span class="btn-icon">📁</span>
+                                    Upload Audio File
+                                </button>
+                                <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Test Modal -->
+    <div class="modal" id="createTestModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Create Test</h2>
+                <button class="close-btn" id="closeCreateTestBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createTestForm">
+                    <div class="form-group">
+                        <label for="testFrontText">Front (Question/Prompt)</label>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" data-target="testfront" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" data-target="testfront" title="Underline">
+                                <u>U</u>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="testfront" title="Bullet List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <circle cx="3" cy="5" r="1.5"/>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="10" r="1.5"/>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="15" r="1.5"/>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="testfront" title="Numbered List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="testfront" title="Custom Color">
+                                <span class="color-indicator-picker">🎨</span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="1" data-color="#FF0000" title="Preset Color 1">
+                                <span class="color-indicator preset-1-testfront" style="background-color: #FF0000;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="2" data-color="#0066FF" title="Preset Color 2">
+                                <span class="color-indicator preset-2-testfront" style="background-color: #0066FF;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="3" data-color="#00AA00" title="Preset Color 3">
+                                <span class="color-indicator preset-3-testfront" style="background-color: #00AA00;"></span>
+                            </button>
+                            <input type="color" class="color-picker-hidden" id="colorPickerTestFront" data-target="testfront" value="#000000">
+                        </div>
+                        <div id="testFrontText" class="rich-editor" contenteditable="true" placeholder="Enter test question or prompt..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="testBackText">Back (Answer/Solution)</label>
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" data-target="testback" title="Bold">
+                                <strong>B</strong>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" data-target="testback" title="Underline">
+                                <u>U</u>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="testback" title="Bullet List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <circle cx="3" cy="5" r="1.5"/>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="10" r="1.5"/>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <circle cx="3" cy="15" r="1.5"/>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="testback" title="Numbered List">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="testback" title="Custom Color">
+                                <span class="color-indicator-picker">🎨</span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="1" data-color="#FF0000" title="Preset Color 1">
+                                <span class="color-indicator preset-1-testback" style="background-color: #FF0000;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="2" data-color="#0066FF" title="Preset Color 2">
+                                <span class="color-indicator preset-2-testback" style="background-color: #0066FF;"></span>
+                            </button>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="3" data-color="#00AA00" title="Preset Color 3">
+                                <span class="color-indicator preset-3-testback" style="background-color: #00AA00;"></span>
+                            </button>
+                            <input type="color" class="color-picker-hidden" id="colorPickerTestBack" data-target="testback" value="#000000">
+                        </div>
+                        <div id="testBackText" class="rich-editor" contenteditable="true" placeholder="Enter answer or solution..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Audio (Optional)</label>
+                        <div class="audio-section">
+                            <div id="testCurrentAudio" class="current-audio" style="display: none;">
+                                <div class="audio-player-container">
+                                    <audio id="testAudioPlayer" controls></audio>
+                                    <button type="button" class="btn-icon-small btn-danger-small" id="testRemoveAudioBtn" title="Remove Audio">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="testAudioUploadSection" class="audio-upload-section">
+                                <input type="file" id="testAudioFileInput" accept="audio/*" style="display: none;">
+                                <button type="button" class="btn btn-upload" id="testUploadAudioBtn">
+                                    <span class="btn-icon">📁</span>
+                                    Upload Audio File
+                                </button>
+                                <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelCreateTestBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add to Test</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Mode Selection Modal -->
+    <div class="modal" id="testModeSelectModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2>🎯 Choose Test Mode</h2>
+                <button class="close-btn" id="closeTestSelectBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="test-mode-options">
+                    <div class="test-mode-card" id="selectFlipMode">
+                        <div class="mode-icon">🔄</div>
+                        <h3>Card Flipping</h3>
+                        <p>Flip cards to reveal answers. Choose from Cards or Tests.</p>
+                        <button class="btn btn-primary mode-select-btn">Select</button>
+                    </div>
+                    <div class="test-mode-card" id="selectTypingMode">
+                        <div class="mode-icon">⌨️</div>
+                        <h3>Typing Practice</h3>
+                        <p>Type answers for test cards. Tests your recall ability.</p>
+                        <button class="btn btn-create mode-select-btn">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Selection Modal for Flipping -->
+    <div class="modal" id="categorySelectModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <button class="back-btn" id="backToCategoryBtn">← Back</button>
+                <h2>🔄 Choose Category</h2>
+                <button class="close-btn" id="closeCategorySelectBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="test-mode-options">
+                    <div class="test-mode-card" id="selectCardsCategory">
+                        <div class="mode-icon">📚</div>
+                        <h3>Cards</h3>
+                        <p>Flip through your vocabulary cards.</p>
+                        <button class="btn btn-primary mode-select-btn">Select</button>
+                    </div>
+                    <div class="test-mode-card" id="selectTestsCategory">
+                        <div class="mode-icon">📝</div>
+                        <h3>Tests</h3>
+                        <p>Flip through your test cards.</p>
+                        <button class="btn btn-create mode-select-btn">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteConfirmModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header delete-header">
+                <div class="delete-icon-large">🗑️</div>
+                <h2>Delete Card?</h2>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-text">Are you sure you want to delete this card? This action cannot be undone.</p>
+                <div class="form-actions confirm-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Mode Screen - Flipping -->
+    <div class="test-mode-screen" id="testModeScreen">
+        <div class="test-container">
+            <div class="test-header">
+                <h2>🔄 Card Flipping Mode</h2>
+                <button class="btn btn-secondary" id="exitTestBtn">Exit Test</button>
+            </div>
+            <div class="test-progress">
+                <p>Card <span id="currentCardNum">1</span> of <span id="totalCards">0</span></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+            <div class="flashcard" id="flashcard">
+                <div class="flashcard-inner" id="flashcardInner">
+                    <div class="flashcard-front">
+                        <p id="cardFront"></p>
+                    </div>
+                    <div class="flashcard-back">
+                        <p id="cardBack"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="test-actions">
+                <button class="btn btn-secondary" id="prevCardBtn">← Previous</button>
+                <button class="btn btn-primary flip-btn" id="flipCardBtn">Flip Card</button>
+                <button class="btn btn-secondary" id="nextCardBtn">Next →</button>
+            </div>
+            <div class="audio-replay-section" id="flipAudioReplay" style="display: none;">
+                <button class="btn btn-audio-replay" id="replayFlipAudioBtn">
+                    🔊 Replay Audio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div class="modal" id="signInModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>🔐 Sign In</h2>
+                <button class="close-btn" id="closeSignInBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="signInForm">
+                    <div class="form-group">
+                        <label for="signInUsername">Username</label>
+                        <input type="text" id="signInUsername" placeholder="Enter your username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signInPassword">Password</label>
+                        <input type="password" id="signInPassword" placeholder="Enter your password" required>
+                    </div>
+                    <div id="signInError" class="error-message" style="display: none;"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelSignInBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                    </div>
+                </form>
+                <p class="auth-switch">
+                    <a href="#" id="forgotPasswordLink">Forgot Password?</a> | 
+                    Don't have an account? <a href="#" id="switchToSignUp">Sign Up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign Up Modal -->
+    <div class="modal" id="signUpModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>📝 Sign Up</h2>
+                <button class="close-btn" id="closeSignUpBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="signUpForm">
+                    <div class="form-group">
+                        <label for="signUpUsername">Username</label>
+                        <input type="text" id="signUpUsername" placeholder="Choose a username" required minlength="3">
+                        <small class="input-hint">At least 3 characters</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="signUpContact">Email or Phone Number</label>
+                        <input type="text" id="signUpContact" placeholder="your@email.com or +1234567890" required>
+                        <small class="input-hint">Required for password recovery</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="signUpPassword">Password</label>
+                        <input type="password" id="signUpPassword" placeholder="Choose a strong password" required minlength="8">
+                        <small class="input-hint">At least 8 characters with uppercase, lowercase, and number</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="signUpPasswordConfirm">Confirm Password</label>
+                        <input type="password" id="signUpPasswordConfirm" placeholder="Confirm your password" required>
+                    </div>
+                    <div id="signUpError" class="error-message" style="display: none;"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelSignUpBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Sign Up</button>
+                    </div>
+                </form>
+                <p class="auth-switch">Already have an account? <a href="#" id="switchToSignIn">Sign In</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div class="modal" id="forgotPasswordModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>🔑 Forgot Password</h2>
+                <button class="close-btn" id="closeForgotPasswordBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label for="forgotUsername">Username</label>
+                        <input type="text" id="forgotUsername" placeholder="Enter your username" required>
+                    </div>
+                    <div id="forgotPasswordError" class="error-message" style="display: none;"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelForgotPasswordBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Recovery Code</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verify Code Modal -->
+    <div class="modal" id="verifyCodeModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>✉️ Verify Code</h2>
+                <button class="close-btn" id="closeVerifyCodeBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-message" id="codeInfo" style="margin-bottom: 20px;">
+                    <p style="margin: 0; line-height: 1.6;">A recovery code has been sent to: <strong id="maskedContact"></strong></p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">
+                        <em>(Demo Mode: Your code is <strong style="color: #5FB3A7;" id="displayCode"></strong>)</em>
+                    </p>
+                </div>
+                <form id="verifyCodeForm">
+                    <div class="form-group">
+                        <label for="verificationCode">Enter Code</label>
+                        <input type="text" id="verificationCode" placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+                        <small class="input-hint">Enter the 6-digit code</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" placeholder="Enter new password" required minlength="8">
+                        <small class="input-hint">At least 8 characters with uppercase, lowercase, and number</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPasswordConfirm">Confirm New Password</label>
+                        <input type="password" id="newPasswordConfirm" placeholder="Confirm new password" required>
+                    </div>
+                    <div id="verifyCodeError" class="error-message" style="display: none;"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelVerifyCodeBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Reset Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Typing Mode Screen -->
+    <div class="test-mode-screen" id="typingModeScreen">
+        <div class="test-container">
+            <div class="test-header">
+                <h2>⌨️ Typing Practice Mode</h2>
+                <button class="btn btn-secondary" id="exitTypingBtn">Exit Test</button>
+            </div>
+            <div class="test-progress">
+                <p>Question <span id="typingCardNum">1</span> of <span id="typingTotalCards">0</span></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="typingProgressFill"></div>
+                </div>
+            </div>
+            <div class="typing-card">
+                <div class="typing-question">
+                    <h3>Question:</h3>
+                    <div class="question-content" id="typingQuestion"></div>
+                </div>
+                <div class="typing-answer-section">
+                    <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
+                    <button class="btn btn-primary" id="checkAnswerBtn">Check Answer</button>
+                </div>
+                <div class="answer-result" id="answerResult" style="display: none;">
+                    <div class="result-header">
+                        <h3 id="resultTitle"></h3>
+                    </div>
+                    <div class="correct-answer">
+                        <h4>Correct Answer:</h4>
+                        <div id="correctAnswerContent"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="test-actions">
+                <button class="btn btn-secondary" id="typingPrevBtn">← Previous</button>
+                <button class="btn btn-secondary" id="typingNextBtn">Next →</button>
+            </div>
+            <div class="audio-replay-section" id="typingAudioReplay" style="display: none;">
+                <button class="btn btn-audio-replay" id="replayTypingAudioBtn">
+                    🔊 Replay Audio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
