@@ -15,12 +15,12 @@
                     <img src="logo.png" alt="VocaBox Logo" class="app-logo">
                 </div>
                 <div class="header-center">
-                    <img src="Vocab-Box.png" alt="VocaBox" class="app-title-image">
+                    <img src="title.png" alt="VocaBox" class="app-title-image">
                 </div>
                 <div class="header-right">
                     <div id="authButtons">
-                        <button class="auth-btn sign-in-btn">Sign In</button>
-                        <button class="auth-btn sign-up-btn">Sign Up</button>
+                    <button class="auth-btn sign-in-btn">Sign In</button>
+                    <button class="auth-btn sign-up-btn">Sign Up</button>
                     </div>
                     <div id="userInfo" style="display: none;">
                         <span class="user-welcome">Welcome, <span id="usernameDisplay"></span>!</span>
@@ -28,7 +28,7 @@
                     </div>
                 </div>
             </div>
-            <p class="app-subtitle">Master English words and sentences</p>
+            <p class="app-subtitle">Momorize in a Flip.</p>
         </header>
 
         <!-- Main Content -->
@@ -36,39 +36,37 @@
             <!-- Action Buttons -->
             <div class="action-buttons">
                 <button class="btn btn-primary" id="addCardBtn">
-                    <span class="btn-icon">➕</span>
+                    <span class="btn-icon">
+                        <img src="plus.png" alt="Add" class="btn-icon-image">
+                    </span>
                     Add Card
                 </button>
                 <button class="btn btn-create" id="createTestBtn">
-                    <span class="btn-icon">📝</span>
+                    <span class="btn-icon">
+                        <img src="guitar.png" alt="Create" class="btn-icon-image">
+                    </span>
                     Create Test
                 </button>
                 <button class="btn btn-success" id="testModeBtn">
-                    <span class="btn-icon">🎯</span>
+                    <span class="btn-icon">
+                        <img src="test.png" alt="Test" class="btn-icon-image">
+                    </span>
                     Test Mode
                 </button>
-            </div>
-
-            <!-- Card Count -->
-            <div class="card-count-container">
-                <div class="count-item">
-                    <p>📚 Cards: <span id="cardCount">0</span></p>
-                </div>
-                <div class="count-item">
-                    <p>📝 Tests: <span id="testCount">0</span></p>
-                </div>
             </div>
 
             <!-- Two Column Layout -->
             <div class="two-column-layout">
                 <!-- Cards Column -->
                 <div class="column">
-                    <h3 class="column-title">📚 Cards</h3>
+                    <h3 class="column-title">Cards (<span id="cardCount">0</span>)</h3>
                     <div class="cards-container" id="cardsContainer">
                         <!-- Cards will be dynamically inserted here -->
                     </div>
                     <div class="empty-state" id="cardsEmptyState">
-                        <div class="empty-icon">📚</div>
+                        <div class="empty-icon">
+                            <img src="books.png" alt="Books" class="empty-state-image">
+                        </div>
                         <h4>No cards yet!</h4>
                         <p>Click "Add Card" to create flashcards</p>
                     </div>
@@ -76,12 +74,14 @@
 
                 <!-- Tests Column -->
                 <div class="column">
-                    <h3 class="column-title">📝 Tests</h3>
+                    <h3 class="column-title">Tests (<span id="testCount">0</span>)</h3>
                     <div class="cards-container" id="testsContainer">
                         <!-- Test cards will be dynamically inserted here -->
                     </div>
                     <div class="empty-state" id="testsEmptyState">
-                        <div class="empty-icon">📝</div>
+                        <div class="empty-icon">
+                            <img src="writing.png" alt="Writing" class="empty-state-image">
+                        </div>
                         <h4>No tests yet!</h4>
                         <p>Click "Create Test" to make test cards</p>
                     </div>
