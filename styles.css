@@ -125,16 +125,17 @@ body {
 }
 
 .sign-up-btn {
-    background: #5FB3A7;
+    background: #FF6B6B;
     color: white;
-    border: 2px solid #5FB3A7;
+    border: 2px solid #FF6B6B;
+    font-weight: 600;
 }
 
 .sign-up-btn:hover {
-    background: #4FA397;
-    border-color: #4FA397;
+    background: #FF5252;
+    border-color: #FF5252;
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
 }
 
 .sign-out-btn {
@@ -233,10 +234,14 @@ body {
 }
 
 .app-subtitle {
-    font-size: 1.3rem;
-    opacity: 0.95;
-    font-weight: 500;
-    letter-spacing: 0.05em;
+    font-size: 1.8rem;
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    margin: 20px 0;
+    opacity: 1;
 }
 
 /* Main Content */
@@ -308,17 +313,7 @@ body {
     background: #6EBCB4;
 }
 
-.btn-success {
-    background: #FFFFFF;
-    color: #5FB3A7;
-    font-weight: 700;
-}
-
-.btn-success:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    background: #F0F0F0;
-}
+/* btn-success styles moved to bottom of file to avoid conflicts */
 
 .btn-secondary {
     background: #6c757d;
@@ -522,6 +517,24 @@ body {
     font-size: 1rem;
 }
 
+/* Cat decoration images that show even when cards exist */
+.cat-decoration {
+    text-align: center;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.cat-decoration-image {
+    width: 120px;
+    height: auto;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.cat-decoration-image:hover {
+    opacity: 1;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
@@ -531,7 +544,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 1000;
+    z-index: 3000;
     animation: fadeIn 0.3s ease;
 }
 
@@ -1537,6 +1550,193 @@ body {
     
     .header {
         padding: 20px 0;
+    }
+}
+
+/* Test Results Modal */
+.results-summary {
+    text-align: center;
+    padding: 20px;
+}
+
+.grade-circle {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5FB3A7 0%, #4A9D92 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(95, 179, 167, 0.3);
+    animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.grade-percentage {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.grade-label {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 500;
+}
+
+.results-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 30px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.stat-item {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item.stat-correct {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.05);
+}
+
+.stat-item.stat-incorrect {
+    border-color: #C85A6E;
+    background: rgba(200, 90, 110, 0.05);
+}
+
+.stat-item.stat-total {
+    border-color: #5FB3A7;
+    background: rgba(95, 179, 167, 0.05);
+}
+
+.stat-item.stat-unanswered {
+    border-color: #FF9800;
+    background: rgba(255, 152, 0, 0.05);
+}
+
+.stat-info {
+    flex: 1;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.performance-message {
+    background: linear-gradient(135deg, rgba(95, 179, 167, 0.1) 0%, rgba(74, 157, 146, 0.1) 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border: 2px solid rgba(95, 179, 167, 0.3);
+}
+
+.performance-message p {
+    font-size: 1.1rem;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 500;
+}
+
+.results-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.results-actions .btn {
+    min-width: 150px;
+}
+
+.btn-success {
+    background: #F4D58D !important;
+    color: #333 !important;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background: #F0C970 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(244, 213, 141, 0.4);
+}
+
+.finish-test-section {
+    animation: fadeIn 0.5s ease;
+}
+
+@media (max-width: 768px) {
+    .grade-circle {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .grade-percentage {
+        font-size: 2.5rem;
+    }
+    
+    .grade-label {
+        font-size: 0.9rem;
+    }
+    
+    .results-stats {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+    
+    .results-actions {
+        flex-direction: column;
+    }
+    
+    .results-actions .btn {
+        width: 100%;
     }
 }
 

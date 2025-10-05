@@ -28,7 +28,7 @@
                     </div>
                 </div>
             </div>
-            <p class="app-subtitle">Momorize in a Flip.</p>
+            <p class="app-subtitle">Memorize in a Fl!p.</p>
         </header>
 
         <!-- Main Content -->
@@ -70,6 +70,10 @@
                         <h4>No cards yet!</h4>
                         <p>Click "Add Card" to create flashcards</p>
                     </div>
+                    <!-- Cat image that shows even when cards exist -->
+                    <div class="cat-decoration">
+                        <img src="books.png" alt="Books" class="cat-decoration-image">
+                    </div>
                 </div>
 
                 <!-- Tests Column -->
@@ -84,6 +88,10 @@
                         </div>
                         <h4>No tests yet!</h4>
                         <p>Click "Create Test" to make test cards</p>
+                    </div>
+                    <!-- Cat image that shows even when tests exist -->
+                    <div class="cat-decoration">
+                        <img src="writing.png" alt="Writing" class="cat-decoration-image">
                     </div>
                 </div>
             </div>
@@ -131,14 +139,14 @@
                             <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addfront" title="Custom Color">
                                 <span class="color-indicator-picker">🎨</span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="1" data-color="#FF0000" title="Preset Color 1">
-                                <span class="color-indicator preset-1-addfront" style="background-color: #FF0000;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-addfront" style="background-color: #457B9D;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="2" data-color="#0066FF" title="Preset Color 2">
-                                <span class="color-indicator preset-2-addfront" style="background-color: #0066FF;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-addfront" style="background-color: #9E2A2B;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="3" data-color="#00AA00" title="Preset Color 3">
-                                <span class="color-indicator preset-3-addfront" style="background-color: #00AA00;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-addfront" style="background-color: #4D908E;"></span>
                             </button>
                             <input type="color" class="color-picker-hidden" id="colorPickerAddFront" data-target="addfront" value="#000000">
                         </div>
@@ -176,14 +184,14 @@
                             <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addback" title="Custom Color">
                                 <span class="color-indicator-picker">🎨</span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="1" data-color="#FF0000" title="Preset Color 1">
-                                <span class="color-indicator preset-1-addback" style="background-color: #FF0000;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-addback" style="background-color: #457B9D;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="2" data-color="#0066FF" title="Preset Color 2">
-                                <span class="color-indicator preset-2-addback" style="background-color: #0066FF;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-addback" style="background-color: #9E2A2B;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="3" data-color="#00AA00" title="Preset Color 3">
-                                <span class="color-indicator preset-3-addback" style="background-color: #00AA00;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-addback" style="background-color: #4D908E;"></span>
                             </button>
                             <input type="color" class="color-picker-hidden" id="colorPickerAddBack" data-target="addback" value="#000000">
                         </div>
@@ -203,7 +211,7 @@
                             <div id="addAudioUploadSection" class="audio-upload-section">
                                 <input type="file" id="addAudioFileInput" accept="audio/*" style="display: none;">
                                 <button type="button" class="btn btn-upload" id="addUploadAudioBtn">
-                                    <span class="btn-icon">📁</span>
+                                    <img src="music.png" alt="Upload" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;">
                                     Upload Audio File
                                 </button>
                                 <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
@@ -262,19 +270,19 @@
                             <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="front" title="Custom Color">
                                 <span class="color-indicator-picker">🎨</span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="1" data-color="#FF0000" title="Preset Color 1 (Right-click to customize)">
-                                <span class="color-indicator preset-1-front" style="background-color: #FF0000;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-front" style="background-color: #457B9D;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="2" data-color="#0066FF" title="Preset Color 2 (Right-click to customize)">
-                                <span class="color-indicator preset-2-front" style="background-color: #0066FF;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-front" style="background-color: #9E2A2B;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="3" data-color="#00AA00" title="Preset Color 3 (Right-click to customize)">
-                                <span class="color-indicator preset-3-front" style="background-color: #00AA00;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="front" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-front" style="background-color: #4D908E;"></span>
                             </button>
                             <input type="color" class="color-picker-hidden" id="colorPickerFront" data-target="front" value="#000000">
-                            <input type="color" class="color-picker-hidden" id="customColorPicker1Front" data-preset="1" data-target="front" value="#FF0000">
-                            <input type="color" class="color-picker-hidden" id="customColorPicker2Front" data-preset="2" data-target="front" value="#0066FF">
-                            <input type="color" class="color-picker-hidden" id="customColorPicker3Front" data-preset="3" data-target="front" value="#00AA00">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker1Front" data-preset="1" data-target="front" value="#457B9D">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker2Front" data-preset="2" data-target="front" value="#9E2A2B">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker3Front" data-preset="3" data-target="front" value="#4D908E">
                         </div>
                         <div id="editFrontText" class="rich-editor" contenteditable="true" placeholder="Enter word or question..."></div>
                     </div>
@@ -310,19 +318,19 @@
                             <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="back" title="Custom Color">
                                 <span class="color-indicator-picker">🎨</span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="1" data-color="#FF0000" title="Preset Color 1 (Right-click to customize)">
-                                <span class="color-indicator preset-1-back" style="background-color: #FF0000;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-back" style="background-color: #457B9D;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="2" data-color="#0066FF" title="Preset Color 2 (Right-click to customize)">
-                                <span class="color-indicator preset-2-back" style="background-color: #0066FF;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-back" style="background-color: #9E2A2B;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="3" data-color="#00AA00" title="Preset Color 3 (Right-click to customize)">
-                                <span class="color-indicator preset-3-back" style="background-color: #00AA00;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="back" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-back" style="background-color: #4D908E;"></span>
                             </button>
                             <input type="color" class="color-picker-hidden" id="colorPickerBack" data-target="back" value="#000000">
-                            <input type="color" class="color-picker-hidden" id="customColorPicker1Back" data-preset="1" data-target="back" value="#FF0000">
-                            <input type="color" class="color-picker-hidden" id="customColorPicker2Back" data-preset="2" data-target="back" value="#0066FF">
-                            <input type="color" class="color-picker-hidden" id="customColorPicker3Back" data-preset="3" data-target="back" value="#00AA00">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker1Back" data-preset="1" data-target="back" value="#457B9D">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker2Back" data-preset="2" data-target="back" value="#9E2A2B">
+                            <input type="color" class="color-picker-hidden" id="customColorPicker3Back" data-preset="3" data-target="back" value="#4D908E">
                         </div>
                         <div id="editBackText" class="rich-editor" contenteditable="true" placeholder="Enter definition or answer..."></div>
                     </div>
@@ -340,7 +348,7 @@
                             <div id="audioUploadSection" class="audio-upload-section">
                                 <input type="file" id="audioFileInput" accept="audio/*" style="display: none;">
                                 <button type="button" class="btn btn-upload" id="uploadAudioBtn">
-                                    <span class="btn-icon">📁</span>
+                                    <img src="music.png" alt="Upload" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;">
                                     Upload Audio File
                                 </button>
                                 <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
@@ -397,14 +405,14 @@
                             <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="testfront" title="Custom Color">
                                 <span class="color-indicator-picker">🎨</span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="1" data-color="#FF0000" title="Preset Color 1">
-                                <span class="color-indicator preset-1-testfront" style="background-color: #FF0000;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-testfront" style="background-color: #457B9D;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="2" data-color="#0066FF" title="Preset Color 2">
-                                <span class="color-indicator preset-2-testfront" style="background-color: #0066FF;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-testfront" style="background-color: #9E2A2B;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="3" data-color="#00AA00" title="Preset Color 3">
-                                <span class="color-indicator preset-3-testfront" style="background-color: #00AA00;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testfront" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-testfront" style="background-color: #4D908E;"></span>
                             </button>
                             <input type="color" class="color-picker-hidden" id="colorPickerTestFront" data-target="testfront" value="#000000">
                         </div>
@@ -442,14 +450,14 @@
                             <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="testback" title="Custom Color">
                                 <span class="color-indicator-picker">🎨</span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="1" data-color="#FF0000" title="Preset Color 1">
-                                <span class="color-indicator preset-1-testback" style="background-color: #FF0000;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                <span class="color-indicator preset-1-testback" style="background-color: #457B9D;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="2" data-color="#0066FF" title="Preset Color 2">
-                                <span class="color-indicator preset-2-testback" style="background-color: #0066FF;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                <span class="color-indicator preset-2-testback" style="background-color: #9E2A2B;"></span>
                             </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="3" data-color="#00AA00" title="Preset Color 3">
-                                <span class="color-indicator preset-3-testback" style="background-color: #00AA00;"></span>
+                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="testback" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                <span class="color-indicator preset-3-testback" style="background-color: #4D908E;"></span>
                             </button>
                             <input type="color" class="color-picker-hidden" id="colorPickerTestBack" data-target="testback" value="#000000">
                         </div>
@@ -469,7 +477,7 @@
                             <div id="testAudioUploadSection" class="audio-upload-section">
                                 <input type="file" id="testAudioFileInput" accept="audio/*" style="display: none;">
                                 <button type="button" class="btn btn-upload" id="testUploadAudioBtn">
-                                    <span class="btn-icon">📁</span>
+                                    <img src="music.png" alt="Upload" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;">
                                     Upload Audio File
                                 </button>
                                 <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
@@ -489,19 +497,19 @@
     <div class="modal" id="testModeSelectModal">
         <div class="modal-content modal-medium">
             <div class="modal-header">
-                <h2>🎯 Choose Test Mode</h2>
+                <h2><img src="writing.png" alt="Test" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Test Mode</h2>
                 <button class="close-btn" id="closeTestSelectBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="test-mode-options">
                     <div class="test-mode-card" id="selectFlipMode">
-                        <div class="mode-icon">🔄</div>
+                        <div class="mode-icon"><img src="cards.png" alt="Cards" style="width: 60px; height: 60px;"></div>
                         <h3>Card Flipping</h3>
                         <p>Flip cards to reveal answers. Choose from Cards or Tests.</p>
                         <button class="btn btn-primary mode-select-btn">Select</button>
                     </div>
                     <div class="test-mode-card" id="selectTypingMode">
-                        <div class="mode-icon">⌨️</div>
+                        <div class="mode-icon"><img src="keyboard.png" alt="Keyboard" style="width: 60px; height: 60px;"></div>
                         <h3>Typing Practice</h3>
                         <p>Type answers for test cards. Tests your recall ability.</p>
                         <button class="btn btn-create mode-select-btn">Select</button>
@@ -516,19 +524,19 @@
         <div class="modal-content modal-medium">
             <div class="modal-header">
                 <button class="back-btn" id="backToCategoryBtn">← Back</button>
-                <h2>🔄 Choose Category</h2>
+                <h2>Choose Category</h2>
                 <button class="close-btn" id="closeCategorySelectBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="test-mode-options">
                     <div class="test-mode-card" id="selectCardsCategory">
-                        <div class="mode-icon">📚</div>
+                        <div class="mode-icon"><img src="cards.png" alt="Cards" style="width: 60px; height: 60px;"></div>
                         <h3>Cards</h3>
                         <p>Flip through your vocabulary cards.</p>
                         <button class="btn btn-primary mode-select-btn">Select</button>
                     </div>
                     <div class="test-mode-card" id="selectTestsCategory">
-                        <div class="mode-icon">📝</div>
+                        <div class="mode-icon"><img src="writing.png" alt="Tests" style="width: 60px; height: 60px;"></div>
                         <h3>Tests</h3>
                         <p>Flip through your test cards.</p>
                         <button class="btn btn-create mode-select-btn">Select</button>
@@ -723,11 +731,107 @@
         </div>
     </div>
 
+    <!-- Custom Color Picker Modal -->
+    <div class="modal" id="customColorPickerModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>🎨 Choose Custom Color</h2>
+                <button class="close-btn" id="closeCustomColorPickerBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #666; line-height: 1.6;">
+                        Select any color to apply to your text.
+                    </p>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333; text-align: center;">
+                            Select Color:
+                        </label>
+                        <input type="color" id="customColorPickerInput" style="width: 100%; height: 60px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; margin-bottom: 15px;">
+                        
+                        <div style="text-align: center; margin: 10px 0; color: #999; font-size: 0.9rem;">or</div>
+                        
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                            Paste Hex Code:
+                        </label>
+                        <input type="text" id="customColorPickerHexInput" placeholder="#457B9D or 457B9D" 
+                            style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: monospace; font-size: 1rem; text-align: center; text-transform: uppercase;">
+                        <small style="display: block; margin-top: 5px; color: #999; font-size: 0.8rem; text-align: center;">
+                            Enter with or without #
+                        </small>
+                    </div>
+                    <div style="margin-top: 20px; background: #fff; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px;">
+                        <p style="margin: 0 0 10px 0; font-weight: 600; color: #333; font-size: 0.9rem;">Preview:</p>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div id="customColorPickerPreviewBox" style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid #ddd; flex-shrink: 0;"></div>
+                            <div>
+                                <p style="margin: 0; font-size: 0.85rem; color: #666;">Sample text in <span id="customColorPickerPreviewText" style="font-weight: bold;">this color</span></p>
+                                <p id="customColorPickerHexDisplay" style="margin: 5px 0 0 0; font-size: 0.75rem; color: #999; font-family: monospace;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelCustomColorPickerBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmCustomColorPickerBtn">✓ Confirm Color</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Customization Modal -->
+    <div class="modal" id="colorCustomizationModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>🎨 Customize Preset Color <span id="customColorPresetNum"></span></h2>
+                <button class="close-btn" id="closeColorCustomBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #666; line-height: 1.6;">
+                        Choose a new color for this preset button. This will update the color across all cards.
+                    </p>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333; text-align: center;">
+                            Select Color:
+                        </label>
+                        <input type="color" id="customColorInput" style="width: 100%; height: 60px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; margin-bottom: 15px;">
+                        
+                        <div style="text-align: center; margin: 10px 0; color: #999; font-size: 0.9rem;">or</div>
+                        
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333; font-size: 0.9rem;">
+                            Paste Hex Code:
+                        </label>
+                        <input type="text" id="customColorHexInput" placeholder="#457B9D or 457B9D" 
+                            style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: monospace; font-size: 1rem; text-align: center; text-transform: uppercase;">
+                        <small style="display: block; margin-top: 5px; color: #999; font-size: 0.8rem; text-align: center;">
+                            Enter with or without #
+                        </small>
+                    </div>
+                    <div style="margin-top: 20px; background: #fff; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px;">
+                        <p style="margin: 0 0 10px 0; font-weight: 600; color: #333; font-size: 0.9rem;">Preview:</p>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div id="colorPreviewBox" style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid #ddd; flex-shrink: 0;"></div>
+                            <div>
+                                <p style="margin: 0; font-size: 0.85rem; color: #666;">Sample text in <span id="colorPreviewText" style="font-weight: bold;">this color</span></p>
+                                <p id="colorHexDisplay" style="margin: 5px 0 0 0; font-size: 0.75rem; color: #999; font-family: monospace;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelColorCustomBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmColorCustomBtn">✓ Confirm Color</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Typing Mode Screen -->
     <div class="test-mode-screen" id="typingModeScreen">
         <div class="test-container">
             <div class="test-header">
-                <h2>⌨️ Typing Practice Mode</h2>
+                <h2><img src="keyboard.png" alt="Keyboard" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Typing Practice Mode</h2>
                 <button class="btn btn-secondary" id="exitTypingBtn">Exit Test</button>
             </div>
             <div class="test-progress">
@@ -749,10 +853,7 @@
                     <div class="result-header">
                         <h3 id="resultTitle"></h3>
                     </div>
-                    <div class="correct-answer">
-                        <h4>Correct Answer:</h4>
-                        <div id="correctAnswerContent"></div>
-                    </div>
+                    <div id="correctAnswerContent"></div>
                 </div>
             </div>
             <div class="test-actions">
@@ -763,6 +864,66 @@
                 <button class="btn btn-audio-replay" id="replayTypingAudioBtn">
                     🔊 Replay Audio
                 </button>
+            </div>
+            <div class="finish-test-section" style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-success" id="finishTestBtn" style="font-size: 1.1rem; padding: 12px 30px; background: #F4D58D; color: #333;">
+                    ✓ Finish Test & See Results
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results Modal -->
+    <div class="modal" id="testResultsModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2>Test Results</h2>
+                <button class="close-btn" id="closeResultsBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="results-summary">
+                    <div class="grade-circle">
+                        <div class="grade-percentage" id="gradePercentage">0%</div>
+                        <div class="grade-label">Your Score</div>
+                    </div>
+                    
+                    <div class="results-stats">
+                        <div class="stat-item stat-total">
+                            <div class="stat-info">
+                                <div class="stat-number" id="totalQuestions">0</div>
+                                <div class="stat-label">Total Questions</div>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-correct">
+                            <div class="stat-info">
+                                <div class="stat-number" id="correctAnswers">0</div>
+                                <div class="stat-label">Correct Answers</div>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-incorrect">
+                            <div class="stat-info">
+                                <div class="stat-number" id="incorrectAnswers">0</div>
+                                <div class="stat-label">Incorrect Answers</div>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-unanswered">
+                            <div class="stat-info">
+                                <div class="stat-number" id="unansweredQuestions">0</div>
+                                <div class="stat-label">Unanswered</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="performance-message" id="performanceMessage">
+                        <p></p>
+                    </div>
+
+                    <div class="results-actions">
+                        <button class="btn btn-secondary" id="reviewTestBtn">Review Answers</button>
+                        <button class="btn btn-primary" id="retakeTestBtn">Retake Test</button>
+                        <button class="btn btn-create" id="exitToHomeBtn">Back to Home</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

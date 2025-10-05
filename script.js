@@ -14,6 +14,14 @@ class VocaBox {
         this.customColors = this.loadCustomColors();
         this.pendingDeleteId = null;
         this.audioDB = null;
+        
+        // Test results tracking
+        this.testResults = {
+            answers: [], // Array to store {questionIndex, isCorrect, userAnswer, correctAnswer}
+            correctCount: 0,
+            incorrectCount: 0,
+            unansweredCount: 0
+        };
         this.currentAudioId = null;
         this.currentPlayingAudio = null; // Track currently playing audio
         this.init();
@@ -79,6 +87,31 @@ class VocaBox {
         
         // Store recovery data temporarily
         this.recoveryData = null;
+
+        // Color customization modal elements
+        this.colorCustomizationModal = document.getElementById('colorCustomizationModal');
+        this.closeColorCustomBtn = document.getElementById('closeColorCustomBtn');
+        this.cancelColorCustomBtn = document.getElementById('cancelColorCustomBtn');
+        this.confirmColorCustomBtn = document.getElementById('confirmColorCustomBtn');
+        this.customColorPresetNum = document.getElementById('customColorPresetNum');
+        this.customColorInput = document.getElementById('customColorInput');
+        this.customColorHexInput = document.getElementById('customColorHexInput');
+        this.colorPreviewBox = document.getElementById('colorPreviewBox');
+        this.colorPreviewText = document.getElementById('colorPreviewText');
+        this.colorHexDisplay = document.getElementById('colorHexDisplay');
+        this.pendingColorPreset = null;
+
+        // Custom Color Picker Modal Elements
+        this.customColorPickerModal = document.getElementById('customColorPickerModal');
+        this.customColorPickerInput = document.getElementById('customColorPickerInput');
+        this.customColorPickerHexInput = document.getElementById('customColorPickerHexInput');
+        this.customColorPickerPreviewBox = document.getElementById('customColorPickerPreviewBox');
+        this.customColorPickerPreviewText = document.getElementById('customColorPickerPreviewText');
+        this.customColorPickerHexDisplay = document.getElementById('customColorPickerHexDisplay');
+        this.confirmCustomColorPickerBtn = document.getElementById('confirmCustomColorPickerBtn');
+        this.closeCustomColorPickerBtn = document.getElementById('closeCustomColorPickerBtn');
+        this.cancelCustomColorPickerBtn = document.getElementById('cancelCustomColorPickerBtn');
+        this.pendingCustomColorContext = null;
 
         // Main elements
         this.addCardBtn = document.getElementById('addCardBtn');
@@ -159,6 +192,20 @@ class VocaBox {
         this.typingAudioReplay = document.getElementById('typingAudioReplay');
         this.replayTypingAudioBtn = document.getElementById('replayTypingAudioBtn');
         this.currentTypingAudioId = null;
+        this.finishTestBtn = document.getElementById('finishTestBtn');
+
+        // Test Results Modal elements
+        this.testResultsModal = document.getElementById('testResultsModal');
+        this.closeResultsBtn = document.getElementById('closeResultsBtn');
+        this.gradePercentage = document.getElementById('gradePercentage');
+        this.totalQuestions = document.getElementById('totalQuestions');
+        this.correctAnswers = document.getElementById('correctAnswers');
+        this.incorrectAnswers = document.getElementById('incorrectAnswers');
+        this.unansweredQuestions = document.getElementById('unansweredQuestions');
+        this.performanceMessage = document.getElementById('performanceMessage');
+        this.reviewTestBtn = document.getElementById('reviewTestBtn');
+        this.retakeTestBtn = document.getElementById('retakeTestBtn');
+        this.exitToHomeBtn = document.getElementById('exitToHomeBtn');
 
         // Test mode elements
         this.testModeScreen = document.getElementById('testModeScreen');
@@ -263,6 +310,92 @@ class VocaBox {
             }
         });
 
+        // Custom Color Picker Modal handlers
+        this.closeCustomColorPickerBtn.addEventListener('click', () => this.closeCustomColorPickerModal());
+        this.cancelCustomColorPickerBtn.addEventListener('click', () => this.closeCustomColorPickerModal());
+        this.confirmCustomColorPickerBtn.addEventListener('click', () => this.confirmCustomColorPicker());
+        this.customColorPickerModal.addEventListener('click', (e) => {
+            if (e.target === this.customColorPickerModal) {
+                this.closeCustomColorPickerModal();
+            }
+        });
+        
+        // Custom Color Picker live preview
+        this.customColorPickerInput.addEventListener('input', (e) => {
+            const color = e.target.value;
+            this.updateCustomColorPickerPreview(color);
+            this.customColorPickerHexInput.value = color.substring(1).toUpperCase();
+        });
+        
+        // Custom Color Picker hex input
+        this.customColorPickerHexInput.addEventListener('input', (e) => {
+            let hexValue = e.target.value.trim();
+            if (hexValue.startsWith('#')) {
+                hexValue = hexValue.substring(1);
+            }
+            if (/^[0-9A-Fa-f]{3}$/.test(hexValue)) {
+                hexValue = hexValue.split('').map(c => c + c).join('');
+            }
+            if (/^[0-9A-Fa-f]{6}$/.test(hexValue)) {
+                const color = '#' + hexValue;
+                this.customColorPickerInput.value = color;
+                this.updateCustomColorPickerPreview(color);
+                this.customColorPickerHexInput.style.borderColor = '#ddd';
+            } else if (hexValue.length > 0) {
+                this.customColorPickerHexInput.style.borderColor = '#e74c3c';
+            } else {
+                this.customColorPickerHexInput.style.borderColor = '#ddd';
+            }
+        });
+
+        // Color customization modal handlers
+        this.closeColorCustomBtn.addEventListener('click', () => this.closeColorCustomModal());
+        this.cancelColorCustomBtn.addEventListener('click', () => this.closeColorCustomModal());
+        this.confirmColorCustomBtn.addEventListener('click', () => this.confirmColorCustomization());
+        this.colorCustomizationModal.addEventListener('click', (e) => {
+            if (e.target === this.colorCustomizationModal) {
+                this.closeColorCustomModal();
+            }
+        });
+        
+        // Live preview for color picker changes
+        this.customColorInput.addEventListener('input', (e) => {
+            const color = e.target.value;
+            this.updateColorPreview(color);
+            // Update hex input to match
+            this.customColorHexInput.value = color.toUpperCase();
+        });
+
+        // Handle hex input changes
+        this.customColorHexInput.addEventListener('input', (e) => {
+            let hexValue = e.target.value.trim();
+            
+            // Remove # if present
+            if (hexValue.startsWith('#')) {
+                hexValue = hexValue.substring(1);
+            }
+            
+            // Validate hex format (3 or 6 characters)
+            if (/^[0-9A-Fa-f]{3}$/.test(hexValue)) {
+                // Expand 3-digit hex to 6-digit
+                hexValue = hexValue.split('').map(c => c + c).join('');
+            }
+            
+            if (/^[0-9A-Fa-f]{6}$/.test(hexValue)) {
+                const color = '#' + hexValue;
+                this.customColorInput.value = color;
+                this.updateColorPreview(color);
+                // Remove error styling
+                this.customColorHexInput.style.borderColor = '#ddd';
+            } else if (hexValue.length > 0) {
+                // Show error styling for invalid hex
+                this.customColorHexInput.style.borderColor = '#e74c3c';
+            } else {
+                // Reset styling when empty
+                this.customColorHexInput.style.borderColor = '#ddd';
+            }
+        });
+
         // Add card button
         this.addCardBtn.addEventListener('click', () => this.openAddCardModal());
 
@@ -322,13 +455,32 @@ class VocaBox {
         this.typingPrevBtn.addEventListener('click', () => this.previousTypingCard());
         this.typingNextBtn.addEventListener('click', () => this.nextTypingCard());
         this.replayTypingAudioBtn.addEventListener('click', () => this.replayTypingAudio());
+        
+        // Finish Test button
+        if (this.finishTestBtn) {
+            this.finishTestBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showTestResults();
+            });
+        }
 
-        // Close modal on outside click
-        this.addCardModal.addEventListener('click', (e) => {
-            if (e.target === this.addCardModal) {
-                this.closeAddCardModal();
+        // Test Results Modal event listeners
+        this.closeResultsBtn.addEventListener('click', () => this.closeTestResults());
+        this.retakeTestBtn.addEventListener('click', () => this.retakeTest());
+        this.exitToHomeBtn.addEventListener('click', () => this.exitToHome());
+        this.reviewTestBtn.addEventListener('click', () => this.reviewTest());
+        this.testResultsModal.addEventListener('click', (e) => {
+            if (e.target === this.testResultsModal) {
+                this.closeTestResults();
             }
         });
+
+        // Close modal on outside click (disabled for Add Card and Create Test modals)
+        // this.addCardModal.addEventListener('click', (e) => {
+        //     if (e.target === this.addCardModal) {
+        //         this.closeAddCardModal();
+        //     }
+        // });
 
         this.editCardModal.addEventListener('click', (e) => {
             if (e.target === this.editCardModal) {
@@ -336,11 +488,11 @@ class VocaBox {
             }
         });
 
-        this.createTestModal.addEventListener('click', (e) => {
-            if (e.target === this.createTestModal) {
-                this.closeCreateTestModal();
-            }
-        });
+        // this.createTestModal.addEventListener('click', (e) => {
+        //     if (e.target === this.createTestModal) {
+        //         this.closeCreateTestModal();
+        //     }
+        // });
 
         this.deleteConfirmModal.addEventListener('click', (e) => {
             if (e.target === this.deleteConfirmModal) {
@@ -379,6 +531,9 @@ class VocaBox {
         this.setupRichTextEditor();
         this.setupCreateTestEditor();
         this.setupAddCardEditor();
+        
+        // Setup paste handlers to strip formatting
+        this.setupPasteHandlers();
     }
 
     // Authentication Methods
@@ -758,6 +913,108 @@ class VocaBox {
             notification.style.transition = 'opacity 0.3s ease';
             setTimeout(() => notification.remove(), 300);
         }, 3000);
+    }
+
+    // Color Customization Modal Methods
+    openColorCustomModal(presetNumber) {
+        this.pendingColorPreset = presetNumber;
+        this.customColorPresetNum.textContent = presetNumber;
+        
+        // Set current color
+        const currentColor = this.customColors[presetNumber];
+        this.customColorInput.value = currentColor;
+        this.customColorHexInput.value = currentColor.toUpperCase();
+        this.customColorHexInput.style.borderColor = '#ddd';
+        
+        // Update preview
+        this.updateColorPreview(currentColor);
+        
+        // Show modal
+        this.colorCustomizationModal.classList.add('active');
+    }
+
+    updateColorPreview(color) {
+        this.colorPreviewBox.style.backgroundColor = color;
+        this.colorPreviewText.style.color = color;
+        this.colorHexDisplay.textContent = color.toUpperCase();
+    }
+
+    closeColorCustomModal() {
+        this.colorCustomizationModal.classList.remove('active');
+        this.pendingColorPreset = null;
+    }
+
+    confirmColorCustomization() {
+        if (!this.pendingColorPreset) return;
+        
+        const newColor = this.customColorInput.value;
+        const presetNum = this.pendingColorPreset;
+        
+        // Update the custom colors
+        this.customColors[presetNum] = newColor;
+        this.saveCustomColors();
+        this.applyCustomColors();
+        
+        // Close modal
+        this.closeColorCustomModal();
+        
+        // Show success notification
+        this.showNotification(`✓ Preset Color ${presetNum} updated successfully!`, 'success');
+    }
+
+    // Custom Color Picker Modal Methods
+    openCustomColorPickerModal(editor, savedSelection) {
+        this.pendingCustomColorContext = { editor, savedSelection };
+        
+        // Set default color to black
+        const defaultColor = '#000000';
+        this.customColorPickerInput.value = defaultColor;
+        this.customColorPickerHexInput.value = '000000';
+        this.customColorPickerHexInput.style.borderColor = '#ddd';
+        
+        // Update preview
+        this.updateCustomColorPickerPreview(defaultColor);
+        
+        // Show modal
+        this.customColorPickerModal.classList.add('active');
+    }
+
+    updateCustomColorPickerPreview(color) {
+        this.customColorPickerPreviewBox.style.backgroundColor = color;
+        this.customColorPickerPreviewText.style.color = color;
+        this.customColorPickerHexDisplay.textContent = color.toUpperCase();
+    }
+
+    closeCustomColorPickerModal() {
+        this.customColorPickerModal.classList.remove('active');
+        this.pendingCustomColorContext = null;
+    }
+
+    confirmCustomColorPicker() {
+        if (!this.pendingCustomColorContext) return;
+        
+        const { editor, savedSelection } = this.pendingCustomColorContext;
+        const selectedColor = this.customColorPickerInput.value;
+        
+        // Restore selection and apply color
+        if (savedSelection) {
+            try {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedSelection.cloneRange());
+            } catch (e) {
+                console.log('Selection restore failed:', e);
+            }
+        }
+        
+        editor.focus();
+        document.execCommand('foreColor', false, selectedColor);
+        
+        // Close modal
+        this.closeCustomColorPickerModal();
+        
+        // Show success notification
+        this.showNotification('✓ Color applied successfully!', 'success');
     }
 
     // IndexedDB Audio Management
@@ -1191,9 +1448,9 @@ class VocaBox {
         } else {
             // Default colors
             return {
-                1: '#FF0000',
-                2: '#0066FF',
-                3: '#00AA00'
+                1: '#457B9D',
+                2: '#9E2A2B',
+                3: '#4D908E'
             };
         }
     }
@@ -1337,11 +1594,17 @@ class VocaBox {
         const regularCards = this.cards.filter(card => card.category === 'card' || !card.category);
         const testCards = this.cards.filter(card => card.category === 'test');
 
-        // Show/hide empty states
+        // Show/hide empty states and decoration cats
         if (regularCards.length === 0) {
             this.cardsEmptyState.classList.remove('hidden');
+            // Hide decoration cat when no cards
+            const cardsDecoration = document.querySelector('.cat-decoration');
+            if (cardsDecoration) cardsDecoration.style.display = 'none';
         } else {
             this.cardsEmptyState.classList.add('hidden');
+            // Show decoration cat when cards exist
+            const cardsDecoration = document.querySelector('.cat-decoration');
+            if (cardsDecoration) cardsDecoration.style.display = 'block';
             regularCards.forEach(card => {
                 const cardElement = this.createCardElement(card);
                 this.cardsContainer.appendChild(cardElement);
@@ -1350,8 +1613,14 @@ class VocaBox {
 
         if (testCards.length === 0) {
             this.testsEmptyState.classList.remove('hidden');
+            // Hide decoration cat when no tests
+            const testsDecoration = document.querySelectorAll('.cat-decoration')[1];
+            if (testsDecoration) testsDecoration.style.display = 'none';
         } else {
             this.testsEmptyState.classList.add('hidden');
+            // Show decoration cat when tests exist
+            const testsDecoration = document.querySelectorAll('.cat-decoration')[1];
+            if (testsDecoration) testsDecoration.style.display = 'block';
             testCards.forEach(card => {
                 const cardElement = this.createCardElement(card);
                 this.testsContainer.appendChild(cardElement);
@@ -1371,8 +1640,8 @@ class VocaBox {
             <div class="card-back-preview">${card.back}</div>
             <div class="card-actions">
                 ${audioButton}
-                <button class="edit-btn" data-id="${card.id}">✏️ Edit</button>
-                <button class="delete-btn" data-id="${card.id}">🗑️ Delete</button>
+                <button class="edit-btn" data-id="${card.id}"><img src="pencils.png" alt="Edit" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Edit</button>
+                <button class="delete-btn" data-id="${card.id}"><img src="trashbin.png" alt="Delete" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Delete</button>
             </div>
         `;
 
@@ -1654,33 +1923,95 @@ class VocaBox {
         const colorPickerButtons = document.querySelectorAll('.color-picker-btn[data-target="addfront"], .color-picker-btn[data-target="addback"]');
         const presetColorButtons = document.querySelectorAll('.preset-color-btn[data-target="addfront"], .preset-color-btn[data-target="addback"]');
 
+        // Store selection
+        let savedSelection = null;
+
         // Formatting buttons
         toolbarButtons.forEach(btn => {
             if (!btn.classList.contains('color-btn')) {
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent focus loss
+                    // Save current selection
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        savedSelection = sel.getRangeAt(0).cloneRange();
+                    }
+                });
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     const command = btn.getAttribute('data-command');
                     const target = btn.getAttribute('data-target');
                     
                     const editor = target === 'addfront' ? this.addFrontText : this.addBackText;
+                    
+                    // Restore selection BEFORE focusing
+                    if (savedSelection) {
+                        try {
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(savedSelection.cloneRange());
+                        } catch (e) {
+                            console.log('Selection restore failed:', e);
+                        }
+                    }
+                    
                     editor.focus();
+                    
+                    // If still no selection, place cursor at end
+                    const sel = window.getSelection();
+                    if (!sel.rangeCount || sel.isCollapsed) {
+                        const range = document.createRange();
+                        range.selectNodeContents(editor);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                    
+                    // Execute command
                     document.execCommand(command, false, null);
+                    
+                    // Important: Save the selection IMMEDIATELY after command
+                    setTimeout(() => {
+                        const newSel = window.getSelection();
+                        if (newSel.rangeCount > 0) {
+                            savedSelection = newSel.getRangeAt(0).cloneRange();
+                        }
+                    }, 0);
                 });
             }
         });
 
         // Color picker buttons
         colorPickerButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const target = btn.getAttribute('data-target');
-                const picker = target === 'addfront' ? this.colorPickerAddFront : this.colorPickerAddBack;
-                picker.click();
+                const editor = target === 'addfront' ? this.addFrontText : this.addBackText;
+                this.openCustomColorPickerModal(editor, savedSelection);
             });
         });
 
         // Preset color buttons
         presetColorButtons.forEach(btn => {
+            // Left click - apply color
+            btn.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { // Left click only
+                    e.preventDefault();
+                    // Save current selection
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        savedSelection = sel.getRangeAt(0).cloneRange();
+                    }
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const target = btn.getAttribute('data-target');
@@ -1688,7 +2019,30 @@ class VocaBox {
                 
                 const editor = target === 'addfront' ? this.addFrontText : this.addBackText;
                 editor.focus();
+                
+                // Restore selection
+                if (savedSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                }
+                
                 document.execCommand('foreColor', false, color);
+                
+                // Save the new selection after command execution
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
+
+            // Right click - customize color via new modal
+            btn.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const preset = parseInt(btn.getAttribute('data-preset'));
+                
+                // Open color customization modal
+                this.openColorCustomModal(preset);
             });
         });
 
@@ -1700,7 +2054,21 @@ class VocaBox {
                 
                 const editor = target === 'addfront' ? this.addFrontText : this.addBackText;
                 editor.focus();
+                
+                // Restore selection
+                if (savedSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                }
+                
                 document.execCommand('foreColor', false, color);
+                
+                // Save the new selection after command execution
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
             });
         });
 
@@ -1730,33 +2098,95 @@ class VocaBox {
         const colorPickerButtons = document.querySelectorAll('.color-picker-btn[data-target="testfront"], .color-picker-btn[data-target="testback"]');
         const presetColorButtons = document.querySelectorAll('.preset-color-btn[data-target="testfront"], .preset-color-btn[data-target="testback"]');
 
+        // Store selection
+        let savedSelection = null;
+
         // Formatting buttons
         toolbarButtons.forEach(btn => {
             if (!btn.classList.contains('color-btn')) {
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent focus loss
+                    // Save current selection
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        savedSelection = sel.getRangeAt(0).cloneRange();
+                    }
+                });
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     const command = btn.getAttribute('data-command');
                     const target = btn.getAttribute('data-target');
                     
                     const editor = target === 'testfront' ? this.testFrontText : this.testBackText;
+                    
+                    // Restore selection BEFORE focusing
+                    if (savedSelection) {
+                        try {
+                            const sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(savedSelection.cloneRange());
+                        } catch (e) {
+                            console.log('Selection restore failed:', e);
+                        }
+                    }
+                    
                     editor.focus();
+                    
+                    // If still no selection, place cursor at end
+                    const sel = window.getSelection();
+                    if (!sel.rangeCount || sel.isCollapsed) {
+                        const range = document.createRange();
+                        range.selectNodeContents(editor);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                    
+                    // Execute command
                     document.execCommand(command, false, null);
+                    
+                    // Important: Save the selection IMMEDIATELY after command
+                    setTimeout(() => {
+                        const newSel = window.getSelection();
+                        if (newSel.rangeCount > 0) {
+                            savedSelection = newSel.getRangeAt(0).cloneRange();
+                        }
+                    }, 0);
                 });
             }
         });
 
         // Color picker buttons
         colorPickerButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const target = btn.getAttribute('data-target');
-                const picker = target === 'testfront' ? this.colorPickerTestFront : this.colorPickerTestBack;
-                picker.click();
+                const editor = target === 'testfront' ? this.testFrontText : this.testBackText;
+                this.openCustomColorPickerModal(editor, savedSelection);
             });
         });
 
         // Preset color buttons
         presetColorButtons.forEach(btn => {
+            // Left click - apply color
+            btn.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { // Left click only
+                    e.preventDefault();
+                    // Save current selection
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        savedSelection = sel.getRangeAt(0).cloneRange();
+                    }
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const target = btn.getAttribute('data-target');
@@ -1764,7 +2194,30 @@ class VocaBox {
                 
                 const editor = target === 'testfront' ? this.testFrontText : this.testBackText;
                 editor.focus();
+                
+                // Restore selection
+                if (savedSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                }
+                
                 document.execCommand('foreColor', false, color);
+                
+                // Save the new selection after command execution
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
+
+            // Right click - customize color via new modal
+            btn.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const preset = parseInt(btn.getAttribute('data-preset'));
+                
+                // Open color customization modal
+                this.openColorCustomModal(preset);
             });
         });
 
@@ -1776,7 +2229,21 @@ class VocaBox {
                 
                 const editor = target === 'testfront' ? this.testFrontText : this.testBackText;
                 editor.focus();
+                
+                // Restore selection
+                if (savedSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                }
+                
                 document.execCommand('foreColor', false, color);
+                
+                // Save the new selection after command execution
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
             });
         });
 
@@ -1800,14 +2267,64 @@ class VocaBox {
         }
     }
 
+    // Setup Paste Handlers to strip formatting
+    setupPasteHandlers() {
+        const editors = [
+            this.addFrontText,
+            this.addBackText,
+            this.editFrontText,
+            this.editBackText,
+            this.testFrontText,
+            this.testBackText
+        ];
+
+        editors.forEach(editor => {
+            if (editor) {
+                editor.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    
+                    // Get plain text from clipboard
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    
+                    // Insert plain text as black color without any formatting
+                    document.execCommand('insertText', false, text);
+                    
+                    // Alternative method that ensures black color
+                    // const selection = window.getSelection();
+                    // if (selection.rangeCount > 0) {
+                    //     const range = selection.getRangeAt(0);
+                    //     range.deleteContents();
+                    //     const textNode = document.createTextNode(text);
+                    //     range.insertNode(textNode);
+                    //     range.setStartAfter(textNode);
+                    //     range.setEndAfter(textNode);
+                    //     selection.removeAllRanges();
+                    //     selection.addRange(range);
+                    // }
+                });
+            }
+        });
+    }
+
     // Rich Text Editor Setup
     setupRichTextEditor() {
         const toolbarButtons = document.querySelectorAll('.toolbar-btn:not(.color-btn)');
         const colorPickerButtons = document.querySelectorAll('.color-picker-btn');
         const presetColorButtons = document.querySelectorAll('.preset-color-btn');
 
+        // Store selection
+        let savedSelection = null;
+
         // Formatting buttons (Bold, Underline, Lists)
         toolbarButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // Prevent focus loss
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const command = btn.getAttribute('data-command');
@@ -1815,26 +2332,74 @@ class VocaBox {
                 
                 // Focus on the appropriate editor
                 const editor = target === 'front' ? this.editFrontText : this.editBackText;
+                
+                // Restore selection BEFORE focusing
+                if (savedSelection) {
+                    try {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(savedSelection.cloneRange());
+                    } catch (e) {
+                        console.log('Selection restore failed:', e);
+                    }
+                }
+                
                 editor.focus();
+                
+                // If still no selection, place cursor at end
+                const sel = window.getSelection();
+                if (!sel.rangeCount || sel.isCollapsed) {
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    range.collapse(false);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
                 
                 // Execute the formatting command
                 document.execCommand(command, false, null);
+                
+                // Important: Save the selection IMMEDIATELY after command
+                setTimeout(() => {
+                    const newSel = window.getSelection();
+                    if (newSel.rangeCount > 0) {
+                        savedSelection = newSel.getRangeAt(0).cloneRange();
+                    }
+                }, 0);
             });
         });
 
-        // Color picker buttons (🎨) - open color picker when clicked
+        // Color picker buttons (🎨) - open custom color modal
         colorPickerButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const target = btn.getAttribute('data-target');
-                const picker = target === 'front' ? this.colorPickerFront : this.colorPickerBack;
-                picker.click();
+                const editor = target === 'front' ? this.editFrontText : this.editBackText;
+                this.openCustomColorPickerModal(editor, savedSelection);
             });
         });
 
         // Preset color buttons - apply color immediately
         presetColorButtons.forEach(btn => {
             // Left click - apply color
+            btn.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { // Left click only
+                    e.preventDefault();
+                    // Save current selection
+                    const sel = window.getSelection();
+                    if (sel.rangeCount > 0) {
+                        savedSelection = sel.getRangeAt(0).cloneRange();
+                    }
+                }
+            });
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const target = btn.getAttribute('data-target');
@@ -1844,23 +2409,30 @@ class VocaBox {
                 const editor = target === 'front' ? this.editFrontText : this.editBackText;
                 editor.focus();
                 
+                // Restore selection
+                if (savedSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                }
+                
                 // Apply color
                 document.execCommand('foreColor', false, color);
+                
+                // Save the new selection after command execution
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
             });
 
-            // Right click - customize color
+            // Right click - customize color via new modal
             btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                const preset = btn.getAttribute('data-preset');
-                const target = btn.getAttribute('data-target');
+                const preset = parseInt(btn.getAttribute('data-preset'));
                 
-                // Get the appropriate hidden color picker
-                const pickerId = `customColorPicker${preset}${target === 'front' ? 'Front' : 'Back'}`;
-                const picker = document.getElementById(pickerId);
-                
-                if (picker) {
-                    picker.click();
-                }
+                // Open color customization modal
+                this.openColorCustomModal(preset);
             });
         });
 
@@ -1874,73 +2446,24 @@ class VocaBox {
                 const editor = target === 'front' ? this.editFrontText : this.editBackText;
                 editor.focus();
                 
+                // Restore selection
+                if (savedSelection) {
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedSelection);
+                }
+                
                 // Apply color
                 document.execCommand('foreColor', false, color);
+                
+                // Save the new selection after command execution
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
             });
         });
 
-        // Custom preset color pickers - update the preset color
-        for (let i = 1; i <= 3; i++) {
-            const frontPicker = document.getElementById(`customColorPicker${i}Front`);
-            const backPicker = document.getElementById(`customColorPicker${i}Back`);
-            
-            if (frontPicker) {
-                frontPicker.addEventListener('change', (e) => {
-                    const color = e.target.value;
-                    const preset = frontPicker.getAttribute('data-preset');
-                    
-                    // Update the custom colors
-                    this.customColors[preset] = color;
-                    this.saveCustomColors();
-                    this.applyCustomColors();
-                    
-                    // Show confirmation
-                    this.showColorUpdateNotification(preset, color);
-                });
-            }
-            
-            if (backPicker) {
-                backPicker.addEventListener('change', (e) => {
-                    const color = e.target.value;
-                    const preset = backPicker.getAttribute('data-preset');
-                    
-                    // Update the custom colors
-                    this.customColors[preset] = color;
-                    this.saveCustomColors();
-                    this.applyCustomColors();
-                    
-                    // Show confirmation
-                    this.showColorUpdateNotification(preset, color);
-                });
-            }
-        }
-    }
-
-    showColorUpdateNotification(preset, color) {
-        // Create a temporary notification
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #5FB3A7;
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            z-index: 10000;
-            font-weight: 600;
-            animation: slideIn 0.3s ease;
-        `;
-        notification.textContent = `✓ Preset Color ${preset} updated!`;
-        document.body.appendChild(notification);
-        
-        // Remove after 2 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 2000);
     }
 
     // Test Mode Selection
@@ -2010,7 +2533,15 @@ class VocaBox {
             this.closeTestModeSelection();
             return;
         }
-
+        
+        // Reset test results
+        this.testResults = {
+            answers: [],
+            correctCount: 0,
+            incorrectCount: 0,
+            unansweredCount: 0
+        };
+        
         this.closeTestModeSelection();
         this.currentTypingIndex = 0;
         this.typingModeScreen.classList.add('active');
@@ -2072,6 +2603,40 @@ class VocaBox {
         
         // Check if exactly correct (case-sensitive but ignoring visual-only differences)
         const isCorrect = normalizedCorrect === normalizedUser;
+        
+        // Track the answer (update if already checked, add if new)
+        const existingIndex = this.testResults.answers.findIndex(a => a.questionIndex === this.currentTypingIndex);
+        const answerRecord = {
+            questionIndex: this.currentTypingIndex,
+            isCorrect: isCorrect,
+            userAnswer: userText,
+            correctAnswer: correctText
+        };
+        
+        if (existingIndex >= 0) {
+            // Update existing answer
+            const wasCorrect = this.testResults.answers[existingIndex].isCorrect;
+            this.testResults.answers[existingIndex] = answerRecord;
+            
+            // Update counts
+            if (wasCorrect !== isCorrect) {
+                if (isCorrect) {
+                    this.testResults.correctCount++;
+                    this.testResults.incorrectCount--;
+                } else {
+                    this.testResults.incorrectCount++;
+                    this.testResults.correctCount--;
+                }
+            }
+        } else {
+            // Add new answer
+            this.testResults.answers.push(answerRecord);
+            if (isCorrect) {
+                this.testResults.correctCount++;
+            } else {
+                this.testResults.incorrectCount++;
+            }
+        }
         
         this.answerResult.style.display = 'block';
         this.answerResult.className = 'answer-result ' + (isCorrect ? 'correct' : 'incorrect');
@@ -2246,13 +2811,116 @@ class VocaBox {
             this.currentTypingIndex++;
             this.loadTypingCard();
         } else {
-            alert('You\'ve completed all test cards! Great job! 🎉');
+            // Automatically show results when reaching the last card
+            this.showTestResults();
         }
     }
 
     updateTypingProgress() {
         const progress = ((this.currentTypingIndex + 1) / this.typingTestCards.length) * 100;
         this.typingProgressFill.style.width = progress + '%';
+    }
+
+    showTestResults() {
+        // Calculate unanswered questions
+        const totalQuestions = this.typingTestCards.length;
+        const answeredCount = this.testResults.answers.length;
+        this.testResults.unansweredCount = totalQuestions - answeredCount;
+        
+        // Calculate percentage
+        const percentage = answeredCount > 0 
+            ? Math.round((this.testResults.correctCount / totalQuestions) * 100) 
+            : 0;
+        
+        // Update modal content
+        this.gradePercentage.textContent = percentage + '%';
+        this.totalQuestions.textContent = totalQuestions;
+        this.correctAnswers.textContent = this.testResults.correctCount;
+        this.incorrectAnswers.textContent = this.testResults.incorrectCount;
+        this.unansweredQuestions.textContent = this.testResults.unansweredCount;
+        
+        // Set performance message based on percentage
+        let message = '';
+        if (percentage >= 90) {
+            message = 'Outstanding! You have mastered this material!';
+        } else if (percentage >= 80) {
+            message = 'Excellent work! You\'re doing great!';
+        } else if (percentage >= 70) {
+            message = 'Good job! Keep practicing to improve further.';
+        } else if (percentage >= 60) {
+            message = 'Not bad! Review the material and try again.';
+        } else {
+            message = 'Keep practicing! You\'ll get better with more practice.';
+        }
+        
+        this.performanceMessage.querySelector('p').innerHTML = message;
+        
+        // Update grade circle color based on performance
+        const gradeCircle = document.querySelector('.grade-circle');
+        if (percentage >= 80) {
+            gradeCircle.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45A049 100%)';
+        } else if (percentage >= 60) {
+            gradeCircle.style.background = 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)';
+        } else {
+            gradeCircle.style.background = 'linear-gradient(135deg, #C85A6E 0%, #A94759 100%)';
+        }
+        
+        // Show modal
+        console.log('About to show modal, element:', this.testResultsModal);
+        if (this.testResultsModal) {
+            this.testResultsModal.classList.add('active');
+            console.log('Modal classList after adding active:', this.testResultsModal.classList);
+        } else {
+            console.error('testResultsModal element not found!');
+            // Try direct access as fallback
+            const modal = document.getElementById('testResultsModal');
+            if (modal) {
+                console.log('Found modal via getElementById, adding active class');
+                modal.classList.add('active');
+            }
+        }
+    }
+
+    closeTestResults() {
+        this.testResultsModal.classList.remove('active');
+    }
+
+    retakeTest() {
+        // Reset test results
+        this.testResults = {
+            answers: [],
+            correctCount: 0,
+            incorrectCount: 0,
+            unansweredCount: 0
+        };
+        
+        // Close results modal
+        this.closeTestResults();
+        
+        // Reset to first question
+        this.currentTypingIndex = 0;
+        this.loadTypingCard();
+        
+        this.showNotification('Test reset! Good luck! 🍀', 'success');
+    }
+
+    exitToHome() {
+        // Close results modal
+        this.closeTestResults();
+        
+        // Exit typing mode
+        this.exitTypingMode();
+    }
+
+    reviewTest() {
+        // Close results modal
+        this.closeTestResults();
+        
+        // Go to first question
+        this.currentTypingIndex = 0;
+        this.loadTypingCard();
+        
+        this.showNotification('Review mode: Check your answers! 📋', 'info');
     }
 
     async loadTestCard() {
