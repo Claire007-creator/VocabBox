@@ -1740,3 +1740,29 @@ body {
     }
 }
 
+/* Hidden content styles */
+.hidden-content {
+    background-color: #f0f0f0;
+    color: #f0f0f0;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 1px 3px;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.hidden-content:hover {
+    background-color: #e0e0e0;
+    color: #666;
+}
+
+.hidden-content.revealed {
+    background-color: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.hidden-content.revealed:hover {
+    background-color: #f8f8f8;
+}
+

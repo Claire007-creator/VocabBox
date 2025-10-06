@@ -455,7 +455,7 @@ class VocaBox {
         this.typingPrevBtn.addEventListener('click', () => this.previousTypingCard());
         this.typingNextBtn.addEventListener('click', () => this.nextTypingCard());
         this.replayTypingAudioBtn.addEventListener('click', () => this.replayTypingAudio());
-        
+
         // Finish Test button
         if (this.finishTestBtn) {
             this.finishTestBtn.addEventListener('click', (e) => {
@@ -1967,18 +1967,122 @@ class VocaBox {
                         sel.addRange(range);
                     }
                     
+                    // Store the selected text before command
+                    const selectedText = savedSelection ? savedSelection.toString() : '';
+                    
                     // Execute command
                     document.execCommand(command, false, null);
                     
-                    // Important: Save the selection IMMEDIATELY after command
+                    // CRITICAL: Restore selection by finding the text in the editor
                     setTimeout(() => {
-                        const newSel = window.getSelection();
-                        if (newSel.rangeCount > 0) {
-                            savedSelection = newSel.getRangeAt(0).cloneRange();
+                        if (selectedText && selectedText.trim()) {
+                            try {
+                                const sel = window.getSelection();
+                                const range = document.createRange();
+                                
+                                // Find the selected text in the editor
+                                const editorText = editor.textContent || editor.innerText;
+                                const textIndex = editorText.indexOf(selectedText);
+                                
+                                if (textIndex !== -1) {
+                                    // Create a new range for the found text
+                                    const walker = document.createTreeWalker(
+                                        editor,
+                                        NodeFilter.SHOW_TEXT,
+                                        null,
+                                        false
+                                    );
+                                    
+                                    let currentPos = 0;
+                                    let startNode = null;
+                                    let endNode = null;
+                                    let startOffset = 0;
+                                    let endOffset = 0;
+                                    
+                                    let node;
+                                    while (node = walker.nextNode()) {
+                                        const nodeText = node.textContent;
+                                        const nodeLength = nodeText.length;
+                                        
+                                        if (!startNode && currentPos + nodeLength > textIndex) {
+                                            startNode = node;
+                                            startOffset = textIndex - currentPos;
+                                        }
+                                        
+                                        if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                            endNode = node;
+                                            endOffset = (textIndex + selectedText.length) - currentPos;
+                                            break;
+                                        }
+                                        
+                                        currentPos += nodeLength;
+                                    }
+                                    
+                                    if (startNode && endNode) {
+                                        range.setStart(startNode, startOffset);
+                                        range.setEnd(endNode, endOffset);
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                        savedSelection = range.cloneRange();
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('Text-based selection restore failed:', e);
+                            }
                         }
-                    }, 0);
+                    }, 10);
                 });
             }
+        });
+
+        // Highlight to hide functionality
+        const highlightButtons = document.querySelectorAll('[data-command="highlightHide"]');
+        highlightButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = btn.getAttribute('data-target');
+                const editor = target === 'addfront' ? this.addFrontText : this.addBackText;
+                
+                // Restore selection
+                if (savedSelection) {
+                    try {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(savedSelection.cloneRange());
+                    } catch (e) {
+                        console.log('Selection restore failed:', e);
+                    }
+                }
+                
+                editor.focus();
+                
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    const range = selection.getRangeAt(0);
+                    const selectedText = range.toString();
+                    
+                    if (selectedText.trim()) {
+                        const span = document.createElement('span');
+                        span.className = 'hidden-content';
+                        span.textContent = selectedText;
+                        span.setAttribute('data-hidden', 'true');
+                        
+                        range.deleteContents();
+                        range.insertNode(span);
+                        
+                        // Clear selection
+                        selection.removeAllRanges();
+                    }
+                }
+            });
         });
 
         // Color picker buttons
@@ -2027,13 +2131,69 @@ class VocaBox {
                     sel.addRange(savedSelection);
                 }
                 
+                // Store the selected text before command
+                const selectedText = savedSelection ? savedSelection.toString() : '';
+                
                 document.execCommand('foreColor', false, color);
                 
-                // Save the new selection after command execution
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    savedSelection = sel.getRangeAt(0).cloneRange();
-                }
+                // CRITICAL: Restore selection by finding the text in the editor
+                setTimeout(() => {
+                    if (selectedText && selectedText.trim()) {
+                        try {
+                            const sel = window.getSelection();
+                            const range = document.createRange();
+                            
+                            // Find the selected text in the editor
+                            const editorText = editor.textContent || editor.innerText;
+                            const textIndex = editorText.indexOf(selectedText);
+                            
+                            if (textIndex !== -1) {
+                                // Create a new range for the found text
+                                const walker = document.createTreeWalker(
+                                    editor,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                
+                                let currentPos = 0;
+                                let startNode = null;
+                                let endNode = null;
+                                let startOffset = 0;
+                                let endOffset = 0;
+                                
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    const nodeText = node.textContent;
+                                    const nodeLength = nodeText.length;
+                                    
+                                    if (!startNode && currentPos + nodeLength > textIndex) {
+                                        startNode = node;
+                                        startOffset = textIndex - currentPos;
+                                    }
+                                    
+                                    if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                        endNode = node;
+                                        endOffset = (textIndex + selectedText.length) - currentPos;
+                                        break;
+                                    }
+                                    
+                                    currentPos += nodeLength;
+                                }
+                                
+                                if (startNode && endNode) {
+                                    range.setStart(startNode, startOffset);
+                                    range.setEnd(endNode, endOffset);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    savedSelection = range.cloneRange();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Text-based selection restore failed:', e);
+                        }
+                    }
+                }, 10);
             });
 
             // Right click - customize color via new modal
@@ -2062,13 +2222,69 @@ class VocaBox {
                     sel.addRange(savedSelection);
                 }
                 
+                // Store the selected text before command
+                const selectedText = savedSelection ? savedSelection.toString() : '';
+                
                 document.execCommand('foreColor', false, color);
                 
-                // Save the new selection after command execution
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    savedSelection = sel.getRangeAt(0).cloneRange();
-                }
+                // CRITICAL: Restore selection by finding the text in the editor
+                setTimeout(() => {
+                    if (selectedText && selectedText.trim()) {
+                        try {
+                            const sel = window.getSelection();
+                            const range = document.createRange();
+                            
+                            // Find the selected text in the editor
+                            const editorText = editor.textContent || editor.innerText;
+                            const textIndex = editorText.indexOf(selectedText);
+                            
+                            if (textIndex !== -1) {
+                                // Create a new range for the found text
+                                const walker = document.createTreeWalker(
+                                    editor,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                
+                                let currentPos = 0;
+                                let startNode = null;
+                                let endNode = null;
+                                let startOffset = 0;
+                                let endOffset = 0;
+                                
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    const nodeText = node.textContent;
+                                    const nodeLength = nodeText.length;
+                                    
+                                    if (!startNode && currentPos + nodeLength > textIndex) {
+                                        startNode = node;
+                                        startOffset = textIndex - currentPos;
+                                    }
+                                    
+                                    if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                        endNode = node;
+                                        endOffset = (textIndex + selectedText.length) - currentPos;
+                                        break;
+                                    }
+                                    
+                                    currentPos += nodeLength;
+                                }
+                                
+                                if (startNode && endNode) {
+                                    range.setStart(startNode, startOffset);
+                                    range.setEnd(endNode, endOffset);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    savedSelection = range.cloneRange();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Text-based selection restore failed:', e);
+                        }
+                    }
+                }, 10);
             });
         });
 
@@ -2142,18 +2358,122 @@ class VocaBox {
                         sel.addRange(range);
                     }
                     
+                    // Store the selected text before command
+                    const selectedText = savedSelection ? savedSelection.toString() : '';
+                    
                     // Execute command
                     document.execCommand(command, false, null);
                     
-                    // Important: Save the selection IMMEDIATELY after command
+                    // CRITICAL: Restore selection by finding the text in the editor
                     setTimeout(() => {
-                        const newSel = window.getSelection();
-                        if (newSel.rangeCount > 0) {
-                            savedSelection = newSel.getRangeAt(0).cloneRange();
+                        if (selectedText && selectedText.trim()) {
+                            try {
+                                const sel = window.getSelection();
+                                const range = document.createRange();
+                                
+                                // Find the selected text in the editor
+                                const editorText = editor.textContent || editor.innerText;
+                                const textIndex = editorText.indexOf(selectedText);
+                                
+                                if (textIndex !== -1) {
+                                    // Create a new range for the found text
+                                    const walker = document.createTreeWalker(
+                                        editor,
+                                        NodeFilter.SHOW_TEXT,
+                                        null,
+                                        false
+                                    );
+                                    
+                                    let currentPos = 0;
+                                    let startNode = null;
+                                    let endNode = null;
+                                    let startOffset = 0;
+                                    let endOffset = 0;
+                                    
+                                    let node;
+                                    while (node = walker.nextNode()) {
+                                        const nodeText = node.textContent;
+                                        const nodeLength = nodeText.length;
+                                        
+                                        if (!startNode && currentPos + nodeLength > textIndex) {
+                                            startNode = node;
+                                            startOffset = textIndex - currentPos;
+                                        }
+                                        
+                                        if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                            endNode = node;
+                                            endOffset = (textIndex + selectedText.length) - currentPos;
+                                            break;
+                                        }
+                                        
+                                        currentPos += nodeLength;
+                                    }
+                                    
+                                    if (startNode && endNode) {
+                                        range.setStart(startNode, startOffset);
+                                        range.setEnd(endNode, endOffset);
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                        savedSelection = range.cloneRange();
+                                    }
+                                }
+                            } catch (e) {
+                                console.log('Text-based selection restore failed:', e);
+                            }
                         }
-                    }, 0);
+                    }, 10);
                 });
             }
+        });
+
+        // Highlight to hide functionality
+        const highlightButtons = document.querySelectorAll('[data-command="highlightHide"]');
+        highlightButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = btn.getAttribute('data-target');
+                const editor = target === 'testfront' ? this.testFrontText : this.testBackText;
+                
+                // Restore selection
+                if (savedSelection) {
+                    try {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(savedSelection.cloneRange());
+                    } catch (e) {
+                        console.log('Selection restore failed:', e);
+                    }
+                }
+                
+                editor.focus();
+                
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    const range = selection.getRangeAt(0);
+                    const selectedText = range.toString();
+                    
+                    if (selectedText.trim()) {
+                        const span = document.createElement('span');
+                        span.className = 'hidden-content';
+                        span.textContent = selectedText;
+                        span.setAttribute('data-hidden', 'true');
+                        
+                        range.deleteContents();
+                        range.insertNode(span);
+                        
+                        // Clear selection
+                        selection.removeAllRanges();
+                    }
+                }
+            });
         });
 
         // Color picker buttons
@@ -2202,13 +2522,69 @@ class VocaBox {
                     sel.addRange(savedSelection);
                 }
                 
+                // Store the selected text before command
+                const selectedText = savedSelection ? savedSelection.toString() : '';
+                
                 document.execCommand('foreColor', false, color);
                 
-                // Save the new selection after command execution
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    savedSelection = sel.getRangeAt(0).cloneRange();
-                }
+                // CRITICAL: Restore selection by finding the text in the editor
+                setTimeout(() => {
+                    if (selectedText && selectedText.trim()) {
+                        try {
+                            const sel = window.getSelection();
+                            const range = document.createRange();
+                            
+                            // Find the selected text in the editor
+                            const editorText = editor.textContent || editor.innerText;
+                            const textIndex = editorText.indexOf(selectedText);
+                            
+                            if (textIndex !== -1) {
+                                // Create a new range for the found text
+                                const walker = document.createTreeWalker(
+                                    editor,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                
+                                let currentPos = 0;
+                                let startNode = null;
+                                let endNode = null;
+                                let startOffset = 0;
+                                let endOffset = 0;
+                                
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    const nodeText = node.textContent;
+                                    const nodeLength = nodeText.length;
+                                    
+                                    if (!startNode && currentPos + nodeLength > textIndex) {
+                                        startNode = node;
+                                        startOffset = textIndex - currentPos;
+                                    }
+                                    
+                                    if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                        endNode = node;
+                                        endOffset = (textIndex + selectedText.length) - currentPos;
+                                        break;
+                                    }
+                                    
+                                    currentPos += nodeLength;
+                                }
+                                
+                                if (startNode && endNode) {
+                                    range.setStart(startNode, startOffset);
+                                    range.setEnd(endNode, endOffset);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    savedSelection = range.cloneRange();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Text-based selection restore failed:', e);
+                        }
+                    }
+                }, 10);
             });
 
             // Right click - customize color via new modal
@@ -2237,13 +2613,69 @@ class VocaBox {
                     sel.addRange(savedSelection);
                 }
                 
+                // Store the selected text before command
+                const selectedText = savedSelection ? savedSelection.toString() : '';
+                
                 document.execCommand('foreColor', false, color);
                 
-                // Save the new selection after command execution
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    savedSelection = sel.getRangeAt(0).cloneRange();
-                }
+                // CRITICAL: Restore selection by finding the text in the editor
+                setTimeout(() => {
+                    if (selectedText && selectedText.trim()) {
+                        try {
+                            const sel = window.getSelection();
+                            const range = document.createRange();
+                            
+                            // Find the selected text in the editor
+                            const editorText = editor.textContent || editor.innerText;
+                            const textIndex = editorText.indexOf(selectedText);
+                            
+                            if (textIndex !== -1) {
+                                // Create a new range for the found text
+                                const walker = document.createTreeWalker(
+                                    editor,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                
+                                let currentPos = 0;
+                                let startNode = null;
+                                let endNode = null;
+                                let startOffset = 0;
+                                let endOffset = 0;
+                                
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    const nodeText = node.textContent;
+                                    const nodeLength = nodeText.length;
+                                    
+                                    if (!startNode && currentPos + nodeLength > textIndex) {
+                                        startNode = node;
+                                        startOffset = textIndex - currentPos;
+                                    }
+                                    
+                                    if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                        endNode = node;
+                                        endOffset = (textIndex + selectedText.length) - currentPos;
+                                        break;
+                                    }
+                                    
+                                    currentPos += nodeLength;
+                                }
+                                
+                                if (startNode && endNode) {
+                                    range.setStart(startNode, startOffset);
+                                    range.setEnd(endNode, endOffset);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    savedSelection = range.cloneRange();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Text-based selection restore failed:', e);
+                        }
+                    }
+                }, 10);
             });
         });
 
@@ -2359,13 +2791,74 @@ class VocaBox {
                 // Execute the formatting command
                 document.execCommand(command, false, null);
                 
-                // Important: Save the selection IMMEDIATELY after command
+                // CRITICAL: Immediately restore and maintain selection after command
                 setTimeout(() => {
-                    const newSel = window.getSelection();
-                    if (newSel.rangeCount > 0) {
-                        savedSelection = newSel.getRangeAt(0).cloneRange();
+                    const sel = window.getSelection();
+                    if (savedSelection) {
+                        try {
+                            sel.removeAllRanges();
+                            sel.addRange(savedSelection.cloneRange());
+                            // Save the restored selection for next operation
+                            savedSelection = sel.getRangeAt(0).cloneRange();
+                        } catch (e) {
+                            console.log('Selection restore failed:', e);
+                            // If restore fails, try to get current selection
+                            if (sel.rangeCount > 0) {
+                                savedSelection = sel.getRangeAt(0).cloneRange();
+                            }
+                        }
                     }
                 }, 0);
+            });
+        });
+
+        // Highlight to hide functionality
+        const highlightButtons = document.querySelectorAll('[data-command="highlightHide"]');
+        highlightButtons.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                // Save current selection
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    savedSelection = sel.getRangeAt(0).cloneRange();
+                }
+            });
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = btn.getAttribute('data-target');
+                const editor = target === 'front' ? this.editFrontText : this.editBackText;
+                
+                // Restore selection
+                if (savedSelection) {
+                    try {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(savedSelection.cloneRange());
+                    } catch (e) {
+                        console.log('Selection restore failed:', e);
+                    }
+                }
+                
+                editor.focus();
+                
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    const range = selection.getRangeAt(0);
+                    const selectedText = range.toString();
+                    
+                    if (selectedText.trim()) {
+                        const span = document.createElement('span');
+                        span.className = 'hidden-content';
+                        span.textContent = selectedText;
+                        span.setAttribute('data-hidden', 'true');
+                        
+                        range.deleteContents();
+                        range.insertNode(span);
+                        
+                        // Clear selection
+                        selection.removeAllRanges();
+                    }
+                }
             });
         });
 
@@ -2417,13 +2910,69 @@ class VocaBox {
                 }
                 
                 // Apply color
+                // Store the selected text before command
+                const selectedText = savedSelection ? savedSelection.toString() : '';
+                
                 document.execCommand('foreColor', false, color);
                 
-                // Save the new selection after command execution
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    savedSelection = sel.getRangeAt(0).cloneRange();
-                }
+                // CRITICAL: Restore selection by finding the text in the editor
+                setTimeout(() => {
+                    if (selectedText && selectedText.trim()) {
+                        try {
+                            const sel = window.getSelection();
+                            const range = document.createRange();
+                            
+                            // Find the selected text in the editor
+                            const editorText = editor.textContent || editor.innerText;
+                            const textIndex = editorText.indexOf(selectedText);
+                            
+                            if (textIndex !== -1) {
+                                // Create a new range for the found text
+                                const walker = document.createTreeWalker(
+                                    editor,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                
+                                let currentPos = 0;
+                                let startNode = null;
+                                let endNode = null;
+                                let startOffset = 0;
+                                let endOffset = 0;
+                                
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    const nodeText = node.textContent;
+                                    const nodeLength = nodeText.length;
+                                    
+                                    if (!startNode && currentPos + nodeLength > textIndex) {
+                                        startNode = node;
+                                        startOffset = textIndex - currentPos;
+                                    }
+                                    
+                                    if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                        endNode = node;
+                                        endOffset = (textIndex + selectedText.length) - currentPos;
+                                        break;
+                                    }
+                                    
+                                    currentPos += nodeLength;
+                                }
+                                
+                                if (startNode && endNode) {
+                                    range.setStart(startNode, startOffset);
+                                    range.setEnd(endNode, endOffset);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    savedSelection = range.cloneRange();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Text-based selection restore failed:', e);
+                        }
+                    }
+                }, 10);
             });
 
             // Right click - customize color via new modal
@@ -2454,13 +3003,69 @@ class VocaBox {
                 }
                 
                 // Apply color
+                // Store the selected text before command
+                const selectedText = savedSelection ? savedSelection.toString() : '';
+                
                 document.execCommand('foreColor', false, color);
                 
-                // Save the new selection after command execution
-                const sel = window.getSelection();
-                if (sel.rangeCount > 0) {
-                    savedSelection = sel.getRangeAt(0).cloneRange();
-                }
+                // CRITICAL: Restore selection by finding the text in the editor
+                setTimeout(() => {
+                    if (selectedText && selectedText.trim()) {
+                        try {
+                            const sel = window.getSelection();
+                            const range = document.createRange();
+                            
+                            // Find the selected text in the editor
+                            const editorText = editor.textContent || editor.innerText;
+                            const textIndex = editorText.indexOf(selectedText);
+                            
+                            if (textIndex !== -1) {
+                                // Create a new range for the found text
+                                const walker = document.createTreeWalker(
+                                    editor,
+                                    NodeFilter.SHOW_TEXT,
+                                    null,
+                                    false
+                                );
+                                
+                                let currentPos = 0;
+                                let startNode = null;
+                                let endNode = null;
+                                let startOffset = 0;
+                                let endOffset = 0;
+                                
+                                let node;
+                                while (node = walker.nextNode()) {
+                                    const nodeText = node.textContent;
+                                    const nodeLength = nodeText.length;
+                                    
+                                    if (!startNode && currentPos + nodeLength > textIndex) {
+                                        startNode = node;
+                                        startOffset = textIndex - currentPos;
+                                    }
+                                    
+                                    if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
+                                        endNode = node;
+                                        endOffset = (textIndex + selectedText.length) - currentPos;
+                                        break;
+                                    }
+                                    
+                                    currentPos += nodeLength;
+                                }
+                                
+                                if (startNode && endNode) {
+                                    range.setStart(startNode, startOffset);
+                                    range.setEnd(endNode, endOffset);
+                                    sel.removeAllRanges();
+                                    sel.addRange(range);
+                                    savedSelection = range.cloneRange();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Text-based selection restore failed:', e);
+                        }
+                    }
+                }, 10);
             });
         });
 
@@ -2541,7 +3146,7 @@ class VocaBox {
             incorrectCount: 0,
             unansweredCount: 0
         };
-        
+
         this.closeTestModeSelection();
         this.currentTypingIndex = 0;
         this.typingModeScreen.classList.add('active');
@@ -2562,6 +3167,9 @@ class VocaBox {
         this.answerResult.style.display = 'none';
         this.typingCardNum.textContent = this.currentTypingIndex + 1;
         this.updateTypingProgress();
+        
+        // Add click handlers for hidden content
+        this.addHiddenContentClickHandlers();
         
         // Enable/disable navigation buttons
         this.typingPrevBtn.disabled = this.currentTypingIndex === 0;
@@ -2932,6 +3540,9 @@ class VocaBox {
         this.isFlipped = false;
         this.updateProgress();
         
+        // Add click handlers for hidden content
+        this.addHiddenContentClickHandlers();
+        
         // Store current audio ID and show/hide replay button
         this.currentFlipAudioId = card.audioId || null;
         if (this.currentFlipAudioId) {
@@ -2973,6 +3584,25 @@ class VocaBox {
     updateProgress() {
         const progress = ((this.currentTestIndex + 1) / this.flipTestCards.length) * 100;
         this.progressFill.style.width = progress + '%';
+    }
+
+    // Add click handlers for hidden content in test mode
+    addHiddenContentClickHandlers() {
+        const hiddenElements = document.querySelectorAll('.hidden-content');
+        hiddenElements.forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (element.classList.contains('revealed')) {
+                    // Hide the content
+                    element.classList.remove('revealed');
+                } else {
+                    // Reveal the content
+                    element.classList.add('revealed');
+                }
+            });
+        });
     }
 }
 
