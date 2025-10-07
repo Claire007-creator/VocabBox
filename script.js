@@ -1640,7 +1640,7 @@ class VocaBox {
             <div class="card-back-preview">${card.back}</div>
             <div class="card-actions">
                 ${audioButton}
-                <button class="edit-btn" data-id="${card.id}"><img src="pencils.png" alt="Edit" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Edit</button>
+                <button class="edit-btn" data-id="${card.id}"><img src="pencil.png" alt="Edit" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Edit</button>
                 <button class="delete-btn" data-id="${card.id}"><img src="trashbin.png" alt="Delete" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Delete</button>
             </div>
         `;
