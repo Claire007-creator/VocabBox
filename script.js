@@ -53,7 +53,7 @@ class VocaBox {
         this.cancelSignUpBtn = document.getElementById('cancelSignUpBtn');
         this.signInForm = document.getElementById('signInForm');
         this.signUpForm = document.getElementById('signUpForm');
-        this.signInUsername = document.getElementById('signInUsername');
+        this.signInContact = document.getElementById('signInContact');
         this.signInPassword = document.getElementById('signInPassword');
         this.signUpUsername = document.getElementById('signUpUsername');
         this.signUpContact = document.getElementById('signUpContact');
@@ -70,7 +70,7 @@ class VocaBox {
         this.closeForgotPasswordBtn = document.getElementById('closeForgotPasswordBtn');
         this.cancelForgotPasswordBtn = document.getElementById('cancelForgotPasswordBtn');
         this.forgotPasswordForm = document.getElementById('forgotPasswordForm');
-        this.forgotUsername = document.getElementById('forgotUsername');
+        this.forgotContact = document.getElementById('forgotContact');
         this.forgotPasswordError = document.getElementById('forgotPasswordError');
         
         // Verify code elements
@@ -79,6 +79,8 @@ class VocaBox {
         this.cancelVerifyCodeBtn = document.getElementById('cancelVerifyCodeBtn');
         this.verifyCodeForm = document.getElementById('verifyCodeForm');
         this.verificationCode = document.getElementById('verificationCode');
+        this.recoveredUsername = document.getElementById('recoveredUsername');
+        this.newUsername = document.getElementById('newUsername');
         this.newPassword = document.getElementById('newPassword');
         this.newPasswordConfirm = document.getElementById('newPasswordConfirm');
         this.verifyCodeError = document.getElementById('verifyCodeError');
@@ -564,7 +566,7 @@ class VocaBox {
     openSignInModal() {
         this.signInModal.classList.add('active');
         this.signInError.style.display = 'none';
-        this.signInUsername.focus();
+        this.signInContact.focus();
     }
 
     closeSignInModal() {
@@ -587,20 +589,26 @@ class VocaBox {
 
     handleSignIn(e) {
         e.preventDefault();
-        const username = this.signInUsername.value.trim();
+        const contact = this.signInContact.value.trim();
         const password = this.signInPassword.value;
 
-        if (!username || !password) {
+        if (!contact || !password) {
             this.showError(this.signInError, 'Please fill in all fields');
+            return;
+        }
+
+        // Validate contact format
+        if (!this.validateContact(contact)) {
+            this.showError(this.signInError, 'Please enter a valid email or phone number');
             return;
         }
 
         // Get users from localStorage
         const users = this.getUsers();
-        const user = users.find(u => u.username === username);
+        const user = users.find(u => u.contact === contact);
 
         if (!user) {
-            this.showError(this.signInError, 'Username not found');
+            this.showError(this.signInError, 'No account found with this email or phone number');
             return;
         }
 
@@ -614,13 +622,12 @@ class VocaBox {
         this.saveCurrentUser(this.currentUser);
         this.updateAuthUI();
         this.closeSignInModal();
+        this.showNotification(`Welcome back, ${user.username}!`, 'success');
         
         // Reload cards for this user
         this.cards = this.loadCards();
         this.renderCards();
         this.updateCardCount();
-        
-        this.showNotification(`Welcome back, ${username}! 👋`, 'success');
     }
 
     handleSignUp(e) {
@@ -731,7 +738,7 @@ class VocaBox {
     openForgotPasswordModal() {
         this.forgotPasswordModal.classList.add('active');
         this.forgotPasswordError.style.display = 'none';
-        this.forgotUsername.focus();
+        this.forgotContact.focus();
     }
 
     closeForgotPasswordModal() {
@@ -742,24 +749,25 @@ class VocaBox {
 
     handleForgotPassword(e) {
         e.preventDefault();
-        const username = this.forgotUsername.value.trim();
+        const contact = this.forgotContact.value.trim();
 
-        if (!username) {
-            this.showError(this.forgotPasswordError, 'Please enter your username');
+        if (!contact) {
+            this.showError(this.forgotPasswordError, 'Please enter your email or phone number');
+            return;
+        }
+
+        // Validate contact format
+        if (!this.validateContact(contact)) {
+            this.showError(this.forgotPasswordError, 'Please enter a valid email or phone number');
             return;
         }
 
         // Get users from localStorage
         const users = this.getUsers();
-        const user = users.find(u => u.username === username);
+        const user = users.find(u => u.contact === contact);
 
         if (!user) {
-            this.showError(this.forgotPasswordError, 'Username not found');
-            return;
-        }
-
-        if (!user.contact) {
-            this.showError(this.forgotPasswordError, 'No recovery contact found for this account');
+            this.showError(this.forgotPasswordError, 'No account found with this email or phone number');
             return;
         }
 
@@ -768,14 +776,14 @@ class VocaBox {
         
         // Store recovery data
         this.recoveryData = {
-            username: username,
+            username: user.username,
             code: code,
             contact: user.contact,
             timestamp: Date.now()
         };
 
         // In real app, send code via email/SMS here
-        console.log(`Recovery code for ${username}: ${code}`);
+        console.log(`Recovery code for ${user.username} (${contact}): ${code}`);
 
         // Show verify code modal
         this.closeForgotPasswordModal();
@@ -789,6 +797,8 @@ class VocaBox {
         this.verifyCodeError.style.display = 'none';
         this.maskedContact.textContent = this.maskContact(this.recoveryData.contact);
         this.displayCode.textContent = this.recoveryData.code;
+        this.recoveredUsername.value = this.recoveryData.username;
+        this.newUsername.value = '';
         this.verificationCode.focus();
     }
 
@@ -808,11 +818,12 @@ class VocaBox {
         }
 
         const code = this.verificationCode.value.trim();
+        const newUsername = this.newUsername.value.trim();
         const newPassword = this.newPassword.value;
         const newPasswordConfirm = this.newPasswordConfirm.value;
 
         if (!code || !newPassword || !newPasswordConfirm) {
-            this.showError(this.verifyCodeError, 'Please fill in all fields');
+            this.showError(this.verifyCodeError, 'Please fill in all required fields');
             return;
         }
 
@@ -840,16 +851,43 @@ class VocaBox {
             return;
         }
 
-        // Update password
+        // Validate new username if provided
+        if (newUsername && newUsername !== this.recoveryData.username) {
+            if (newUsername.length < 3) {
+                this.showError(this.verifyCodeError, 'Username must be at least 3 characters');
+                return;
+            }
+
+            // Check if new username already exists
+            const users = this.getUsers();
+            if (users.find(u => u.username === newUsername && u.username !== this.recoveryData.username)) {
+                this.showError(this.verifyCodeError, 'Username already exists');
+                return;
+            }
+        }
+
+        // Update user data
         const users = this.getUsers();
         const userIndex = users.findIndex(u => u.username === this.recoveryData.username);
         
         if (userIndex !== -1) {
+            // Update password
             users[userIndex].password = newPassword;
+            
+            // Update username if provided
+            if (newUsername && newUsername !== this.recoveryData.username) {
+                users[userIndex].username = newUsername;
+            }
+            
             this.saveUsers(users);
             
             this.closeVerifyCodeModal();
-            this.showNotification('Password reset successfully! Please sign in with your new password.', 'success');
+            
+            if (newUsername && newUsername !== this.recoveryData.username) {
+                this.showNotification('Account updated successfully! Username and password have been changed.', 'success');
+            } else {
+                this.showNotification('Password reset successfully! Please sign in with your new password.', 'success');
+            }
             
             // Open sign in modal
             setTimeout(() => {
