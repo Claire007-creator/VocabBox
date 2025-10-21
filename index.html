@@ -45,13 +45,13 @@
                     <span class="btn-icon">
                         <img src="guitar.png" alt="Create" class="btn-icon-image">
                     </span>
-                    Create Test
+                    Add Test
                 </button>
                 <button class="btn btn-success" id="testModeBtn">
                     <span class="btn-icon">
                         <img src="test.png" alt="Test" class="btn-icon-image">
                     </span>
-                    Test Mode
+                    Learn/Test
                 </button>
             </div>
 
@@ -87,7 +87,7 @@
                             <img src="writing.png" alt="Writing" class="empty-state-image">
                         </div>
                         <h4>No tests yet!</h4>
-                        <p>Click "Create Test" to make test cards</p>
+                        <p>Click "Add Test" to make test cards</p>
                     </div>
                     <!-- Cat image that shows even when tests exist -->
                     <div class="cat-decoration">
@@ -217,7 +217,7 @@
                             <div id="addAudioUploadSection" class="audio-upload-section">
                                 <input type="file" id="addAudioFileInput" accept="audio/*" style="display: none;">
                                 <button type="button" class="btn btn-upload" id="addUploadAudioBtn">
-                                    <img src="music.png" alt="Upload" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;">
+                                    <img src="music.png" alt="Upload" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
                                     Upload Audio File
                                 </button>
                                 <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
@@ -226,7 +226,8 @@
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Card</button>
+                        <button type="button" class="btn btn-warning" id="addNextCardBtn">Next Card</button>
+                        <button type="submit" class="btn btn-success" id="finishBtn">Finish</button>
                     </div>
                 </form>
             </div>
@@ -360,7 +361,7 @@
                             <div id="audioUploadSection" class="audio-upload-section">
                                 <input type="file" id="audioFileInput" accept="audio/*" style="display: none;">
                                 <button type="button" class="btn btn-upload" id="uploadAudioBtn">
-                                    <img src="music.png" alt="Upload" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;">
+                                    <img src="music.png" alt="Upload" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
                                     Upload Audio File
                                 </button>
                                 <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
@@ -376,11 +377,11 @@
         </div>
     </div>
 
-    <!-- Create Test Modal -->
+    <!-- Add Test Modal -->
     <div class="modal" id="createTestModal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>Create Test</h2>
+                <h2>Add Test</h2>
                 <button class="close-btn" id="closeCreateTestBtn">&times;</button>
             </div>
             <div class="modal-body">
@@ -489,7 +490,7 @@
                             <div id="testAudioUploadSection" class="audio-upload-section">
                                 <input type="file" id="testAudioFileInput" accept="audio/*" style="display: none;">
                                 <button type="button" class="btn btn-upload" id="testUploadAudioBtn">
-                                    <img src="music.png" alt="Upload" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;">
+                                    <img src="music.png" alt="Upload" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
                                     Upload Audio File
                                 </button>
                                 <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
@@ -505,11 +506,11 @@
         </div>
     </div>
 
-    <!-- Test Mode Selection Modal -->
+    <!-- Learn/Test Mode Selection Modal -->
     <div class="modal" id="testModeSelectModal">
         <div class="modal-content modal-medium">
             <div class="modal-header">
-                <h2><img src="writing.png" alt="Test" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Test Mode</h2>
+                <h2><img src="writing.png" alt="Test" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Learn/Test Mode</h2>
                 <button class="close-btn" id="closeTestSelectBtn">&times;</button>
             </div>
             <div class="modal-body">
@@ -575,7 +576,7 @@
         </div>
     </div>
 
-    <!-- Test Mode Screen - Flipping -->
+    <!-- Learn/Test Mode Screen - Flipping -->
     <div class="test-mode-screen" id="testModeScreen">
         <div class="test-container">
             <div class="test-header">
@@ -584,6 +585,9 @@
             </div>
             <div class="test-progress">
                 <p>Card <span id="currentCardNum">1</span> of <span id="totalCards">0</span></p>
+                <div class="card-side-indicator">
+                    <span class="side-label" id="currentSideLabel">Front</span>
+                </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progressFill"></div>
                 </div>

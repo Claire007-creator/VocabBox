@@ -129,6 +129,8 @@ class VocaBox {
         this.addCardModal = document.getElementById('addCardModal');
         this.closeModalBtn = document.getElementById('closeModalBtn');
         this.cancelBtn = document.getElementById('cancelBtn');
+        this.addNextCardBtn = document.getElementById('addNextCardBtn');
+        this.finishBtn = document.getElementById('finishBtn');
         this.addCardForm = document.getElementById('addCardForm');
         this.addFrontText = document.getElementById('addFrontText');
         this.addBackText = document.getElementById('addBackText');
@@ -148,7 +150,7 @@ class VocaBox {
         this.colorPickerFront = document.getElementById('colorPickerFront');
         this.colorPickerBack = document.getElementById('colorPickerBack');
 
-        // Create Test modal elements
+        // Add Test modal elements
         this.createTestBtn = document.getElementById('createTestBtn');
         this.createTestModal = document.getElementById('createTestModal');
         this.closeCreateTestBtn = document.getElementById('closeCreateTestBtn');
@@ -243,7 +245,7 @@ class VocaBox {
         this.addAudioPlayer = document.getElementById('addAudioPlayer');
         this.pendingAddAudioId = null;
         
-        // Audio elements (Create Test Modal)
+        // Audio elements (Add Test Modal)
         this.testAudioFileInput = document.getElementById('testAudioFileInput');
         this.testUploadAudioBtn = document.getElementById('testUploadAudioBtn');
         this.testRemoveAudioBtn = document.getElementById('testRemoveAudioBtn');
@@ -251,6 +253,36 @@ class VocaBox {
         this.testAudioUploadSection = document.getElementById('testAudioUploadSection');
         this.testAudioPlayer = document.getElementById('testAudioPlayer');
         this.pendingTestAudioId = null;
+    }
+
+    // Helper function to preserve and restore text selection
+    preserveSelection(editor, callback) {
+        const sel = window.getSelection();
+        let savedRange = null;
+        
+        // Save current selection if it exists and is within the editor
+        if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            if (editor.contains(range.commonAncestorContainer) || editor === range.commonAncestorContainer) {
+                savedRange = range.cloneRange();
+            }
+        }
+        
+        // Execute the callback
+        callback();
+        
+        // Restore selection after a brief delay to ensure DOM updates are complete
+        if (savedRange) {
+            setTimeout(() => {
+                try {
+                    const newSel = window.getSelection();
+                    newSel.removeAllRanges();
+                    newSel.addRange(savedRange);
+                } catch (e) {
+                    console.log('Selection restore failed:', e);
+                }
+            }, 10);
+        }
     }
 
     attachEventListeners() {
@@ -404,18 +436,19 @@ class VocaBox {
         // Test mode button - opens selection modal
         this.testModeBtn.addEventListener('click', () => this.openTestModeSelection());
 
-        // Create Test button
+        // Add Test button
         this.createTestBtn.addEventListener('click', () => this.openCreateTestModal());
 
         // Modal close buttons
         this.closeModalBtn.addEventListener('click', () => this.closeAddCardModal());
         this.cancelBtn.addEventListener('click', () => this.closeAddCardModal());
+        this.addNextCardBtn.addEventListener('click', () => this.addNextCard());
 
         // Edit modal close buttons
         this.closeEditModalBtn.addEventListener('click', () => this.closeEditCardModal());
         this.cancelEditBtn.addEventListener('click', () => this.closeEditCardModal());
 
-        // Create Test modal close buttons
+        // Add Test modal close buttons
         this.closeCreateTestBtn.addEventListener('click', () => this.closeCreateTestModal());
         this.cancelCreateTestBtn.addEventListener('click', () => this.closeCreateTestModal());
 
@@ -477,7 +510,7 @@ class VocaBox {
             }
         });
 
-        // Close modal on outside click (disabled for Add Card and Create Test modals)
+        // Close modal on outside click (disabled for Add Card and Add Test modals)
         // this.addCardModal.addEventListener('click', (e) => {
         //     if (e.target === this.addCardModal) {
         //         this.closeAddCardModal();
@@ -524,7 +557,7 @@ class VocaBox {
         this.addAudioFileInput.addEventListener('change', (e) => this.handleAddAudioUpload(e));
         this.addRemoveAudioBtn.addEventListener('click', () => this.removeAddAudio());
         
-        // Audio upload handlers (Create Test Modal)
+        // Audio upload handlers (Add Test Modal)
         this.testUploadAudioBtn.addEventListener('click', () => this.testAudioFileInput.click());
         this.testAudioFileInput.addEventListener('change', (e) => this.handleTestAudioUpload(e));
         this.testRemoveAudioBtn.addEventListener('click', () => this.removeTestAudio());
@@ -886,7 +919,7 @@ class VocaBox {
             if (newUsername && newUsername !== this.recoveryData.username) {
                 this.showNotification('Account updated successfully! Username and password have been changed.', 'success');
             } else {
-                this.showNotification('Password reset successfully! Please sign in with your new password.', 'success');
+            this.showNotification('Password reset successfully! Please sign in with your new password.', 'success');
             }
             
             // Open sign in modal
@@ -1351,7 +1384,7 @@ class VocaBox {
         }
     }
 
-    // Create Test Audio Upload Methods
+    // Add Test Audio Upload Methods
     async handleTestAudioUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1795,11 +1828,37 @@ class VocaBox {
         const front = this.addFrontText.innerHTML.trim();
         const back = this.addBackText.innerHTML.trim();
 
-        if (front && back) {
+        if (front || back) {
             await this.addCard(front, back, 'card', this.pendingAddAudioId);
             this.pendingAddAudioId = null;
             this.closeAddCardModal();
+        } else {
+            this.showNotification('Please fill in at least one field (front or back).', 'error');
         }
+    }
+
+    async addNextCard() {
+        const front = this.addFrontText.innerHTML.trim();
+        const back = this.addBackText.innerHTML.trim();
+
+        if (front || back) {
+            await this.addCard(front, back, 'card', this.pendingAddAudioId);
+            this.pendingAddAudioId = null;
+            this.clearAddCardForm();
+            this.showNotification('Card added! Ready for next card.', 'success');
+            this.addFrontText.focus();
+        } else {
+            this.showNotification('Please fill in at least one field (front or back).', 'error');
+        }
+    }
+
+    clearAddCardForm() {
+        this.addCardForm.reset();
+        this.addFrontText.innerHTML = '';
+        this.addBackText.innerHTML = '';
+        this.addCurrentAudio.style.display = 'none';
+        this.addAudioUploadSection.style.display = 'block';
+        this.addAudioPlayer.src = '';
     }
 
     // Edit Modal Functions
@@ -1870,7 +1929,7 @@ class VocaBox {
         const frontText = this.editFrontText.textContent.trim();
         const backText = this.editBackText.textContent.trim();
 
-        if ((front && back && frontText && backText) || (front && back)) {
+        if ((front && frontText) || (back && backText)) {
             const cardIndex = this.cards.findIndex(c => c.id === this.currentEditingCardId);
             if (cardIndex !== -1) {
                 // Preserve existing category when editing
@@ -1917,7 +1976,7 @@ class VocaBox {
         await this.closeEditCardModal();
     }
 
-    // Create Test Modal Functions
+    // Add Test Modal Functions
     openCreateTestModal() {
         this.createTestModal.classList.add('active');
         this.pendingTestAudioId = null;
@@ -1948,10 +2007,12 @@ class VocaBox {
         const front = this.testFrontText.innerHTML.trim();
         const back = this.testBackText.innerHTML.trim();
 
-        if (front && back) {
+        if (front || back) {
             await this.addCard(front, back, 'test', this.pendingTestAudioId); // Mark as 'test' category with audio
             this.pendingTestAudioId = null;
             this.closeCreateTestModal();
+        } else {
+            this.showNotification('Please fill in at least one field (front or back).', 'error');
         }
     }
 
@@ -1967,6 +2028,8 @@ class VocaBox {
         // Formatting buttons
         toolbarButtons.forEach(btn => {
             if (!btn.classList.contains('color-btn')) {
+                let savedSelection = null;
+                
                 btn.addEventListener('mousedown', (e) => {
                     e.preventDefault(); // Prevent focus loss
                     // Save current selection
@@ -1975,6 +2038,7 @@ class VocaBox {
                         savedSelection = sel.getRangeAt(0).cloneRange();
                     }
                 });
+                
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     const command = btn.getAttribute('data-command');
@@ -2005,67 +2069,18 @@ class VocaBox {
                         sel.addRange(range);
                     }
                     
-                    // Store the selected text before command
-                    const selectedText = savedSelection ? savedSelection.toString() : '';
-                    
                     // Execute command
                     document.execCommand(command, false, null);
                     
-                    // CRITICAL: Restore selection by finding the text in the editor
+                    // Restore selection after command
                     setTimeout(() => {
-                        if (selectedText && selectedText.trim()) {
+                        if (savedSelection) {
                             try {
                                 const sel = window.getSelection();
-                                const range = document.createRange();
-                                
-                                // Find the selected text in the editor
-                                const editorText = editor.textContent || editor.innerText;
-                                const textIndex = editorText.indexOf(selectedText);
-                                
-                                if (textIndex !== -1) {
-                                    // Create a new range for the found text
-                                    const walker = document.createTreeWalker(
-                                        editor,
-                                        NodeFilter.SHOW_TEXT,
-                                        null,
-                                        false
-                                    );
-                                    
-                                    let currentPos = 0;
-                                    let startNode = null;
-                                    let endNode = null;
-                                    let startOffset = 0;
-                                    let endOffset = 0;
-                                    
-                                    let node;
-                                    while (node = walker.nextNode()) {
-                                        const nodeText = node.textContent;
-                                        const nodeLength = nodeText.length;
-                                        
-                                        if (!startNode && currentPos + nodeLength > textIndex) {
-                                            startNode = node;
-                                            startOffset = textIndex - currentPos;
-                                        }
-                                        
-                                        if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
-                                            endNode = node;
-                                            endOffset = (textIndex + selectedText.length) - currentPos;
-                                            break;
-                                        }
-                                        
-                                        currentPos += nodeLength;
-                                    }
-                                    
-                                    if (startNode && endNode) {
-                                        range.setStart(startNode, startOffset);
-                                        range.setEnd(endNode, endOffset);
-                                        sel.removeAllRanges();
-                                        sel.addRange(range);
-                                        savedSelection = range.cloneRange();
-                                    }
-                                }
+                                sel.removeAllRanges();
+                                sel.addRange(savedSelection.cloneRange());
                             } catch (e) {
-                                console.log('Text-based selection restore failed:', e);
+                                console.log('Selection restore failed:', e);
                             }
                         }
                     }, 10);
@@ -2103,21 +2118,71 @@ class VocaBox {
                 editor.focus();
                 
                 const selection = window.getSelection();
-                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                
+                // First, check if the current selection is inside a hidden element
+                let targetHiddenElement = null;
+                let node = selection.anchorNode;
+                if (node) {
+                    let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+                    while (el && el !== editor) {
+                        if (el.classList && el.classList.contains('hidden-content')) { 
+                            targetHiddenElement = el; 
+                            break; 
+                        }
+                        el = el.parentElement;
+                    }
+                }
+                
+                // If no hidden element found, check if selection overlaps with any hidden elements
+                if (!targetHiddenElement && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const allHiddenElements = editor.querySelectorAll('.hidden-content');
+                    for (let hiddenEl of allHiddenElements) {
+                        if (range.intersectsNode(hiddenEl)) {
+                            targetHiddenElement = hiddenEl;
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetHiddenElement) {
+                    // We found a hidden element - unhide it
+                    const hiddenText = targetHiddenElement.textContent;
+                    const textNode = document.createTextNode(hiddenText);
+                    targetHiddenElement.parentNode.replaceChild(textNode, targetHiddenElement);
+                    
+                    // Select the unhidden text
+                    const newRange = document.createRange();
+                    newRange.setStart(textNode, 0);
+                    newRange.setEnd(textNode, hiddenText.length);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                    
+                    // Clear undo history to prevent issues
+                    editor.focus();
+                } else if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    // No hidden elements found - hide the selected text
                     const range = selection.getRangeAt(0);
                     const selectedText = range.toString();
                     
                     if (selectedText.trim()) {
+                        // Store the original text for potential undo
+                        const originalText = selectedText;
+                        
                         const span = document.createElement('span');
                         span.className = 'hidden-content';
                         span.textContent = selectedText;
                         span.setAttribute('data-hidden', 'true');
+                        span.setAttribute('data-original-text', originalText);
                         
                         range.deleteContents();
                         range.insertNode(span);
                         
                         // Clear selection
                         selection.removeAllRanges();
+                        
+                        // Clear undo history to prevent issues
+                        editor.focus();
                     }
                 }
             });
@@ -2160,7 +2225,7 @@ class VocaBox {
                 const color = btn.getAttribute('data-color');
                 
                 const editor = target === 'addfront' ? this.addFrontText : this.addBackText;
-                editor.focus();
+                    editor.focus();
                 
                 // Restore selection
                 if (savedSelection) {
@@ -2346,7 +2411,7 @@ class VocaBox {
         }
     }
 
-    // Create Test Rich Text Editor Setup
+    // Add Test Rich Text Editor Setup
     setupCreateTestEditor() {
         const toolbarButtons = document.querySelectorAll('.toolbar-btn[data-target="testfront"], .toolbar-btn[data-target="testback"]');
         const colorPickerButtons = document.querySelectorAll('.color-picker-btn[data-target="testfront"], .color-picker-btn[data-target="testback"]');
@@ -2358,6 +2423,8 @@ class VocaBox {
         // Formatting buttons
         toolbarButtons.forEach(btn => {
             if (!btn.classList.contains('color-btn')) {
+                let savedSelection = null;
+                
                 btn.addEventListener('mousedown', (e) => {
                     e.preventDefault(); // Prevent focus loss
                     // Save current selection
@@ -2366,6 +2433,7 @@ class VocaBox {
                         savedSelection = sel.getRangeAt(0).cloneRange();
                     }
                 });
+                
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     const command = btn.getAttribute('data-command');
@@ -2396,67 +2464,18 @@ class VocaBox {
                         sel.addRange(range);
                     }
                     
-                    // Store the selected text before command
-                    const selectedText = savedSelection ? savedSelection.toString() : '';
-                    
                     // Execute command
                     document.execCommand(command, false, null);
                     
-                    // CRITICAL: Restore selection by finding the text in the editor
+                    // Restore selection after command
                     setTimeout(() => {
-                        if (selectedText && selectedText.trim()) {
+                        if (savedSelection) {
                             try {
                                 const sel = window.getSelection();
-                                const range = document.createRange();
-                                
-                                // Find the selected text in the editor
-                                const editorText = editor.textContent || editor.innerText;
-                                const textIndex = editorText.indexOf(selectedText);
-                                
-                                if (textIndex !== -1) {
-                                    // Create a new range for the found text
-                                    const walker = document.createTreeWalker(
-                                        editor,
-                                        NodeFilter.SHOW_TEXT,
-                                        null,
-                                        false
-                                    );
-                                    
-                                    let currentPos = 0;
-                                    let startNode = null;
-                                    let endNode = null;
-                                    let startOffset = 0;
-                                    let endOffset = 0;
-                                    
-                                    let node;
-                                    while (node = walker.nextNode()) {
-                                        const nodeText = node.textContent;
-                                        const nodeLength = nodeText.length;
-                                        
-                                        if (!startNode && currentPos + nodeLength > textIndex) {
-                                            startNode = node;
-                                            startOffset = textIndex - currentPos;
-                                        }
-                                        
-                                        if (!endNode && currentPos + nodeLength >= textIndex + selectedText.length) {
-                                            endNode = node;
-                                            endOffset = (textIndex + selectedText.length) - currentPos;
-                                            break;
-                                        }
-                                        
-                                        currentPos += nodeLength;
-                                    }
-                                    
-                                    if (startNode && endNode) {
-                                        range.setStart(startNode, startOffset);
-                                        range.setEnd(endNode, endOffset);
-                                        sel.removeAllRanges();
-                                        sel.addRange(range);
-                                        savedSelection = range.cloneRange();
-                                    }
-                                }
+                                sel.removeAllRanges();
+                                sel.addRange(savedSelection.cloneRange());
                             } catch (e) {
-                                console.log('Text-based selection restore failed:', e);
+                                console.log('Selection restore failed:', e);
                             }
                         }
                     }, 10);
@@ -2494,21 +2513,71 @@ class VocaBox {
                 editor.focus();
                 
                 const selection = window.getSelection();
-                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                
+                // First, check if the current selection is inside a hidden element
+                let targetHiddenElement = null;
+                let node = selection.anchorNode;
+                if (node) {
+                    let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+                    while (el && el !== editor) {
+                        if (el.classList && el.classList.contains('hidden-content')) { 
+                            targetHiddenElement = el; 
+                            break; 
+                        }
+                        el = el.parentElement;
+                    }
+                }
+                
+                // If no hidden element found, check if selection overlaps with any hidden elements
+                if (!targetHiddenElement && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const allHiddenElements = editor.querySelectorAll('.hidden-content');
+                    for (let hiddenEl of allHiddenElements) {
+                        if (range.intersectsNode(hiddenEl)) {
+                            targetHiddenElement = hiddenEl;
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetHiddenElement) {
+                    // We found a hidden element - unhide it
+                    const hiddenText = targetHiddenElement.textContent;
+                    const textNode = document.createTextNode(hiddenText);
+                    targetHiddenElement.parentNode.replaceChild(textNode, targetHiddenElement);
+                    
+                    // Select the unhidden text
+                    const newRange = document.createRange();
+                    newRange.setStart(textNode, 0);
+                    newRange.setEnd(textNode, hiddenText.length);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                    
+                    // Clear undo history to prevent issues
+                    editor.focus();
+                } else if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    // No hidden elements found - hide the selected text
                     const range = selection.getRangeAt(0);
                     const selectedText = range.toString();
                     
                     if (selectedText.trim()) {
+                        // Store the original text for potential undo
+                        const originalText = selectedText;
+                        
                         const span = document.createElement('span');
                         span.className = 'hidden-content';
                         span.textContent = selectedText;
                         span.setAttribute('data-hidden', 'true');
+                        span.setAttribute('data-original-text', originalText);
                         
                         range.deleteContents();
                         range.insertNode(span);
                         
                         // Clear selection
                         selection.removeAllRanges();
+                        
+                        // Clear undo history to prevent issues
+                        editor.focus();
                     }
                 }
             });
@@ -2776,6 +2845,46 @@ class VocaBox {
         });
     }
 
+    // Add undo handling for hide/unhide operations
+    addUndoHandling() {
+        const editors = [this.addFrontText, this.addBackText, this.editFrontText, this.editBackText, this.testFrontText, this.testBackText];
+        
+        editors.forEach(editor => {
+            if (editor) {
+                // Store the last known good state before hide operations
+                let lastGoodState = null;
+                
+                editor.addEventListener('input', () => {
+                    // Store the current state as good state
+                    lastGoodState = editor.innerHTML;
+                });
+                
+                editor.addEventListener('keydown', (e) => {
+                    // Handle Command+Z (Mac) or Ctrl+Z (Windows/Linux)
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+                        // Check if there are any hidden elements that might be affected
+                        const hiddenElements = editor.querySelectorAll('.hidden-content');
+                        if (hiddenElements.length > 0) {
+                            // Prevent default undo behavior
+                            e.preventDefault();
+                            
+                            // If we have a last good state, restore it
+                            if (lastGoodState) {
+                                editor.innerHTML = lastGoodState;
+                            }
+                            
+                            // Focus the editor
+                            editor.focus();
+                            
+                            // Show a helpful message
+                            this.showNotification('Undo completed. Use HIDE button to toggle content visibility.', 'success');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
     // Rich Text Editor Setup
     setupRichTextEditor() {
         const toolbarButtons = document.querySelectorAll('.toolbar-btn:not(.color-btn)');
@@ -2784,9 +2893,14 @@ class VocaBox {
 
         // Store selection
         let savedSelection = null;
+        
+        // Add undo handling for hide/unhide operations
+        this.addUndoHandling();
 
         // Formatting buttons (Bold, Underline, Lists)
         toolbarButtons.forEach(btn => {
+            let savedSelection = null;
+            
             btn.addEventListener('mousedown', (e) => {
                 e.preventDefault(); // Prevent focus loss
                 // Save current selection
@@ -2795,6 +2909,7 @@ class VocaBox {
                     savedSelection = sel.getRangeAt(0).cloneRange();
                 }
             });
+            
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 const command = btn.getAttribute('data-command');
@@ -2829,24 +2944,18 @@ class VocaBox {
                 // Execute the formatting command
                 document.execCommand(command, false, null);
                 
-                // CRITICAL: Immediately restore and maintain selection after command
+                // Restore selection after command
                 setTimeout(() => {
-                    const sel = window.getSelection();
                     if (savedSelection) {
                         try {
+                            const sel = window.getSelection();
                             sel.removeAllRanges();
                             sel.addRange(savedSelection.cloneRange());
-                            // Save the restored selection for next operation
-                            savedSelection = sel.getRangeAt(0).cloneRange();
                         } catch (e) {
                             console.log('Selection restore failed:', e);
-                            // If restore fails, try to get current selection
-                            if (sel.rangeCount > 0) {
-                                savedSelection = sel.getRangeAt(0).cloneRange();
-                            }
                         }
                     }
-                }, 0);
+                }, 10);
             });
         });
 
@@ -2880,21 +2989,71 @@ class VocaBox {
                 editor.focus();
                 
                 const selection = window.getSelection();
-                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                
+                // First, check if the current selection is inside a hidden element
+                let targetHiddenElement = null;
+                let node = selection.anchorNode;
+                if (node) {
+                    let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+                    while (el && el !== editor) {
+                        if (el.classList && el.classList.contains('hidden-content')) { 
+                            targetHiddenElement = el; 
+                            break; 
+                        }
+                        el = el.parentElement;
+                    }
+                }
+                
+                // If no hidden element found, check if selection overlaps with any hidden elements
+                if (!targetHiddenElement && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const allHiddenElements = editor.querySelectorAll('.hidden-content');
+                    for (let hiddenEl of allHiddenElements) {
+                        if (range.intersectsNode(hiddenEl)) {
+                            targetHiddenElement = hiddenEl;
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetHiddenElement) {
+                    // We found a hidden element - unhide it
+                    const hiddenText = targetHiddenElement.textContent;
+                    const textNode = document.createTextNode(hiddenText);
+                    targetHiddenElement.parentNode.replaceChild(textNode, targetHiddenElement);
+                    
+                    // Select the unhidden text
+                    const newRange = document.createRange();
+                    newRange.setStart(textNode, 0);
+                    newRange.setEnd(textNode, hiddenText.length);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                    
+                    // Clear undo history to prevent issues
+                    editor.focus();
+                } else if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    // No hidden elements found - hide the selected text
                     const range = selection.getRangeAt(0);
                     const selectedText = range.toString();
                     
                     if (selectedText.trim()) {
+                        // Store the original text for potential undo
+                        const originalText = selectedText;
+                        
                         const span = document.createElement('span');
                         span.className = 'hidden-content';
                         span.textContent = selectedText;
                         span.setAttribute('data-hidden', 'true');
+                        span.setAttribute('data-original-text', originalText);
                         
                         range.deleteContents();
                         range.insertNode(span);
                         
                         // Clear selection
                         selection.removeAllRanges();
+                        
+                        // Clear undo history to prevent issues
+                        editor.focus();
                     }
                 }
             });
@@ -3109,7 +3268,7 @@ class VocaBox {
 
     }
 
-    // Test Mode Selection
+    // Learn/Test Mode Selection
     openTestModeSelection() {
         if (this.cards.length === 0) {
             alert('Please add some cards first!');
@@ -3172,7 +3331,7 @@ class VocaBox {
         this.typingTestCards = this.cards.filter(card => card.category === 'test');
         
         if (this.typingTestCards.length === 0) {
-            alert('Please create some test cards first using "Create Test" button!');
+            alert('Please create some test cards first using "Add Test" button!');
             this.closeTestModeSelection();
             return;
         }
@@ -3569,7 +3728,7 @@ class VocaBox {
         this.showNotification('Review mode: Check your answers! 📋', 'info');
     }
 
-    async loadTestCard() {
+    async     loadTestCard() {
         const card = this.flipTestCards[this.currentTestIndex];
         this.cardFront.innerHTML = card.front;
         this.cardBack.innerHTML = card.back;
@@ -3577,6 +3736,7 @@ class VocaBox {
         this.flashcardInner.classList.remove('flipped');
         this.isFlipped = false;
         this.updateProgress();
+        this.updateSideIndicator();
         
         // Add click handlers for hidden content
         this.addHiddenContentClickHandlers();
@@ -3601,6 +3761,20 @@ class VocaBox {
     flipCard() {
         this.flashcardInner.classList.toggle('flipped');
         this.isFlipped = !this.isFlipped;
+        this.updateSideIndicator();
+    }
+
+    updateSideIndicator() {
+        const sideLabel = document.getElementById('currentSideLabel');
+        if (sideLabel) {
+            if (this.isFlipped) {
+                sideLabel.textContent = 'Back';
+                sideLabel.classList.add('back');
+            } else {
+                sideLabel.textContent = 'Front';
+                sideLabel.classList.remove('back');
+            }
+        }
     }
 
     nextCard() {
