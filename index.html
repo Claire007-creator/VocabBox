@@ -37,15 +37,9 @@
             <div class="action-buttons">
                 <button class="btn btn-primary" id="addCardBtn">
                     <span class="btn-icon">
-                        <img src="plus.png" alt="Add" class="btn-icon-image">
+                        <img src="cards.png" alt="Add" class="btn-icon-image">
                     </span>
                     Add Card
-                </button>
-                <button class="btn btn-create" id="createTestBtn">
-                    <span class="btn-icon">
-                        <img src="guitar.png" alt="Create" class="btn-icon-image">
-                    </span>
-                    Add Test
                 </button>
                 <button class="btn btn-success" id="testModeBtn">
                     <span class="btn-icon">
@@ -53,13 +47,42 @@
                     </span>
                     Learn/Test
                 </button>
+                <button class="btn btn-import" id="importWordListBtn">
+                    <span class="btn-icon">
+                        <img src="plus.png" alt="Import" class="btn-icon-image">
+                    </span>
+                    +Import
+                </button>
             </div>
 
-            <!-- Two Column Layout -->
-            <div class="two-column-layout">
+            <!-- Single Column Layout -->
+            <div class="single-column-layout">
+                <!-- Folder Management -->
+                <div class="folder-section">
+                    <div class="folder-header">
+                        <h3 class="folder-title">Folders</h3>
+                        <button class="btn btn-folder" id="createFolderBtn">
+                            <span class="btn-icon">
+                                <img src="plus.png" alt="Add" class="btn-icon-image">
+                            </span>
+                            New Folder
+                        </button>
+                    </div>
+                    <div class="folder-list" id="folderList">
+                        <!-- Folders will be dynamically inserted here -->
+                    </div>
+                </div>
+
                 <!-- Cards Column -->
                 <div class="column">
-                    <h3 class="column-title">Cards (<span id="cardCount">0</span>)</h3>
+                    <div class="cards-header">
+                        <h3 class="column-title">Cards (<span id="cardCount">0</span>)</h3>
+                        <div class="folder-selector">
+                            <select id="folderSelect" class="folder-dropdown">
+                                <option value="all">All Folders</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="cards-container" id="cardsContainer">
                         <!-- Cards will be dynamically inserted here -->
                     </div>
@@ -75,27 +98,34 @@
                         <img src="books.png" alt="Books" class="cat-decoration-image">
                     </div>
                 </div>
-
-                <!-- Tests Column -->
-                <div class="column">
-                    <h3 class="column-title">Tests (<span id="testCount">0</span>)</h3>
-                    <div class="cards-container" id="testsContainer">
-                        <!-- Test cards will be dynamically inserted here -->
-                    </div>
-                    <div class="empty-state" id="testsEmptyState">
-                        <div class="empty-icon">
-                            <img src="writing.png" alt="Writing" class="empty-state-image">
-                        </div>
-                        <h4>No tests yet!</h4>
-                        <p>Click "Add Test" to make test cards</p>
-                    </div>
-                    <!-- Cat image that shows even when tests exist -->
-                    <div class="cat-decoration">
-                        <img src="writing.png" alt="Writing" class="cat-decoration-image">
-                    </div>
-                </div>
             </div>
         </main>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div class="modal" id="createFolderModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>📁 Create New Folder</h2>
+                <button class="close-btn" id="closeCreateFolderBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createFolderForm">
+                    <div class="form-group">
+                        <label for="folderName">Folder Name</label>
+                        <input type="text" id="folderName" class="form-input" placeholder="Enter folder name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="folderDescription">Description (Optional)</label>
+                        <textarea id="folderDescription" class="form-textarea" placeholder="Enter folder description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelCreateFolderBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Folder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Add Card Modal -->
@@ -202,6 +232,12 @@
                             <input type="color" class="color-picker-hidden" id="colorPickerAddBack" data-target="addback" value="#000000">
                         </div>
                         <div id="addBackText" class="rich-editor" contenteditable="true" placeholder="Enter definition or answer..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="addCardFolder">Folder</label>
+                        <select id="addCardFolder" class="form-select">
+                            <option value="default">Default Folder</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Audio (Optional)</label>
@@ -346,6 +382,12 @@
                             <input type="color" class="color-picker-hidden" id="customColorPicker3Back" data-preset="3" data-target="back" value="#4D908E">
                         </div>
                         <div id="editBackText" class="rich-editor" contenteditable="true" placeholder="Enter definition or answer..."></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardFolder">Folder</label>
+                        <select id="editCardFolder" class="form-select">
+                            <option value="default">Default Folder</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Audio (Optional)</label>
@@ -526,6 +568,62 @@
                         <h3>Typing Practice</h3>
                         <p>Type answers for test cards. Tests your recall ability.</p>
                         <button class="btn btn-create mode-select-btn">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Selection Modal for Card Flipping -->
+    <div class="modal" id="flipSideSelectModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <button class="back-btn" id="backToFlipModeBtn">← Back</button>
+                <h2><img src="cards.png" alt="Cards" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Card Flipping - Choose Starting Side</h2>
+                <button class="close-btn" id="closeFlipSideBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="side-selection-options">
+                    <div class="side-option-card" id="selectFrontFirst">
+                        <div class="side-icon">📖</div>
+                        <h3>Start with Front</h3>
+                        <p>See the question/word first, then flip to see the answer.</p>
+                        <button class="btn btn-primary side-select-btn">Select</button>
+                    </div>
+                    <div class="side-option-card" id="selectBackFirst">
+                        <div class="side-icon">📝</div>
+                        <h3>Start with Back</h3>
+                        <p>See the answer first, then flip to see the question.</p>
+                        <button class="btn btn-primary side-select-btn">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Selection Modal for Typing Practice -->
+    <div class="modal" id="typingSideSelectModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <button class="back-btn" id="backToTypingModeBtn">← Back</button>
+                <h2><img src="keyboard.png" alt="Keyboard" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Typing Practice - Choose Sides</h2>
+                <button class="close-btn" id="closeTypingSideBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="typing-side-selection">
+                    <div class="side-selection-options">
+                        <div class="side-option-card" id="selectSeeFrontTypeBack">
+                            <div class="side-icon">📖→⌨️</div>
+                            <h3>See Front, Type Back</h3>
+                            <p>See the question/word, then type the answer.</p>
+                            <button class="btn btn-primary side-select-btn">Select</button>
+                        </div>
+                        <div class="side-option-card" id="selectSeeBackTypeFront">
+                            <div class="side-icon">📝→⌨️</div>
+                            <h3>See Back, Type Front</h3>
+                            <p>See the answer, then type the question/word.</p>
+                            <button class="btn btn-primary side-select-btn">Select</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -850,6 +948,85 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelColorCustomBtn">Cancel</button>
                     <button type="button" class="btn btn-primary" id="confirmColorCustomBtn">✓ Confirm Color</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Word List Modal -->
+    <div class="modal" id="importWordListModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📚 Import Word List</h2>
+                <button class="close-btn" id="closeImportModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="simple-import-section">
+                    <div class="import-divider">
+                        <span class="import-instruction">Copy and paste your word list here (from Word, Excel, Google Docs, etc.)</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <textarea id="wordListTextarea" class="word-list-textarea" placeholder="Word 1 Definition 1&#10;Word 2 Definition 2&#10;Word 3 Definition 3"></textarea>
+                    </div>
+                    
+                    <div class="delimiter-options">
+                        <div class="delimiter-section">
+                            <label class="delimiter-label">Between Term and Definition:</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="termDelimiter" value="space" checked>
+                                    <span class="radio-text">Space</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="termDelimiter" value="comma">
+                                    <span class="radio-text">Comma</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="termDelimiter" value="dash">
+                                    <span class="radio-text">Dash</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="termDelimiter" value="custom">
+                                    <span class="radio-text">Custom</span>
+                                    <input type="text" id="customTermDelimiter" class="custom-delimiter" placeholder="Enter custom delimiter">
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="delimiter-section">
+                            <label class="delimiter-label">Between cards:</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="cardDelimiter" value="newline" checked>
+                                    <span class="radio-text">New Line</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="cardDelimiter" value="semicolon">
+                                    <span class="radio-text">Semicolon</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="cardDelimiter" value="custom">
+                                    <span class="radio-text">Custom</span>
+                                    <input type="text" id="customCardDelimiter" class="custom-delimiter" placeholder="Enter custom delimiter">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-section">
+                        <div class="preview-header">Preview <span id="previewCount">0</span> cards</div>
+                        <div id="previewCardsContainer" class="preview-cards-container">
+                            <div class="preview-placeholder">Nothing to preview yet.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="importError" class="error-message" style="display: none;"></div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelImportBtn">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmImportBtn">Import Cards</button>
                 </div>
             </div>
         </div>

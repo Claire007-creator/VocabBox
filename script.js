@@ -15,6 +15,10 @@ class VocaBox {
         this.pendingDeleteId = null;
         this.audioDB = null;
         
+        // Folder system
+        this.folders = this.loadFolders();
+        this.currentFolder = 'all';
+        
         // Test results tracking
         this.testResults = {
             answers: [], // Array to store {questionIndex, isCorrect, userAnswer, correctAnswer}
@@ -32,6 +36,8 @@ class VocaBox {
         await this.initAudioDB();
         this.attachEventListeners();
         this.updateAuthUI();
+        this.renderFolders();
+        this.updateFolderSelectors();
         this.renderCards();
         this.updateCardCount();
         this.applyCustomColors();
@@ -119,16 +125,28 @@ class VocaBox {
         this.addCardBtn = document.getElementById('addCardBtn');
         this.testModeBtn = document.getElementById('testModeBtn');
         this.cardsContainer = document.getElementById('cardsContainer');
-        this.testsContainer = document.getElementById('testsContainer');
         this.cardsEmptyState = document.getElementById('cardsEmptyState');
-        this.testsEmptyState = document.getElementById('testsEmptyState');
         this.cardCount = document.getElementById('cardCount');
-        this.testCount = document.getElementById('testCount');
+        
+        // Folder elements
+        this.createFolderBtn = document.getElementById('createFolderBtn');
+        this.folderList = document.getElementById('folderList');
+        this.folderSelect = document.getElementById('folderSelect');
+        this.addCardFolder = document.getElementById('addCardFolder');
 
         // Modal elements
         this.addCardModal = document.getElementById('addCardModal');
         this.closeModalBtn = document.getElementById('closeModalBtn');
         this.cancelBtn = document.getElementById('cancelBtn');
+        
+        // Folder modal elements
+        this.createFolderModal = document.getElementById('createFolderModal');
+        this.closeCreateFolderBtn = document.getElementById('closeCreateFolderBtn');
+        this.cancelCreateFolderBtn = document.getElementById('cancelCreateFolderBtn');
+        this.createFolderForm = document.getElementById('createFolderForm');
+        this.folderName = document.getElementById('folderName');
+        this.folderDescription = document.getElementById('folderDescription');
+        
         this.addNextCardBtn = document.getElementById('addNextCardBtn');
         this.finishBtn = document.getElementById('finishBtn');
         this.addCardForm = document.getElementById('addCardForm');
@@ -144,14 +162,15 @@ class VocaBox {
         this.editCardForm = document.getElementById('editCardForm');
         this.editFrontText = document.getElementById('editFrontText');
         this.editBackText = document.getElementById('editBackText');
+        this.editCardFolder = document.getElementById('editCardFolder');
         this.editPrevCardBtn = document.getElementById('editPrevCardBtn');
         this.editNextCardBtn = document.getElementById('editNextCardBtn');
         this.editCardNum = document.getElementById('editCardNum');
         this.colorPickerFront = document.getElementById('colorPickerFront');
         this.colorPickerBack = document.getElementById('colorPickerBack');
 
-        // Add Test modal elements
-        this.createTestBtn = document.getElementById('createTestBtn');
+        // Add Test modal elements (removed from UI but keeping for modal functionality)
+        // this.createTestBtn = document.getElementById('createTestBtn');
         this.createTestModal = document.getElementById('createTestModal');
         this.closeCreateTestBtn = document.getElementById('closeCreateTestBtn');
         this.cancelCreateTestBtn = document.getElementById('cancelCreateTestBtn');
@@ -160,6 +179,19 @@ class VocaBox {
         this.testBackText = document.getElementById('testBackText');
         this.colorPickerTestFront = document.getElementById('colorPickerTestFront');
         this.colorPickerTestBack = document.getElementById('colorPickerTestBack');
+
+        // Import Word List modal elements
+        this.importWordListBtn = document.getElementById('importWordListBtn');
+        this.importWordListModal = document.getElementById('importWordListModal');
+        this.closeImportModalBtn = document.getElementById('closeImportModalBtn');
+        this.cancelImportBtn = document.getElementById('cancelImportBtn');
+        this.confirmImportBtn = document.getElementById('confirmImportBtn');
+        this.wordListTextarea = document.getElementById('wordListTextarea');
+        this.importError = document.getElementById('importError');
+        this.previewCount = document.getElementById('previewCount');
+        this.previewCardsContainer = document.getElementById('previewCardsContainer');
+        this.customTermDelimiter = document.getElementById('customTermDelimiter');
+        this.customCardDelimiter = document.getElementById('customCardDelimiter');
 
         // Delete confirmation modal elements
         this.deleteConfirmModal = document.getElementById('deleteConfirmModal');
@@ -171,6 +203,19 @@ class VocaBox {
         this.closeTestSelectBtn = document.getElementById('closeTestSelectBtn');
         this.selectFlipMode = document.getElementById('selectFlipMode');
         this.selectTypingMode = document.getElementById('selectTypingMode');
+        
+        // Side selection modal elements
+        this.flipSideSelectModal = document.getElementById('flipSideSelectModal');
+        this.closeFlipSideBtn = document.getElementById('closeFlipSideBtn');
+        this.backToFlipModeBtn = document.getElementById('backToFlipModeBtn');
+        this.selectFrontFirst = document.getElementById('selectFrontFirst');
+        this.selectBackFirst = document.getElementById('selectBackFirst');
+        
+        this.typingSideSelectModal = document.getElementById('typingSideSelectModal');
+        this.closeTypingSideBtn = document.getElementById('closeTypingSideBtn');
+        this.backToTypingModeBtn = document.getElementById('backToTypingModeBtn');
+        this.selectSeeFrontTypeBack = document.getElementById('selectSeeFrontTypeBack');
+        this.selectSeeBackTypeFront = document.getElementById('selectSeeBackTypeFront');
 
         // Category selection elements
         this.categorySelectModal = document.getElementById('categorySelectModal');
@@ -436,8 +481,18 @@ class VocaBox {
         // Test mode button - opens selection modal
         this.testModeBtn.addEventListener('click', () => this.openTestModeSelection());
 
-        // Add Test button
-        this.createTestBtn.addEventListener('click', () => this.openCreateTestModal());
+        // Add Test button (removed from UI)
+        // this.createTestBtn.addEventListener('click', () => this.openCreateTestModal());
+
+        // Import Word List button
+        this.importWordListBtn.addEventListener('click', () => this.openImportModal());
+
+        // Folder functionality
+        this.createFolderBtn.addEventListener('click', () => this.openCreateFolderModal());
+        this.closeCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
+        this.cancelCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
+        this.createFolderForm.addEventListener('submit', (e) => this.handleCreateFolder(e));
+        this.folderSelect.addEventListener('change', (e) => this.selectFolder(e.target.value));
 
         // Modal close buttons
         this.closeModalBtn.addEventListener('click', () => this.closeAddCardModal());
@@ -452,18 +507,56 @@ class VocaBox {
         this.closeCreateTestBtn.addEventListener('click', () => this.closeCreateTestModal());
         this.cancelCreateTestBtn.addEventListener('click', () => this.closeCreateTestModal());
 
+        // Import Word List modal close buttons
+        this.closeImportModalBtn.addEventListener('click', () => this.closeImportModal());
+        this.cancelImportBtn.addEventListener('click', () => this.closeImportModal());
+        this.confirmImportBtn.addEventListener('click', () => this.handleImport());
+        
+        // Delimiter option listeners
+        this.wordListTextarea.addEventListener('input', () => this.updatePreview());
+        document.querySelectorAll('input[name="termDelimiter"]').forEach(radio => {
+            radio.addEventListener('change', () => this.updatePreview());
+        });
+        document.querySelectorAll('input[name="cardDelimiter"]').forEach(radio => {
+            radio.addEventListener('change', () => this.updatePreview());
+        });
+        this.customTermDelimiter.addEventListener('input', () => this.updatePreview());
+        this.customCardDelimiter.addEventListener('input', () => this.updatePreview());
+
         // Delete confirmation modal buttons
         this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteConfirmModal());
         this.confirmDeleteBtn.addEventListener('click', () => this.confirmDelete());
 
+        // Delete confirmation modal keyboard support
+        this.deleteConfirmModal.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === 'Return') {
+                e.preventDefault();
+                this.confirmDelete();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.closeDeleteConfirmModal();
+            }
+        });
+
         // Test mode selection modal
         this.closeTestSelectBtn.addEventListener('click', () => this.closeTestModeSelection());
-        this.selectFlipMode.addEventListener('click', () => this.openCategorySelection());
-        this.selectTypingMode.addEventListener('click', () => this.startTypingMode());
+        this.selectFlipMode.addEventListener('click', () => this.openFlipSideSelection());
+        this.selectTypingMode.addEventListener('click', () => this.openTypingSideSelection());
+
+        // Side selection modals
+        this.closeFlipSideBtn.addEventListener('click', () => this.closeFlipSideSelection());
+        this.backToFlipModeBtn.addEventListener('click', () => this.backToTestModeSelection());
+        this.selectFrontFirst.addEventListener('click', () => this.startFlipModeWithSide('front'));
+        this.selectBackFirst.addEventListener('click', () => this.startFlipModeWithSide('back'));
+        
+        this.closeTypingSideBtn.addEventListener('click', () => this.closeTypingSideSelection());
+        this.backToTypingModeBtn.addEventListener('click', () => this.backToTestModeSelection());
+        this.selectSeeFrontTypeBack.addEventListener('click', () => this.startTypingModeWithSides('front', 'back'));
+        this.selectSeeBackTypeFront.addEventListener('click', () => this.startTypingModeWithSides('back', 'front'));
 
         // Category selection modal
         this.closeCategorySelectBtn.addEventListener('click', () => this.closeCategorySelection());
-        this.backToCategoryBtn.addEventListener('click', () => this.backToTestModeSelection());
+        this.backToCategoryBtn.addEventListener('click', () => this.backToTestModeFromCategory());
         this.selectCardsCategory.addEventListener('click', () => this.startFlipMode('card'));
         this.selectTestsCategory.addEventListener('click', () => this.startFlipMode('test'));
 
@@ -528,6 +621,12 @@ class VocaBox {
         //         this.closeCreateTestModal();
         //     }
         // });
+
+        this.importWordListModal.addEventListener('click', (e) => {
+            if (e.target === this.importWordListModal) {
+                this.closeImportModal();
+            }
+        });
 
         this.deleteConfirmModal.addEventListener('click', (e) => {
             if (e.target === this.deleteConfirmModal) {
@@ -1495,11 +1594,7 @@ class VocaBox {
 
     // Card Management
     loadCards() {
-        if (!this.currentUser) {
-            return [];
-        }
-        
-        const userKey = `vocaBoxCards_${this.currentUser.username}`;
+        const userKey = this.currentUser ? `vocaBoxCards_${this.currentUser.username}` : 'vocaBoxCards_guest';
         const savedCards = localStorage.getItem(userKey);
         if (savedCards) {
             return JSON.parse(savedCards);
@@ -1604,26 +1699,25 @@ class VocaBox {
     }
 
     saveCards() {
-        if (!this.currentUser) {
-            return;
-        }
-        const userKey = `vocaBoxCards_${this.currentUser.username}`;
+        const userKey = this.currentUser ? `vocaBoxCards_${this.currentUser.username}` : 'vocaBoxCards_guest';
         localStorage.setItem(userKey, JSON.stringify(this.cards));
     }
 
-    addCard(front, back, category = 'card', audioId = null) {
+    addCard(front, back, category = 'card', audioId = null, folderId = 'default') {
         const card = {
             id: Date.now(),
             front: front,
             back: back,
             category: category, // 'card' or 'test'
             audioId: audioId || undefined,
+            folderId: folderId,
             createdAt: new Date().toISOString()
         };
         this.cards.unshift(card);
         this.saveCards();
         this.renderCards();
         this.updateCardCount();
+        this.renderFolders(); // Update folder counts
     }
 
     deleteCard(id) {
@@ -1633,6 +1727,9 @@ class VocaBox {
 
     openDeleteConfirmModal() {
         this.deleteConfirmModal.classList.add('active');
+        // Make modal focusable and focus it for keyboard events
+        this.deleteConfirmModal.setAttribute('tabindex', '-1');
+        this.deleteConfirmModal.focus();
     }
 
     closeDeleteConfirmModal() {
@@ -1659,14 +1756,12 @@ class VocaBox {
 
     renderCards() {
         this.cardsContainer.innerHTML = '';
-        this.testsContainer.innerHTML = '';
 
-        // Separate cards by category
-        const regularCards = this.cards.filter(card => card.category === 'card' || !card.category);
-        const testCards = this.cards.filter(card => card.category === 'test');
+        // Show cards for current folder
+        const cardsToShow = this.getCardsForCurrentFolder();
 
-        // Show/hide empty states and decoration cats
-        if (regularCards.length === 0) {
+        // Show/hide empty state
+        if (cardsToShow.length === 0) {
             this.cardsEmptyState.classList.remove('hidden');
             // Hide decoration cat when no cards
             const cardsDecoration = document.querySelector('.cat-decoration');
@@ -1676,25 +1771,9 @@ class VocaBox {
             // Show decoration cat when cards exist
             const cardsDecoration = document.querySelector('.cat-decoration');
             if (cardsDecoration) cardsDecoration.style.display = 'block';
-            regularCards.forEach(card => {
+            cardsToShow.forEach(card => {
                 const cardElement = this.createCardElement(card);
                 this.cardsContainer.appendChild(cardElement);
-            });
-        }
-
-        if (testCards.length === 0) {
-            this.testsEmptyState.classList.remove('hidden');
-            // Hide decoration cat when no tests
-            const testsDecoration = document.querySelectorAll('.cat-decoration')[1];
-            if (testsDecoration) testsDecoration.style.display = 'none';
-        } else {
-            this.testsEmptyState.classList.add('hidden');
-            // Show decoration cat when tests exist
-            const testsDecoration = document.querySelectorAll('.cat-decoration')[1];
-            if (testsDecoration) testsDecoration.style.display = 'block';
-            testCards.forEach(card => {
-                const cardElement = this.createCardElement(card);
-                this.testsContainer.appendChild(cardElement);
             });
         }
     }
@@ -1784,11 +1863,7 @@ class VocaBox {
     }
 
     updateCardCount() {
-        const regularCards = this.cards.filter(card => card.category === 'card' || !card.category);
-        const testCards = this.cards.filter(card => card.category === 'test');
-        
-        this.cardCount.textContent = regularCards.length;
-        this.testCount.textContent = testCards.length;
+        this.cardCount.textContent = this.cards.length;
     }
 
     escapeHtml(text) {
@@ -1827,9 +1902,10 @@ class VocaBox {
         e.preventDefault();
         const front = this.addFrontText.innerHTML.trim();
         const back = this.addBackText.innerHTML.trim();
+        const folderId = this.addCardFolder.value;
 
         if (front || back) {
-            await this.addCard(front, back, 'card', this.pendingAddAudioId);
+            await this.addCard(front, back, 'card', this.pendingAddAudioId, folderId);
             this.pendingAddAudioId = null;
             this.closeAddCardModal();
         } else {
@@ -1877,6 +1953,9 @@ class VocaBox {
     async loadCardIntoEditor(card) {
         this.editFrontText.innerHTML = card.front;
         this.editBackText.innerHTML = card.back;
+        
+        // Set folder selection
+        this.editCardFolder.value = card.folderId || 'default';
         
         // Load audio if exists
         this.currentAudioId = card.audioId || null;
@@ -1935,11 +2014,13 @@ class VocaBox {
                 // Preserve existing category when editing
                 const existingCategory = this.cards[cardIndex].category || 'card';
                 const oldAudioId = this.cards[cardIndex].audioId;
+                const folderId = this.editCardFolder.value;
                 
                 this.cards[cardIndex].front = front;
                 this.cards[cardIndex].back = back;
                 this.cards[cardIndex].category = existingCategory;
                 this.cards[cardIndex].audioId = this.currentAudioId;
+                this.cards[cardIndex].folderId = folderId;
                 
                 // Delete old audio if it was replaced
                 if (oldAudioId && oldAudioId !== this.currentAudioId) {
@@ -1947,6 +2028,9 @@ class VocaBox {
                 }
                 
                 this.saveCards();
+                
+                // Update folder counts
+                this.renderFolders();
                 
                 // Only re-render if explicitly requested (when closing modal)
                 if (shouldRender) {
@@ -2014,6 +2098,184 @@ class VocaBox {
         } else {
             this.showNotification('Please fill in at least one field (front or back).', 'error');
         }
+    }
+
+    // Import Word List Methods
+    openImportModal() {
+        this.importWordListModal.classList.add('active');
+        this.resetImportModal();
+    }
+
+    closeImportModal() {
+        this.importWordListModal.classList.remove('active');
+        this.resetImportModal();
+    }
+
+    resetImportModal() {
+        this.wordListTextarea.value = '';
+        this.importError.style.display = 'none';
+        this.previewCount.textContent = '0';
+        this.previewCardsContainer.innerHTML = '<div class="preview-placeholder">Nothing to preview yet.</div>';
+        this.customTermDelimiter.value = '';
+        this.customCardDelimiter.value = '';
+        // Reset radio buttons to defaults
+        document.querySelector('input[name="termDelimiter"][value="space"]').checked = true;
+        document.querySelector('input[name="cardDelimiter"][value="newline"]').checked = true;
+    }
+
+    getDelimiters() {
+        const termDelimiter = document.querySelector('input[name="termDelimiter"]:checked').value;
+        const cardDelimiter = document.querySelector('input[name="cardDelimiter"]:checked').value;
+        
+        let termDelim = ' ';
+        if (termDelimiter === 'comma') termDelim = ',';
+        else if (termDelimiter === 'dash') termDelim = '-';
+        else if (termDelimiter === 'custom') termDelim = this.customTermDelimiter.value || ' ';
+        
+        let cardDelim = '\n';
+        if (cardDelimiter === 'semicolon') cardDelim = ';';
+        else if (cardDelimiter === 'custom') cardDelim = this.customCardDelimiter.value || '\n';
+        
+        return { termDelim, cardDelim };
+    }
+
+    parseSimpleText(text) {
+        const { termDelim, cardDelim } = this.getDelimiters();
+        
+        // Split by card delimiter
+        const cards = text.split(cardDelim).map(card => card.trim()).filter(card => card);
+        const data = [];
+        
+        for (const card of cards) {
+            // Split by term delimiter
+            const parts = card.split(termDelim);
+            
+            if (parts.length >= 2) {
+                const front = parts[0].trim();
+                const back = parts.slice(1).join(termDelim).trim();
+                
+                if (front && back) {
+                    data.push({
+                        front: front,
+                        back: back,
+                        category: 'imported'
+                    });
+                }
+            }
+        }
+        return data;
+    }
+
+    updatePreview() {
+        const text = this.wordListTextarea.value.trim();
+        
+        if (!text) {
+            this.previewCount.textContent = '0';
+            this.previewCardsContainer.innerHTML = '<div class="preview-placeholder">Nothing to preview yet.</div>';
+            return;
+        }
+        
+        try {
+            const parsedData = this.parseSimpleText(text);
+            this.previewCount.textContent = parsedData.length;
+            
+            if (parsedData.length === 0) {
+                this.previewCardsContainer.innerHTML = '<div class="preview-placeholder">No valid cards found. Check your delimiter settings.</div>';
+                return;
+            }
+            
+            // Generate preview cards (show first 5)
+            const previewData = parsedData.slice(0, 5);
+            this.previewCardsContainer.innerHTML = '';
+            
+            previewData.forEach((card, index) => {
+                const cardElement = this.createPreviewCard(card, index + 1);
+                this.previewCardsContainer.appendChild(cardElement);
+            });
+            
+            if (parsedData.length > 5) {
+                const moreElement = document.createElement('div');
+                moreElement.className = 'preview-placeholder';
+                moreElement.textContent = `... and ${parsedData.length - 5} more cards`;
+                this.previewCardsContainer.appendChild(moreElement);
+            }
+        } catch (error) {
+            this.previewCardsContainer.innerHTML = '<div class="preview-placeholder">Error parsing text. Check your delimiter settings.</div>';
+        }
+    }
+
+    createPreviewCard(card, index) {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'preview-card';
+        
+        cardElement.innerHTML = `
+            <div class="preview-card-term">
+                <div class="preview-card-content">${card.front}</div>
+                <div class="preview-card-label">TERM</div>
+            </div>
+            <div class="preview-card-separator"></div>
+            <div class="preview-card-definition">
+                <div class="preview-card-content">${card.back}</div>
+                <div class="preview-card-label">DEFINITION</div>
+            </div>
+        `;
+        
+        return cardElement;
+    }
+
+    showImportError(message) {
+        this.importError.textContent = message;
+        this.importError.style.display = 'block';
+    }
+
+    async handleImport() {
+        const text = this.wordListTextarea.value.trim();
+        
+        if (!text) {
+            this.showImportError('Please enter some words and definitions.');
+            return;
+        }
+
+        try {
+            const parsedData = this.parseSimpleText(text);
+            
+            if (parsedData.length === 0) {
+                this.showImportError('No valid word pairs found. Make sure each word is followed by its definition on the next line.');
+                return;
+            }
+            
+            let importedCount = 0;
+            for (const row of parsedData) {
+                this.addCard(row.front, row.back, row.category);
+                importedCount++;
+            }
+            
+            this.showImportSuccess(importedCount);
+            this.closeImportModal();
+        } catch (error) {
+            this.showImportError('Error importing cards: ' + error.message);
+        }
+    }
+
+    showImportSuccess(count) {
+        // Create a temporary success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'import-success';
+        successDiv.innerHTML = `
+            <h4>✅ Import Successful!</h4>
+            <p>Successfully imported ${count} cards to your collection.</p>
+        `;
+        
+        // Insert at the top of the modal body
+        const modalBody = this.importWordListModal.querySelector('.modal-body');
+        modalBody.insertBefore(successDiv, modalBody.firstChild);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+            }
+        }, 3000);
     }
 
     // Add Card Rich Text Editor Setup
@@ -3281,6 +3543,41 @@ class VocaBox {
         this.testModeSelectModal.classList.remove('active');
     }
 
+    // Side Selection Methods
+    openFlipSideSelection() {
+        this.testModeSelectModal.classList.remove('active');
+        this.flipSideSelectModal.classList.add('active');
+    }
+
+    closeFlipSideSelection() {
+        this.flipSideSelectModal.classList.remove('active');
+    }
+
+    openTypingSideSelection() {
+        this.testModeSelectModal.classList.remove('active');
+        this.typingSideSelectModal.classList.add('active');
+    }
+
+    closeTypingSideSelection() {
+        this.typingSideSelectModal.classList.remove('active');
+    }
+
+    backToTestModeSelection() {
+        this.flipSideSelectModal.classList.remove('active');
+        this.typingSideSelectModal.classList.remove('active');
+        this.testModeSelectModal.classList.add('active');
+    }
+
+    startFlipModeWithSide(startingSide) {
+        this.closeFlipSideSelection();
+        this.startFlipMode('card', startingSide);
+    }
+
+    startTypingModeWithSides(seeSide, typeSide) {
+        this.closeTypingSideSelection();
+        this.startTypingMode(seeSide, typeSide);
+    }
+
     // Category Selection
     openCategorySelection() {
         this.testModeSelectModal.classList.remove('active');
@@ -3291,13 +3588,13 @@ class VocaBox {
         this.categorySelectModal.classList.remove('active');
     }
 
-    backToTestModeSelection() {
+    backToTestModeFromCategory() {
         this.categorySelectModal.classList.remove('active');
         this.testModeSelectModal.classList.add('active');
     }
 
     // Flip Mode Functions
-    startFlipMode(category) {
+    startFlipMode(category, startingSide = 'front') {
         // Filter cards based on selected category
         // If a card has no category property, default it to 'card'
         this.flipTestCards = this.cards.filter(card => {
@@ -3314,7 +3611,7 @@ class VocaBox {
 
         this.closeCategorySelection();
         this.currentTestIndex = 0;
-        this.isFlipped = false;
+        this.isFlipped = startingSide === 'back';
         this.testModeScreen.classList.add('active');
         this.totalCards.textContent = this.flipTestCards.length;
         this.loadTestCard();
@@ -3326,15 +3623,19 @@ class VocaBox {
     }
 
     // Typing Mode Functions
-    startTypingMode() {
-        // Get only test category cards
-        this.typingTestCards = this.cards.filter(card => card.category === 'test');
+    startTypingMode(seeSide = 'front', typeSide = 'back') {
+        // Get all cards (not just test category)
+        this.typingTestCards = this.cards;
         
         if (this.typingTestCards.length === 0) {
-            alert('Please create some test cards first using "Add Test" button!');
+            alert('Please add some cards first!');
             this.closeTestModeSelection();
             return;
         }
+        
+        // Store the side configuration
+        this.typingSeeSide = seeSide;
+        this.typingTypeSide = typeSide;
         
         // Reset test results
         this.testResults = {
@@ -3359,7 +3660,8 @@ class VocaBox {
 
     async loadTypingCard() {
         const card = this.typingTestCards[this.currentTypingIndex];
-        this.typingQuestion.innerHTML = card.front;
+        // Use the configured side to display
+        this.typingQuestion.innerHTML = this.typingSeeSide === 'front' ? card.front : card.back;
         this.typingAnswer.value = '';
         this.answerResult.style.display = 'none';
         this.typingCardNum.textContent = this.currentTypingIndex + 1;
@@ -3391,7 +3693,9 @@ class VocaBox {
 
     checkAnswer() {
         const userAnswer = this.typingAnswer.value.trim();
-        const correctAnswer = this.typingTestCards[this.currentTypingIndex].back;
+        const card = this.typingTestCards[this.currentTypingIndex];
+        // Use the configured side to check against
+        const correctAnswer = this.typingTypeSide === 'front' ? card.front : card.back;
         
         if (!userAnswer) {
             alert('Please type an answer first!');
@@ -3815,6 +4119,153 @@ class VocaBox {
                 }
             });
         });
+    }
+
+    // Folder System Methods
+    loadFolders() {
+        const userKey = this.currentUser ? `vocaBoxFolders_${this.currentUser.username}` : 'vocaBoxFolders_guest';
+        const savedFolders = localStorage.getItem(userKey);
+        if (savedFolders) {
+            return JSON.parse(savedFolders);
+        } else {
+            // Create default folder
+            const defaultFolders = [{
+                id: 'default',
+                name: 'Default Folder',
+                description: 'Default folder for all cards',
+                createdAt: new Date().toISOString()
+            }];
+            this.saveFolders(defaultFolders);
+            return defaultFolders;
+        }
+    }
+
+    saveFolders(folders) {
+        const userKey = this.currentUser ? `vocaBoxFolders_${this.currentUser.username}` : 'vocaBoxFolders_guest';
+        localStorage.setItem(userKey, JSON.stringify(folders));
+    }
+
+    createFolder(name, description = '') {
+        const folder = {
+            id: Date.now().toString(),
+            name: name,
+            description: description,
+            createdAt: new Date().toISOString()
+        };
+        this.folders.push(folder);
+        this.saveFolders(this.folders);
+        this.renderFolders();
+        this.updateFolderSelectors();
+    }
+
+    renderFolders() {
+        this.folderList.innerHTML = '';
+        
+        this.folders.forEach(folder => {
+            const folderElement = this.createFolderElement(folder);
+            this.folderList.appendChild(folderElement);
+        });
+    }
+
+    createFolderElement(folder) {
+        const folderDiv = document.createElement('div');
+        folderDiv.className = 'folder-item';
+        folderDiv.dataset.folderId = folder.id;
+        
+        const cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+        
+        folderDiv.innerHTML = `
+            <img src="books.png" alt="Folder" class="folder-icon" style="width: 16px; height: 16px;">
+            <span class="folder-name">${folder.name}</span>
+            <span class="folder-count">${cardCount}</span>
+        `;
+        
+        folderDiv.addEventListener('click', () => this.selectFolder(folder.id));
+        
+        return folderDiv;
+    }
+
+    selectFolder(folderId) {
+        this.currentFolder = folderId;
+        this.renderCards();
+        this.updateFolderSelectors();
+        
+        // Update active folder visual state
+        document.querySelectorAll('.folder-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        document.querySelector(`[data-folder-id="${folderId}"]`).classList.add('active');
+    }
+
+    updateFolderSelectors() {
+        // Update main folder dropdown
+        this.folderSelect.innerHTML = '<option value="all">All Folders</option>';
+        this.folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.name;
+            if (folder.id === this.currentFolder) {
+                option.selected = true;
+            }
+            this.folderSelect.appendChild(option);
+        });
+        
+        // Update add card folder selector
+        this.addCardFolder.innerHTML = '';
+        this.folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.name;
+            this.addCardFolder.appendChild(option);
+        });
+        
+        // Update edit card folder selector
+        this.editCardFolder.innerHTML = '';
+        this.folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.name;
+            this.editCardFolder.appendChild(option);
+        });
+    }
+
+    getCardsForCurrentFolder() {
+        if (this.currentFolder === 'all') {
+            return this.cards;
+        }
+        return this.cards.filter(card => card.folderId === this.currentFolder);
+    }
+
+    // Folder Modal Methods
+    openCreateFolderModal() {
+        this.createFolderModal.classList.add('active');
+        this.folderName.focus();
+    }
+
+    closeCreateFolderModal() {
+        this.createFolderModal.classList.remove('active');
+        this.createFolderForm.reset();
+    }
+
+    handleCreateFolder(e) {
+        e.preventDefault();
+        const name = this.folderName.value.trim();
+        const description = this.folderDescription.value.trim();
+        
+        if (!name) {
+            alert('Please enter a folder name');
+            return;
+        }
+        
+        // Check if folder name already exists
+        if (this.folders.some(folder => folder.name.toLowerCase() === name.toLowerCase())) {
+            alert('A folder with this name already exists');
+            return;
+        }
+        
+        this.createFolder(name, description);
+        this.closeCreateFolderModal();
+        this.showNotification(`Folder "${name}" created successfully! 📁`, 'success');
     }
 }
 
