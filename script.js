@@ -41,6 +41,25 @@ class VocaBox {
         this.renderCards();
         this.updateCardCount();
         this.applyCustomColors();
+        
+        // Close folder dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.folder-dropdown-container')) {
+                this.closeAllFolderDropdowns();
+            }
+        });
+        
+        // Global event delegation for folder options
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('folder-option')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const folderId = e.target.dataset.folderId;
+                const cardId = e.target.closest('.folder-dropdown-menu').dataset.cardId;
+                this.changeCardFolder(cardId, folderId);
+                this.closeAllFolderDropdowns();
+            }
+        });
     }
 
     cacheDOMElements() {
@@ -1725,6 +1744,127 @@ class VocaBox {
         this.openDeleteConfirmModal();
     }
 
+    changeCardFolder(cardId, newFolderId) {
+        // Find the card and update its folder
+        const cardIndex = this.cards.findIndex(card => card.id === cardId);
+        if (cardIndex !== -1) {
+            this.cards[cardIndex].folderId = newFolderId;
+            
+            // Update folder name for display
+            if (newFolderId === 'default') {
+                this.cards[cardIndex].folderName = 'Default Folder';
+            } else {
+                const folder = this.folders.find(f => f.id === newFolderId);
+                this.cards[cardIndex].folderName = folder ? folder.name : 'Unknown Folder';
+            }
+            
+            // Save to localStorage
+            this.saveCards();
+            
+            // Update the specific card element instead of re-rendering all cards
+            this.updateCardElement(cardId);
+            this.updateFolderCounts();
+        }
+    }
+
+    updateCardElement(cardId) {
+        // Find the card element in the DOM
+        const cardElement = document.querySelector(`[data-card-id="${cardId}"]`).closest('.card-item');
+        if (cardElement) {
+            // Find the card data
+            const card = this.cards.find(c => c.id === cardId);
+            if (card) {
+                // Update the folder name in the button
+                const folderNameSpan = cardElement.querySelector('.folder-name');
+                if (folderNameSpan) {
+                    folderNameSpan.textContent = card.folderName || 'Default Folder';
+                }
+                
+                // Update the card color class
+                const folderClass = this.getFolderColorClass(card.folderId);
+                // Remove all existing folder classes
+                cardElement.classList.remove('folder-default', 'folder-ielts', 'folder-unlock', 'folder-toefl', 'folder-gre', 'folder-sat', 'folder-vocabulary', 'folder-grammar', 'folder-folder9', 'folder-folder10');
+                // Add the new folder class
+                if (folderClass) {
+                    cardElement.classList.add(folderClass);
+                }
+                
+            }
+        }
+    }
+
+    getFolderColorClass(folderId) {
+        // Define the 10 colors for folder identification
+        const folderColors = [
+            '#CD7D88', // 1
+            '#BFDCDB', // 2
+            '#87ABC5', // 3
+            '#C5B5D3', // 4
+            '#DE9C73', // 5
+            '#5F2312', // 6
+            '#DE634D', // 7
+            '#E1A102', // 8
+            '#3A989E', // 9
+            '#B66899'  // 10
+        ];
+        
+        // Get all folders and sort them consistently
+        const allFolders = [
+            { id: 'default', name: 'Default Folder' },
+            ...this.folders.filter(f => f.id !== 'default')
+        ];
+        
+        // Find the index of the current folder
+        const folderIndex = allFolders.findIndex(f => f.id === folderId);
+        
+        // Use the color index (0-9) to determine which color to use
+        const colorIndex = folderIndex >= 0 ? folderIndex % folderColors.length : 0;
+        
+        // Return the appropriate CSS class based on color index
+        const colorClasses = [
+            'folder-default',    // #CD7D88
+            'folder-ielts',      // #BFDCDB
+            'folder-unlock',     // #87ABC5
+            'folder-toefl',      // #C5B5D3
+            'folder-gre',        // #DE9C73
+            'folder-sat',        // #5F2312
+            'folder-vocabulary', // #DE634D
+            'folder-grammar',    // #E1A102
+            'folder-folder9',    // #3A989E
+            'folder-folder10'    // #B66899
+        ];
+        
+        return colorClasses[colorIndex] || 'folder-default';
+    }
+
+    toggleFolderDropdown(cardId) {
+        // Close all other dropdowns first
+        this.closeAllFolderDropdowns();
+        
+        // Toggle the current dropdown
+        const folderBtn = document.querySelector(`.folder-dropdown-btn[data-card-id="${cardId}"]`);
+        if (folderBtn) {
+            const dropdownMenu = folderBtn.parentElement.querySelector('.folder-dropdown-menu');
+            if (dropdownMenu) {
+                dropdownMenu.classList.toggle('active');
+                folderBtn.classList.toggle('active');
+            }
+        }
+    }
+
+    closeAllFolderDropdowns() {
+        const allDropdowns = document.querySelectorAll('.folder-dropdown-menu');
+        const allButtons = document.querySelectorAll('.folder-dropdown-btn');
+        
+        allDropdowns.forEach(dropdown => {
+            dropdown.classList.remove('active');
+        });
+        
+        allButtons.forEach(button => {
+            button.classList.remove('active');
+        });
+    }
+
     openDeleteConfirmModal() {
         this.deleteConfirmModal.classList.add('active');
         // Make modal focusable and focus it for keyboard events
@@ -1782,10 +1922,33 @@ class VocaBox {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card-item';
         
+        // Add folder-specific color class
+        const folderClass = this.getFolderColorClass(card.folderId);
+        if (folderClass) {
+            cardDiv.classList.add(folderClass);
+        }
+        
         const hasAudio = card.audioId ? true : false;
         const audioButton = hasAudio ? `<button class="play-audio-btn" data-audio-id="${card.audioId}" title="Play audio">🔊 Play</button>` : '';
         
         cardDiv.innerHTML = `
+            <div class="card-header">
+                <div class="card-folder-info">
+                    <div class="folder-dropdown-container">
+                        <button class="folder-label folder-dropdown-btn" data-card-id="${card.id}">
+                            <img src="writing.png" alt="Folder" style="width: 16px; height: 16px; vertical-align: middle;">
+                            <span class="folder-name">${card.folderName || 'Default Folder'}</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <div class="folder-dropdown-menu" data-card-id="${card.id}">
+                            <div class="folder-option" data-folder-id="default">Default Folder</div>
+                            ${this.folders.filter(folder => folder.id !== 'default').map(folder => 
+                                `<div class="folder-option" data-folder-id="${folder.id}">${folder.name}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="card-front-preview">${card.front}</div>
             <div class="card-back-preview">${card.back}</div>
             <div class="card-actions">
@@ -1795,12 +1958,31 @@ class VocaBox {
             </div>
         `;
 
-        // Add event listeners
+        // Add event listeners after innerHTML
         const editBtn = cardDiv.querySelector('.edit-btn');
         const deleteBtn = cardDiv.querySelector('.delete-btn');
+        const folderBtn = cardDiv.querySelector('.folder-dropdown-btn');
+        const folderOptions = cardDiv.querySelectorAll('.folder-option');
         
         editBtn.addEventListener('click', () => this.openEditCardModal(card.id));
         deleteBtn.addEventListener('click', () => this.deleteCard(card.id));
+        
+        // Folder dropdown functionality
+        folderBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleFolderDropdown(card.id);
+        });
+        
+        // Use event delegation for folder options
+        folderOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const folderId = option.dataset.folderId;
+                this.changeCardFolder(card.id, folderId);
+                this.closeAllFolderDropdowns();
+            });
+        });
 
         // Add audio play button listener
         if (hasAudio) {

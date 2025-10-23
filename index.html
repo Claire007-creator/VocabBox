@@ -137,133 +137,142 @@
             </div>
             <div class="modal-body">
                 <form id="addCardForm">
-                    <div class="form-group">
-                        <label for="addFrontText">Front (Word/Question)</label>
-                        <div class="editor-toolbar">
-                            <button type="button" class="toolbar-btn" data-command="bold" data-target="addfront" title="Bold">
-                                <strong>B</strong>
-                            </button>
-                            <button type="button" class="toolbar-btn" data-command="underline" data-target="addfront" title="Underline">
-                                <u>U</u>
-                            </button>
-                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="addfront" title="Bullet List">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                                    <circle cx="3" cy="5" r="1.5"/>
-                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
-                                    <circle cx="3" cy="10" r="1.5"/>
-                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
-                                    <circle cx="3" cy="15" r="1.5"/>
-                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
-                                </svg>
-                            </button>
-                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="addfront" title="Numbered List">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
-                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
-                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
-                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
-                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
-                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
-                                </svg>
-                            </button>
-                            <button type="button" class="toolbar-btn" data-command="highlightHide" data-target="addfront" title="Highlight to Hide">
-                                <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 2px; font-size: 10px;">HIDE</span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addfront" title="Custom Color">
-                                <span class="color-indicator-picker">🎨</span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
-                                <span class="color-indicator preset-1-addfront" style="background-color: #457B9D;"></span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
-                                <span class="color-indicator preset-2-addfront" style="background-color: #9E2A2B;"></span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
-                                <span class="color-indicator preset-3-addfront" style="background-color: #4D908E;"></span>
-                            </button>
-                            <input type="color" class="color-picker-hidden" id="colorPickerAddFront" data-target="addfront" value="#000000">
-                        </div>
-                        <div id="addFrontText" class="rich-editor" contenteditable="true" placeholder="Enter word or question..."></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="addBackText">Back (Definition/Answer)</label>
-                        <div class="editor-toolbar">
-                            <button type="button" class="toolbar-btn" data-command="bold" data-target="addback" title="Bold">
-                                <strong>B</strong>
-                            </button>
-                            <button type="button" class="toolbar-btn" data-command="underline" data-target="addback" title="Underline">
-                                <u>U</u>
-                            </button>
-                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="addback" title="Bullet List">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                                    <circle cx="3" cy="5" r="1.5"/>
-                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
-                                    <circle cx="3" cy="10" r="1.5"/>
-                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
-                                    <circle cx="3" cy="15" r="1.5"/>
-                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
-                                </svg>
-                            </button>
-                            <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="addback" title="Numbered List">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                                    <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
-                                    <rect x="7" y="4" width="10" height="2" rx="1"/>
-                                    <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
-                                    <rect x="7" y="9" width="10" height="2" rx="1"/>
-                                    <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
-                                    <rect x="7" y="14" width="10" height="2" rx="1"/>
-                                </svg>
-                            </button>
-                            <button type="button" class="toolbar-btn" data-command="highlightHide" data-target="addback" title="Highlight to Hide">
-                                <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 2px; font-size: 10px;">HIDE</span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addback" title="Custom Color">
-                                <span class="color-indicator-picker">🎨</span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
-                                <span class="color-indicator preset-1-addback" style="background-color: #457B9D;"></span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
-                                <span class="color-indicator preset-2-addback" style="background-color: #9E2A2B;"></span>
-                            </button>
-                            <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
-                                <span class="color-indicator preset-3-addback" style="background-color: #4D908E;"></span>
-                            </button>
-                            <input type="color" class="color-picker-hidden" id="colorPickerAddBack" data-target="addback" value="#000000">
-                        </div>
-                        <div id="addBackText" class="rich-editor" contenteditable="true" placeholder="Enter definition or answer..."></div>
-                    </div>
-                    <div class="form-group">
-                        <label for="addCardFolder">Folder</label>
-                        <select id="addCardFolder" class="form-select">
-                            <option value="default">Default Folder</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Audio (Optional)</label>
-                        <div class="audio-section">
-                            <div id="addCurrentAudio" class="current-audio" style="display: none;">
-                                <div class="audio-player-container">
-                                    <audio id="addAudioPlayer" controls></audio>
-                                    <button type="button" class="btn-icon-small btn-danger-small" id="addRemoveAudioBtn" title="Remove Audio">
-                                        🗑️
+                    <div class="add-card-layout">
+                        <!-- Left Column - Content Areas -->
+                        <div class="add-card-content-column">
+                            <div class="form-group">
+                                <label for="addFrontText">Front (Word/Question)</label>
+                                <div class="editor-toolbar">
+                                    <button type="button" class="toolbar-btn" data-command="bold" data-target="addfront" title="Bold">
+                                        <strong>B</strong>
                                     </button>
+                                    <button type="button" class="toolbar-btn" data-command="underline" data-target="addfront" title="Underline">
+                                        <u>U</u>
+                                    </button>
+                                    <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="addfront" title="Bullet List">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                            <circle cx="3" cy="5" r="1.5"/>
+                                            <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                            <circle cx="3" cy="10" r="1.5"/>
+                                            <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                            <circle cx="3" cy="15" r="1.5"/>
+                                            <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="addfront" title="Numbered List">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                            <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                            <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                            <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                            <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                            <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                            <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="toolbar-btn" data-command="highlightHide" data-target="addfront" title="Highlight to Hide">
+                                        <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 2px; font-size: 10px;">HIDE</span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addfront" title="Custom Color">
+                                        <span class="color-indicator-picker">🎨</span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                        <span class="color-indicator preset-1-addfront" style="background-color: #457B9D;"></span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                        <span class="color-indicator preset-2-addfront" style="background-color: #9E2A2B;"></span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addfront" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                        <span class="color-indicator preset-3-addfront" style="background-color: #4D908E;"></span>
+                                    </button>
+                                    <input type="color" class="color-picker-hidden" id="colorPickerAddFront" data-target="addfront" value="#000000">
+                                </div>
+                                <div id="addFrontText" class="rich-editor rich-editor-large" contenteditable="true" placeholder="Enter word or question..."></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="addBackText">Back (Definition/Answer)</label>
+                                <div class="editor-toolbar">
+                                    <button type="button" class="toolbar-btn" data-command="bold" data-target="addback" title="Bold">
+                                        <strong>B</strong>
+                                    </button>
+                                    <button type="button" class="toolbar-btn" data-command="underline" data-target="addback" title="Underline">
+                                        <u>U</u>
+                                    </button>
+                                    <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertUnorderedList" data-target="addback" title="Bullet List">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                            <circle cx="3" cy="5" r="1.5"/>
+                                            <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                            <circle cx="3" cy="10" r="1.5"/>
+                                            <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                            <circle cx="3" cy="15" r="1.5"/>
+                                            <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="toolbar-btn toolbar-btn-list" data-command="insertOrderedList" data-target="addback" title="Numbered List">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                            <text x="1" y="7" font-size="8" font-weight="bold">1.</text>
+                                            <rect x="7" y="4" width="10" height="2" rx="1"/>
+                                            <text x="1" y="12" font-size="8" font-weight="bold">2.</text>
+                                            <rect x="7" y="9" width="10" height="2" rx="1"/>
+                                            <text x="1" y="17" font-size="8" font-weight="bold">3.</text>
+                                            <rect x="7" y="14" width="10" height="2" rx="1"/>
+                                        </svg>
+                                    </button>
+                                    <button type="button" class="toolbar-btn" data-command="highlightHide" data-target="addback" title="Highlight to Hide">
+                                        <span style="background: #ffeb3b; padding: 2px 4px; border-radius: 2px; font-size: 10px;">HIDE</span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn color-picker-btn" data-target="addback" title="Custom Color">
+                                        <span class="color-indicator-picker">🎨</span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="1" data-color="#457B9D" title="Preset Color 1 (Right-click to customize)">
+                                        <span class="color-indicator preset-1-addback" style="background-color: #457B9D;"></span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="2" data-color="#9E2A2B" title="Preset Color 2 (Right-click to customize)">
+                                        <span class="color-indicator preset-2-addback" style="background-color: #9E2A2B;"></span>
+                                    </button>
+                                    <button type="button" class="toolbar-btn color-btn preset-color-btn" data-target="addback" data-preset="3" data-color="#4D908E" title="Preset Color 3 (Right-click to customize)">
+                                        <span class="color-indicator preset-3-addback" style="background-color: #4D908E;"></span>
+                                    </button>
+                                    <input type="color" class="color-picker-hidden" id="colorPickerAddBack" data-target="addback" value="#000000">
+                                </div>
+                                <div id="addBackText" class="rich-editor rich-editor-large" contenteditable="true" placeholder="Enter definition or answer..."></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column - Controls -->
+                        <div class="add-card-controls-column">
+                            <div class="form-group">
+                                <label for="addCardFolder">Folder</label>
+                                <select id="addCardFolder" class="form-select">
+                                    <option value="default">Default Folder</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Audio (Optional)</label>
+                                <div class="audio-section">
+                                    <div id="addCurrentAudio" class="current-audio" style="display: none;">
+                                        <div class="audio-player-container">
+                                            <audio id="addAudioPlayer" controls></audio>
+                                            <button type="button" class="btn-icon-small btn-danger-small" id="addRemoveAudioBtn" title="Remove Audio">
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="addAudioUploadSection" class="audio-upload-section">
+                                        <input type="file" id="addAudioFileInput" accept="audio/*" style="display: none;">
+                                        <button type="button" class="btn btn-upload" id="addUploadAudioBtn">
+                                            <img src="music.png" alt="Upload" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
+                                            Upload Audio File
+                                        </button>
+                                        <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
+                                    </div>
                                 </div>
                             </div>
-                            <div id="addAudioUploadSection" class="audio-upload-section">
-                                <input type="file" id="addAudioFileInput" accept="audio/*" style="display: none;">
-                                <button type="button" class="btn btn-upload" id="addUploadAudioBtn">
-                                    <img src="music.png" alt="Upload" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
-                                    Upload Audio File
-                                </button>
-                                <small class="input-hint">Supported: MP3, WAV, M4A, OGG (Max 10MB)</small>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                                <button type="button" class="btn btn-warning" id="addNextCardBtn">Next Card</button>
+                                <button type="submit" class="btn btn-success" id="finishBtn">Finish</button>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
-                        <button type="button" class="btn btn-warning" id="addNextCardBtn">Next Card</button>
-                        <button type="submit" class="btn btn-success" id="finishBtn">Finish</button>
                     </div>
                 </form>
             </div>
