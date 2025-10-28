@@ -425,6 +425,27 @@ body {
     gap: 20px;
 }
 
+/* Cards Navigation */
+.cards-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-position {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    min-width: 80px;
+    text-align: center;
+}
+
 .card-item {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     border-radius: 15px;
@@ -484,6 +505,106 @@ body {
 .card-item.folder-folder10 {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-left: 4px solid #B66899;
+}
+
+/* Card Flip Styles */
+.card-flip-container {
+    width: 100%;
+    height: 400px;
+    perspective: 1000px;
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+
+.card-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.card-back {
+    transform: rotateX(180deg);
+}
+
+/* Apply folder colors to card faces */
+.card-item.folder-default .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #CD7D88;
+}
+
+.card-item.folder-ielts .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #BFDCDB;
+}
+
+.card-item.folder-unlock .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #87ABC5;
+}
+
+.card-item.folder-toefl .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #C5B5D3;
+}
+
+.card-item.folder-gre .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #DE9C73;
+}
+
+.card-item.folder-sat .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #5F2312;
+}
+
+.card-item.folder-vocabulary .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #DE634D;
+}
+
+.card-item.folder-grammar .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #E1A102;
+}
+
+.card-item.folder-folder9 .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #3A989E;
+}
+
+.card-item.folder-folder10 .card-face {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #B66899;
+}
+
+.card-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .card-header {
@@ -1267,6 +1388,7 @@ body {
     width: 100%;
 }
 
+
 /* Side Selection Modals */
 .side-selection-options {
     display: grid;
@@ -1316,6 +1438,66 @@ body {
 
 .typing-side-selection {
     padding: 20px 0;
+}
+
+/* Folder Selection Modal - Compact Layout */
+.folder-selection-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 0;
+}
+
+.folder-option-card {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8eef3 100%);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-left-width: 4px;
+    gap: 12px;
+}
+
+.folder-option-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.folder-option-card .folder-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.folder-option-card .folder-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.folder-option-card .folder-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.folder-option-card .folder-description {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.folder-option-card .folder-select-btn {
+    flex-shrink: 0;
+    padding: 8px 24px;
+    white-space: nowrap;
 }
 
 /* Test Mode Screen */
@@ -2566,6 +2748,7 @@ body {
 .folder-item {
     background: #f8f9fa;
     border: 2px solid #e9ecef;
+    border-left-width: 3px;
     border-radius: 8px;
     padding: 8px 12px;
     cursor: pointer;
@@ -2577,12 +2760,11 @@ body {
 }
 
 .folder-item:hover {
-    border-color: #5FB3A7;
     background: #f0f8f7;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .folder-item.active {
-    border-color: #5FB3A7;
     background: #e8f5f3;
 }
 

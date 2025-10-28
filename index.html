@@ -86,6 +86,12 @@
                     <div class="cards-container" id="cardsContainer">
                         <!-- Cards will be dynamically inserted here -->
                     </div>
+                    <!-- Navigation Controls -->
+                    <div class="cards-navigation" id="cardsNavigation" style="display: none;">
+                        <button class="btn btn-secondary" id="prevCardViewBtn">← Previous</button>
+                        <span class="card-position" id="cardPosition">1 / 0</span>
+                        <button class="btn btn-secondary" id="nextCardViewBtn">Next →</button>
+                    </div>
                     <div class="empty-state" id="cardsEmptyState">
                         <div class="empty-icon">
                             <img src="books.png" alt="Books" class="empty-state-image">
@@ -610,25 +616,41 @@
         </div>
     </div>
 
+    <!-- Folder Selection Modal for Typing Practice -->
+    <div class="modal" id="typingFolderSelectModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <button class="back-btn" id="backFromTypingFolderBtn">← Back</button>
+                <h2><img src="books.png" alt="Books" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Folder</h2>
+                <button class="close-btn" id="closeTypingFolderBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="folder-selection-options" id="typingFolderSelectionContainer">
+                    <!-- Folders will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Side Selection Modal for Typing Practice -->
     <div class="modal" id="typingSideSelectModal">
         <div class="modal-content modal-medium">
             <div class="modal-header">
                 <button class="back-btn" id="backToTypingModeBtn">← Back</button>
-                <h2><img src="keyboard.png" alt="Keyboard" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Typing Practice - Choose Sides</h2>
+                <h2><img src="keyboard.png" alt="Keyboard" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Sides</h2>
                 <button class="close-btn" id="closeTypingSideBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="typing-side-selection">
                     <div class="side-selection-options">
                         <div class="side-option-card" id="selectSeeFrontTypeBack">
-                            <div class="side-icon">📖→⌨️</div>
+                            <div class="side-icon"><img src="pencil.png" alt="Pencil" style="width: 60px; height: 60px;"></div>
                             <h3>See Front, Type Back</h3>
                             <p>See the question/word, then type the answer.</p>
                             <button class="btn btn-primary side-select-btn">Select</button>
                         </div>
                         <div class="side-option-card" id="selectSeeBackTypeFront">
-                            <div class="side-icon">📝→⌨️</div>
+                            <div class="side-icon"><img src="pencil.png" alt="Pencil" style="width: 60px; height: 60px;"></div>
                             <h3>See Back, Type Front</h3>
                             <p>See the answer, then type the question/word.</p>
                             <button class="btn btn-primary side-select-btn">Select</button>

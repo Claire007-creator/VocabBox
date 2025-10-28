@@ -18,6 +18,10 @@ class VocaBox {
         // Folder system
         this.folders = this.loadFolders();
         this.currentFolder = 'all';
+        this.typingSelectedFolderId = 'all'; // Track selected folder for typing mode
+        
+        // Card navigation
+        this.currentCardIndex = 0; // Index of currently displayed card
         
         // Test results tracking
         this.testResults = {
@@ -146,6 +150,10 @@ class VocaBox {
         this.cardsContainer = document.getElementById('cardsContainer');
         this.cardsEmptyState = document.getElementById('cardsEmptyState');
         this.cardCount = document.getElementById('cardCount');
+        this.cardsNavigation = document.getElementById('cardsNavigation');
+        this.prevCardViewBtn = document.getElementById('prevCardViewBtn');
+        this.nextCardViewBtn = document.getElementById('nextCardViewBtn');
+        this.cardPosition = document.getElementById('cardPosition');
         
         // Folder elements
         this.createFolderBtn = document.getElementById('createFolderBtn');
@@ -229,6 +237,11 @@ class VocaBox {
         this.backToFlipModeBtn = document.getElementById('backToFlipModeBtn');
         this.selectFrontFirst = document.getElementById('selectFrontFirst');
         this.selectBackFirst = document.getElementById('selectBackFirst');
+        
+        this.typingFolderSelectModal = document.getElementById('typingFolderSelectModal');
+        this.typingFolderSelectionContainer = document.getElementById('typingFolderSelectionContainer');
+        this.closeTypingFolderBtn = document.getElementById('closeTypingFolderBtn');
+        this.backFromTypingFolderBtn = document.getElementById('backFromTypingFolderBtn');
         
         this.typingSideSelectModal = document.getElementById('typingSideSelectModal');
         this.closeTypingSideBtn = document.getElementById('closeTypingSideBtn');
@@ -512,6 +525,10 @@ class VocaBox {
         this.cancelCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
         this.createFolderForm.addEventListener('submit', (e) => this.handleCreateFolder(e));
         this.folderSelect.addEventListener('change', (e) => this.selectFolder(e.target.value));
+        
+        // Card navigation
+        this.prevCardViewBtn.addEventListener('click', () => this.previousCardView());
+        this.nextCardViewBtn.addEventListener('click', () => this.nextCardView());
 
         // Modal close buttons
         this.closeModalBtn.addEventListener('click', () => this.closeAddCardModal());
@@ -560,7 +577,11 @@ class VocaBox {
         // Test mode selection modal
         this.closeTestSelectBtn.addEventListener('click', () => this.closeTestModeSelection());
         this.selectFlipMode.addEventListener('click', () => this.openFlipSideSelection());
-        this.selectTypingMode.addEventListener('click', () => this.openTypingSideSelection());
+        this.selectTypingMode.addEventListener('click', () => this.openTypingFolderSelection());
+
+        // Typing folder selection modal
+        this.closeTypingFolderBtn.addEventListener('click', () => this.closeTypingFolderSelection());
+        this.backFromTypingFolderBtn.addEventListener('click', () => this.backToTestModeSelection());
 
         // Side selection modals
         this.closeFlipSideBtn.addEventListener('click', () => this.closeFlipSideSelection());
@@ -569,7 +590,7 @@ class VocaBox {
         this.selectBackFirst.addEventListener('click', () => this.startFlipModeWithSide('back'));
         
         this.closeTypingSideBtn.addEventListener('click', () => this.closeTypingSideSelection());
-        this.backToTypingModeBtn.addEventListener('click', () => this.backToTestModeSelection());
+        this.backToTypingModeBtn.addEventListener('click', () => this.backToTypingFolderSelection());
         this.selectSeeFrontTypeBack.addEventListener('click', () => this.startTypingModeWithSides('front', 'back'));
         this.selectSeeBackTypeFront.addEventListener('click', () => this.startTypingModeWithSides('back', 'front'));
 
@@ -1886,8 +1907,20 @@ class VocaBox {
                 await this.deleteAudioFile(card.audioId);
             }
             
+            // Get cards to show before deletion
+            const cardsToShowBefore = this.getCardsForCurrentFolder();
+            const deletedIndex = cardsToShowBefore.findIndex(c => c.id === this.pendingDeleteId);
+            
             this.cards = this.cards.filter(card => card.id !== this.pendingDeleteId);
             this.saveCards();
+            
+            // Adjust current card index if needed
+            if (deletedIndex !== -1 && deletedIndex < this.currentCardIndex) {
+                this.currentCardIndex--;
+            } else if (deletedIndex !== -1 && deletedIndex === this.currentCardIndex && this.currentCardIndex > 0) {
+                this.currentCardIndex--;
+            }
+            
             this.renderCards();
             this.updateCardCount();
             this.closeDeleteConfirmModal();
@@ -1903,24 +1936,62 @@ class VocaBox {
         // Show/hide empty state
         if (cardsToShow.length === 0) {
             this.cardsEmptyState.classList.remove('hidden');
+            this.cardsNavigation.style.display = 'none';
             // Hide decoration cat when no cards
             const cardsDecoration = document.querySelector('.cat-decoration');
             if (cardsDecoration) cardsDecoration.style.display = 'none';
         } else {
             this.cardsEmptyState.classList.add('hidden');
+            this.cardsNavigation.style.display = 'flex';
             // Show decoration cat when cards exist
             const cardsDecoration = document.querySelector('.cat-decoration');
             if (cardsDecoration) cardsDecoration.style.display = 'block';
-            cardsToShow.forEach(card => {
-                const cardElement = this.createCardElement(card);
+            
+            // Reset card index if out of bounds
+            if (this.currentCardIndex >= cardsToShow.length) {
+                this.currentCardIndex = 0;
+            }
+            
+            // Show only the current card
+            const currentCard = cardsToShow[this.currentCardIndex];
+            if (currentCard) {
+                const cardElement = this.createCardElement(currentCard);
                 this.cardsContainer.appendChild(cardElement);
-            });
+            }
+            
+            // Update navigation
+            this.updateCardNavigation(cardsToShow.length);
+        }
+    }
+    
+    updateCardNavigation(totalCards) {
+        if (totalCards > 0) {
+            this.cardPosition.textContent = `${this.currentCardIndex + 1} / ${totalCards}`;
+            this.prevCardViewBtn.disabled = this.currentCardIndex === 0;
+            this.nextCardViewBtn.disabled = this.currentCardIndex === totalCards - 1;
+        }
+    }
+    
+    previousCardView() {
+        const cardsToShow = this.getCardsForCurrentFolder();
+        if (this.currentCardIndex > 0) {
+            this.currentCardIndex--;
+            this.renderCards();
+        }
+    }
+    
+    nextCardView() {
+        const cardsToShow = this.getCardsForCurrentFolder();
+        if (this.currentCardIndex < cardsToShow.length - 1) {
+            this.currentCardIndex++;
+            this.renderCards();
         }
     }
 
     createCardElement(card) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card-item';
+        cardDiv.dataset.flipped = 'false';
         
         // Add folder-specific color class
         const folderClass = this.getFolderColorClass(card.folderId);
@@ -1929,9 +2000,22 @@ class VocaBox {
         }
         
         const hasAudio = card.audioId ? true : false;
-        const audioButton = hasAudio ? `<button class="play-audio-btn" data-audio-id="${card.audioId}" title="Play audio">🔊 Play</button>` : '';
         
         cardDiv.innerHTML = `
+            <div class="card-flip-container">
+                <div class="card-flip-inner">
+                    <div class="card-face card-front">
+                        <div class="card-content">
+                            ${card.front}
+                        </div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div class="card-content">
+                            ${card.back}
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="card-header">
                 <div class="card-folder-info">
                     <div class="folder-dropdown-container">
@@ -1949,10 +2033,8 @@ class VocaBox {
                     </div>
                 </div>
             </div>
-            <div class="card-front-preview">${card.front}</div>
-            <div class="card-back-preview">${card.back}</div>
             <div class="card-actions">
-                ${audioButton}
+                ${hasAudio ? `<button class="play-audio-btn" data-audio-id="${card.audioId}" title="Play audio">🔊 Play</button>` : ''}
                 <button class="edit-btn" data-id="${card.id}"><img src="pencil.png" alt="Edit" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Edit</button>
                 <button class="delete-btn" data-id="${card.id}"><img src="trashbin.png" alt="Delete" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Delete</button>
             </div>
@@ -1987,8 +2069,32 @@ class VocaBox {
         // Add audio play button listener
         if (hasAudio) {
             const playBtn = cardDiv.querySelector('.play-audio-btn');
-            playBtn.addEventListener('click', () => this.playCardAudio(card.audioId));
+            playBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.playCardAudio(card.audioId);
+            });
         }
+        
+        // Add flip functionality
+        const flipContainer = cardDiv.querySelector('.card-flip-container');
+        flipContainer.addEventListener('click', () => {
+            const isFlipped = cardDiv.dataset.flipped === 'true';
+            cardDiv.dataset.flipped = isFlipped ? 'false' : 'true';
+            const flipInner = cardDiv.querySelector('.card-flip-inner');
+            if (isFlipped) {
+                flipInner.style.transform = 'rotateX(0deg)';
+            } else {
+                flipInner.style.transform = 'rotateX(180deg)';
+            }
+        });
+        
+        // Prevent button clicks from triggering flip
+        const actionButtons = cardDiv.querySelectorAll('.card-actions button, .card-header button');
+        actionButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        });
 
         return cardDiv;
     }
@@ -3735,8 +3841,24 @@ class VocaBox {
         this.flipSideSelectModal.classList.remove('active');
     }
 
-    openTypingSideSelection() {
+    // Typing Folder Selection Methods
+    openTypingFolderSelection() {
         this.testModeSelectModal.classList.remove('active');
+        this.typingFolderSelectModal.classList.add('active');
+        this.renderTypingFolderSelection();
+    }
+
+    closeTypingFolderSelection() {
+        this.typingFolderSelectModal.classList.remove('active');
+    }
+
+    backToTypingFolderSelection() {
+        this.typingSideSelectModal.classList.remove('active');
+        this.typingFolderSelectModal.classList.add('active');
+    }
+
+    openTypingSideSelection() {
+        this.typingFolderSelectModal.classList.remove('active');
         this.typingSideSelectModal.classList.add('active');
     }
 
@@ -3746,6 +3868,7 @@ class VocaBox {
 
     backToTestModeSelection() {
         this.flipSideSelectModal.classList.remove('active');
+        this.typingFolderSelectModal.classList.remove('active');
         this.typingSideSelectModal.classList.remove('active');
         this.testModeSelectModal.classList.add('active');
     }
@@ -3777,21 +3900,31 @@ class VocaBox {
 
     // Flip Mode Functions
     startFlipMode(category, startingSide = 'front') {
-        // Filter cards based on selected category
+        // Filter cards based on selected category and folder
         // If a card has no category property, default it to 'card'
         this.flipTestCards = this.cards.filter(card => {
             const cardCategory = card.category || 'card';
-            return cardCategory === category;
+            const categoryMatch = cardCategory === category;
+            
+            // Filter by folder if a specific folder is selected
+            if (this.selectedFolderId && this.selectedFolderId !== 'all') {
+                const cardFolder = card.folder || 'default';
+                return categoryMatch && cardFolder === this.selectedFolderId;
+            }
+            
+            return categoryMatch;
         });
         
         if (this.flipTestCards.length === 0) {
             const categoryName = category === 'card' ? 'Cards' : 'Tests';
-            alert(`No ${categoryName} available! Please add some ${categoryName.toLowerCase()} first.`);
-            this.closeCategorySelection();
+            const folderName = this.selectedFolderId === 'all' ? 'all folders' : 
+                this.folders.find(f => f.id === this.selectedFolderId)?.name || 'selected folder';
+            alert(`No ${categoryName} available in ${folderName}! Please add some ${categoryName.toLowerCase()} first.`);
+            this.closeFlipSideSelection();
             return;
         }
 
-        this.closeCategorySelection();
+        this.closeFlipSideSelection();
         this.currentTestIndex = 0;
         this.isFlipped = startingSide === 'back';
         this.testModeScreen.classList.add('active');
@@ -3806,12 +3939,21 @@ class VocaBox {
 
     // Typing Mode Functions
     startTypingMode(seeSide = 'front', typeSide = 'back') {
-        // Get all cards (not just test category)
+        // Filter cards by selected folder
+        if (this.typingSelectedFolderId === 'all') {
         this.typingTestCards = this.cards;
+        } else {
+            this.typingTestCards = this.cards.filter(card => {
+                const cardFolderId = card.folderId || 'default';
+                return cardFolderId === this.typingSelectedFolderId;
+            });
+        }
         
         if (this.typingTestCards.length === 0) {
-            alert('Please add some cards first!');
-            this.closeTestModeSelection();
+            const folderName = this.typingSelectedFolderId === 'all' ? 'all folders' : 
+                this.folders.find(f => f.id === this.typingSelectedFolderId)?.name || 'selected folder';
+            alert(`No cards available in ${folderName}! Please add some cards first.`);
+            this.closeTypingFolderSelection();
             return;
         }
         
@@ -3827,7 +3969,7 @@ class VocaBox {
             unansweredCount: 0
         };
 
-        this.closeTestModeSelection();
+        this.closeTypingSideSelection();
         this.currentTypingIndex = 0;
         this.typingModeScreen.classList.add('active');
         this.typingTotalCards.textContent = this.typingTestCards.length;
@@ -4356,6 +4498,34 @@ class VocaBox {
         
         const cardCount = this.cards.filter(card => card.folderId === folder.id).length;
         
+        // Define folder colors (same as cards)
+        const folderColors = [
+            '#CD7D88', // 1
+            '#BFDCDB', // 2
+            '#87ABC5', // 3
+            '#C5B5D3', // 4
+            '#DE9C73', // 5
+            '#5F2312', // 6
+            '#DE634D', // 7
+            '#E1A102', // 8
+            '#3A989E', // 9
+            '#B66899'  // 10
+        ];
+        
+        // Get all folders to determine color index
+        const allFolders = [
+            { id: 'default', name: 'Default Folder' },
+            ...this.folders.filter(f => f.id !== 'default')
+        ];
+        
+        // Find the index of the current folder
+        const folderIndex = allFolders.findIndex(f => f.id === folder.id);
+        const colorIndex = folderIndex >= 0 ? folderIndex % folderColors.length : 0;
+        const folderColor = folderColors[colorIndex];
+        
+        // Apply color border
+        folderDiv.style.borderLeft = `3px solid ${folderColor}`;
+        
         folderDiv.innerHTML = `
             <img src="books.png" alt="Folder" class="folder-icon" style="width: 16px; height: 16px;">
             <span class="folder-name">${folder.name}</span>
@@ -4369,6 +4539,7 @@ class VocaBox {
 
     selectFolder(folderId) {
         this.currentFolder = folderId;
+        this.currentCardIndex = 0; // Reset to first card when changing folders
         this.renderCards();
         this.updateFolderSelectors();
         
@@ -4377,6 +4548,81 @@ class VocaBox {
             item.classList.remove('active');
         });
         document.querySelector(`[data-folder-id="${folderId}"]`).classList.add('active');
+    }
+
+    renderTypingFolderSelection() {
+        this.typingFolderSelectionContainer.innerHTML = '';
+        
+        // Define folder colors (same as in getFolderColorClass)
+        const folderColors = [
+            '#CD7D88', // 1
+            '#BFDCDB', // 2
+            '#87ABC5', // 3
+            '#C5B5D3', // 4
+            '#DE9C73', // 5
+            '#5F2312', // 6
+            '#DE634D', // 7
+            '#E1A102', // 8
+            '#3A989E', // 9
+            '#B66899'  // 10
+        ];
+        
+        // Add "All Folders" option (with default gray color)
+        const allFoldersDiv = document.createElement('div');
+        allFoldersDiv.className = 'folder-option-card';
+        allFoldersDiv.style.borderLeft = '4px solid #9e9e9e';
+        allFoldersDiv.innerHTML = `
+            <div class="folder-icon">
+                <img src="card.png" alt="Card" style="width: 40px; height: 40px;">
+            </div>
+            <div class="folder-info">
+                <div class="folder-name">All Folders</div>
+                <div class="folder-description">Practice with cards from all folders</div>
+            </div>
+            <button class="btn btn-primary folder-select-btn">Select</button>
+        `;
+        allFoldersDiv.querySelector('.folder-select-btn').addEventListener('click', () => {
+            this.typingSelectedFolderId = 'all';
+            this.openTypingSideSelection();
+        });
+        this.typingFolderSelectionContainer.appendChild(allFoldersDiv);
+        
+        // Add individual folder options with colors
+        const allFolders = [
+            { id: 'default', name: 'Default Folder' },
+            ...this.folders.filter(f => f.id !== 'default')
+        ];
+        
+        this.folders.forEach(folder => {
+            const folderDiv = document.createElement('div');
+            folderDiv.className = 'folder-option-card';
+            
+            const cardCount = this.cards.filter(card => (card.folderId || 'default') === folder.id).length;
+            
+            // Get color for this folder
+            const folderIndex = allFolders.findIndex(f => f.id === folder.id);
+            const colorIndex = folderIndex >= 0 ? folderIndex % folderColors.length : 0;
+            const folderColor = folderColors[colorIndex];
+            
+            // Apply color strip
+            folderDiv.style.borderLeft = `4px solid ${folderColor}`;
+            
+            folderDiv.innerHTML = `
+                <div class="folder-icon">
+                    <img src="card.png" alt="Card" style="width: 40px; height: 40px;">
+                </div>
+                <div class="folder-info">
+                    <div class="folder-name">${folder.name}</div>
+                    <div class="folder-description">${cardCount} card${cardCount !== 1 ? 's' : ''}</div>
+                </div>
+                <button class="btn btn-primary folder-select-btn">Select</button>
+            `;
+            folderDiv.querySelector('.folder-select-btn').addEventListener('click', () => {
+                this.typingSelectedFolderId = folder.id;
+                this.openTypingSideSelection();
+            });
+            this.typingFolderSelectionContainer.appendChild(folderDiv);
+        });
     }
 
     updateFolderSelectors() {
