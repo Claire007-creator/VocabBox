@@ -2478,23 +2478,13 @@ class VocaBox {
         try {
             const prefix = (this.ieltsPrefixInput.value || 'IELTS 8000 - List').trim();
             
-            // Try multiple sources to get the full IELTS 8000 dataset
-            let text;
-            try {
-                // First try to fetch from server/file system
-                text = await this.fetchLocalCollectionText('IELTS 8000.txt');
-            } catch (fetchError) {
-                try {
-                    // If fetch fails, try using FileReader with the file input
-                    // This handles cases where file exists but can't be fetched via HTTP
-                    console.log('Could not fetch IELTS file via HTTP, trying embedded fallback');
-                    text = this.getEmbeddedIELTSData();
-                } catch (fallbackError) {
-                    throw new Error('Could not load IELTS data. Please use "Use Local File" option instead.');
-                }
+            // One-click apply: always use the built-in dataset
+            const text = this.getEmbeddedIELTSData();
+            const folderIds = await this.importIELTSText(text, prefix);
+            // Auto-select first created list so users can start immediately
+            if (Array.isArray(folderIds) && folderIds.length > 0) {
+                this.selectFolder(folderIds[0]);
             }
-            
-            await this.importIELTSText(text, prefix);
         } catch (err) {
             this.showCollectionsError('Failed to import IELTS collection: ' + err.message);
         }
@@ -2537,10 +2527,12 @@ class VocaBox {
         }
         const chunks = this.chunkArray(items, 200);
         let created = 0;
+        const createdFolderIds = [];
         chunks.forEach((chunk, index) => {
             const listName = `${prefix} ${String(index + 1).padStart(2, '0')}`;
             this.createFolder(listName, 'Prebuilt IELTS list');
             const folderId = this.folders[this.folders.length - 1].id;
+            createdFolderIds.push(folderId);
             chunk.forEach(row => {
                 this.addCard(row.front, row.back, 'card', null, folderId);
             });
@@ -2550,6 +2542,7 @@ class VocaBox {
         this.closeCollectionsModal();
         this.renderFolders();
         this.renderCards();
+        return createdFolderIds;
     }
 
     parseIELTSFormat(text) {
