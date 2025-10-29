@@ -13554,40 +13554,60 @@ class VocaBox {
         container.innerHTML = '';
         const currentFolderObj = this.folders.find(f => f.id === this.currentFolder);
         if (!currentFolderObj) {
-            // No specific folder selected; hide the dropdown
             container.style.display = 'none';
             return;
         }
         const name = currentFolderObj.name || '';
-        const match = name.match(/^(.+?)\s-\sList\s\d+$/);
+        
+        // Match pattern: "Prefix - List XX" (e.g., "IELTS 8000 - List 01")
+        // Folder names are created as: `${prefix} ${index}` where prefix includes " - List"
+        const match = name.match(/^(.+?)\s-\sList\s(\d+)$/);
         if (!match) {
-            // Not in a list series; hide the dropdown
             container.style.display = 'none';
             return;
         }
-        const prefix = match[1];
+        
+        const prefix = match[1].trim(); // e.g., "IELTS 8000"
+        
+        // Find all folders matching the same prefix pattern
+        // Pattern: "IELTS 8000 - List 01", "IELTS 8000 - List 02", etc.
+        const prefixPattern = new RegExp(`^${this.escapeRegExp(prefix)}\\s-\\sList\\s\\d+$`);
         const siblings = this.folders
-            .filter(f => new RegExp(`^${this.escapeRegExp(prefix)}\\s-\\sList\\s\\d+$`).test(f.name))
-            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+            .filter(f => prefixPattern.test(f.name))
+            .sort((a, b) => {
+                // Extract numbers for proper sorting (01, 02, ... 40)
+                const numA = parseInt(a.name.match(/List\s(\d+)/)?.[1] || '0');
+                const numB = parseInt(b.name.match(/List\s(\d+)/)?.[1] || '0');
+                return numA - numB;
+            });
 
         if (siblings.length === 0) {
             container.style.display = 'none';
             return;
         }
 
-        // Build options: only lists in this series
+        // Build options: all lists in this series
         siblings.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;
             opt.textContent = f.name;
-            if (f.id === this.currentFolder) opt.selected = true;
+            if (f.id === this.currentFolder) {
+                opt.selected = true;
+            }
             container.appendChild(opt);
         });
-        container.style.display = 'inline-block';
         
-        // Ensure dropdown is visible and accessible
+        // Debug: log what we found
+        console.log(`[List Dropdown] Found ${siblings.length} sibling lists for "${prefix}":`, siblings.map(f => f.name));
+        
+        // Make dropdown visible and fully interactive
+        container.style.display = 'inline-block';
         container.style.visibility = 'visible';
         container.disabled = false;
+        container.style.opacity = '1';
+        container.style.pointerEvents = 'auto';
+        container.style.position = 'relative';
+        container.style.zIndex = '10';
     }
 
     escapeRegExp(str) {

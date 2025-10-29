@@ -2911,11 +2911,21 @@ body {
     font-size: 0.9rem;
     color: #2c3e50;
     cursor: pointer;
+    z-index: 10;
+    position: relative;
+    min-width: 200px;
 }
 
 .folder-dropdown:focus {
     outline: none;
     border-color: #5FB3A7;
+    box-shadow: 0 0 0 2px rgba(95, 179, 167, 0.2);
+}
+
+.folder-dropdown option {
+    padding: 8px;
+    background: white;
+    color: #2c3e50;
 }
 
 .form-select {
