@@ -1809,6 +1809,19 @@ class VocaBox {
         this.renderFolders(); // Update folder counts
     }
 
+    // Optimized bulk add without save/render; call saveCards/render manually after batch
+    addCardSilent(front, back, category = 'card', audioId = null, folderId = 'default') {
+        this.cards.push({
+            id: Date.now() + Math.random(),
+            front: front,
+            back: back,
+            category: category,
+            audioId: audioId || undefined,
+            folderId: folderId,
+            createdAt: new Date().toISOString()
+        });
+    }
+
     deleteCard(id) {
         this.pendingDeleteId = id;
         this.openDeleteConfirmModal();
@@ -2533,15 +2546,19 @@ class VocaBox {
             this.createFolder(listName, 'Prebuilt IELTS list');
             const folderId = this.folders[this.folders.length - 1].id;
             createdFolderIds.push(folderId);
+            // Bulk add silently to avoid repeated renders/saves
             chunk.forEach(row => {
-                this.addCard(row.front, row.back, 'card', null, folderId);
+                this.addCardSilent(row.front, row.back, 'card', null, folderId);
             });
             created += chunk.length;
         });
-        this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
-        this.closeCollectionsModal();
+        // Single save + render after batch
+        this.saveCards();
         this.renderFolders();
         this.renderCards();
+        this.updateCardCount();
+        this.closeCollectionsModal();
+        this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
         return createdFolderIds;
     }
 
