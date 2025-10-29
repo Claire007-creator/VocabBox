@@ -545,10 +545,16 @@ class VocaBox {
         this.closeCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
         this.cancelCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
         this.createFolderForm.addEventListener('submit', (e) => this.handleCreateFolder(e));
-        this.listDropdown.addEventListener('change', (e) => {
-            const folderId = e.target.value;
-            if (folderId) this.selectFolder(folderId);
-        });
+        if (this.listDropdown) {
+            this.listDropdown.addEventListener('change', (e) => {
+                const folderId = this.listDropdown.value;
+                if (folderId && folderId !== '') {
+                    this.selectFolder(folderId);
+                    // Update dropdown after selection to ensure it reflects current folder
+                    this.updateListDropdownForHeader();
+                }
+            });
+        }
         
         // Card navigation
         this.prevCardViewBtn.addEventListener('click', () => this.previousCardView());
@@ -13564,6 +13570,11 @@ class VocaBox {
             .filter(f => new RegExp(`^${this.escapeRegExp(prefix)}\\s-\\sList\\s\\d+$`).test(f.name))
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
+        if (siblings.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
         // Build options: only lists in this series
         siblings.forEach(f => {
             const opt = document.createElement('option');
@@ -13573,6 +13584,10 @@ class VocaBox {
             container.appendChild(opt);
         });
         container.style.display = 'inline-block';
+        
+        // Ensure dropdown is visible and accessible
+        container.style.visibility = 'visible';
+        container.disabled = false;
     }
 
     escapeRegExp(str) {
