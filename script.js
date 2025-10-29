@@ -5105,7 +5105,7 @@ class VocaBox {
         }
         const prefix = match[1];
         const siblings = this.folders
-            .filter(f => new RegExp(`^${this.escapeRegExp(prefix)}\s-\sList\s\\d+$`).test(f.name))
+            .filter(f => new RegExp(`^${this.escapeRegExp(prefix)}\\s-\\sList\\s\\d+$`).test(f.name))
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
         // Build options: only lists in this series
