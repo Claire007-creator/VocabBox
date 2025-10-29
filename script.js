@@ -235,6 +235,8 @@ class VocaBox {
         this.importIELTSBtn = document.getElementById('importIELTSBtn');
         this.ieltsPrefixInput = document.getElementById('ieltsPrefixInput');
         this.collectionsError = document.getElementById('collectionsError');
+        this.importIELTSFromLocalBtn = document.getElementById('importIELTSFromLocalBtn');
+        this.ieltsLocalFile = document.getElementById('ieltsLocalFile');
 
         // Delete confirmation modal elements
         this.deleteConfirmModal = document.getElementById('deleteConfirmModal');
@@ -589,6 +591,10 @@ class VocaBox {
         // Collections modal listeners
         this.closeCollectionsBtn.addEventListener('click', () => this.closeCollectionsModal());
         this.importIELTSBtn.addEventListener('click', () => this.handleImportIELTSCollection());
+        if (this.importIELTSFromLocalBtn && this.ieltsLocalFile) {
+            this.importIELTSFromLocalBtn.addEventListener('click', () => this.ieltsLocalFile.click());
+            this.ieltsLocalFile.addEventListener('change', (e) => this.handleImportIELTSFromLocal(e));
+        }
 
         // Delete confirmation modal buttons
         this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteConfirmModal());
@@ -2475,29 +2481,7 @@ class VocaBox {
                 text = this.getEmbeddedIELTSData();
             }
             
-            const items = this.parseIELTSFormat(text);
-
-            if (items.length === 0) {
-                this.showCollectionsError('No items parsed from IELTS collection.');
-                return;
-            }
-
-            const chunks = this.chunkArray(items, 200);
-            let created = 0;
-            chunks.forEach((chunk, index) => {
-                const listName = `${prefix} ${String(index + 1).padStart(2, '0')}`;
-                this.createFolder(listName, 'Prebuilt IELTS list');
-                const folderId = this.folders[this.folders.length - 1].id;
-                chunk.forEach(row => {
-                    this.addCard(row.front, row.back, 'card', null, folderId);
-                });
-                created += chunk.length;
-            });
-
-            this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
-            this.closeCollectionsModal();
-            this.renderFolders();
-            this.renderCards();
+            await this.importIELTSText(text, prefix);
         } catch (err) {
             this.showCollectionsError('Failed to import IELTS collection: ' + err.message);
         }
@@ -2508,10 +2492,51 @@ class VocaBox {
         this.collectionsError.style.display = 'block';
     }
 
+    async handleImportIELTSFromLocal(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.txt')) {
+            this.showCollectionsError('Please choose a .txt file.');
+            return;
+        }
+        const prefix = (this.ieltsPrefixInput.value || 'IELTS 8000 - List').trim();
+        try {
+            const text = await this.readFileAsText(file);
+            await this.importIELTSText(text, prefix);
+        } catch (err) {
+            this.showCollectionsError('Failed to read local file: ' + err.message);
+        } finally {
+            this.ieltsLocalFile.value = '';
+        }
+    }
+
     async fetchLocalCollectionText(path) {
         const resp = await fetch(path, { cache: 'no-cache' });
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         return await resp.text();
+    }
+
+    async importIELTSText(text, prefix) {
+        const items = this.parseIELTSFormat(text);
+        if (items.length === 0) {
+            this.showCollectionsError('No items parsed from IELTS collection.');
+            return;
+        }
+        const chunks = this.chunkArray(items, 200);
+        let created = 0;
+        chunks.forEach((chunk, index) => {
+            const listName = `${prefix} ${String(index + 1).padStart(2, '0')}`;
+            this.createFolder(listName, 'Prebuilt IELTS list');
+            const folderId = this.folders[this.folders.length - 1].id;
+            chunk.forEach(row => {
+                this.addCard(row.front, row.back, 'card', null, folderId);
+            });
+            created += chunk.length;
+        });
+        this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
+        this.closeCollectionsModal();
+        this.renderFolders();
+        this.renderCards();
     }
 
     parseIELTSFormat(text) {
