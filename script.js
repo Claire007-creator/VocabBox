@@ -42,6 +42,7 @@ class VocaBox {
         this.updateAuthUI();
         this.renderFolders();
         this.updateFolderSelectors();
+        this.updateListDropdownForHeader();
         this.renderCards();
         this.updateCardCount();
         this.applyCustomColors();
@@ -158,7 +159,7 @@ class VocaBox {
         // Folder elements
         this.createFolderBtn = document.getElementById('createFolderBtn');
         this.folderList = document.getElementById('folderList');
-        this.folderSelect = document.getElementById('folderSelect');
+        this.listDropdown = document.getElementById('listDropdown');
         this.addCardFolder = document.getElementById('addCardFolder');
 
         // Modal elements
@@ -542,7 +543,10 @@ class VocaBox {
         this.closeCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
         this.cancelCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
         this.createFolderForm.addEventListener('submit', (e) => this.handleCreateFolder(e));
-        this.folderSelect.addEventListener('change', (e) => this.selectFolder(e.target.value));
+        this.listDropdown.addEventListener('change', (e) => {
+            const folderId = e.target.value;
+            if (folderId) this.selectFolder(folderId);
+        });
         
         // Card navigation
         this.prevCardViewBtn.addEventListener('click', () => this.previousCardView());
@@ -4936,6 +4940,7 @@ class VocaBox {
     selectFolder(folderId) {
         this.currentFolder = folderId;
         this.currentCardIndex = 0; // Reset to first card when changing folders
+        this.updateListDropdownForHeader();
         this.renderCards();
         this.updateFolderSelectors();
         
@@ -5022,18 +5027,6 @@ class VocaBox {
     }
 
     updateFolderSelectors() {
-        // Update main folder dropdown
-        this.folderSelect.innerHTML = '<option value="all">All Folders</option>';
-        this.folders.forEach(folder => {
-            const option = document.createElement('option');
-            option.value = folder.id;
-            option.textContent = folder.name;
-            if (folder.id === this.currentFolder) {
-                option.selected = true;
-            }
-            this.folderSelect.appendChild(option);
-        });
-        
         // Update add card folder selector
         this.addCardFolder.innerHTML = '';
         this.folders.forEach(folder => {
@@ -5090,6 +5083,44 @@ class VocaBox {
         this.createFolder(name, description);
         this.closeCreateFolderModal();
         this.showNotification(`Folder "${name}" created successfully! 📁`, 'success');
+    }
+
+    // Populate the list-only dropdown in header with sibling "List XX" folders
+    updateListDropdownForHeader() {
+        if (!this.listDropdown) return;
+        const container = this.listDropdown;
+        container.innerHTML = '';
+        const currentFolderObj = this.folders.find(f => f.id === this.currentFolder);
+        if (!currentFolderObj) {
+            // No specific folder selected; hide the dropdown
+            container.style.display = 'none';
+            return;
+        }
+        const name = currentFolderObj.name || '';
+        const match = name.match(/^(.+?)\s-\sList\s\d+$/);
+        if (!match) {
+            // Not in a list series; hide the dropdown
+            container.style.display = 'none';
+            return;
+        }
+        const prefix = match[1];
+        const siblings = this.folders
+            .filter(f => new RegExp(`^${this.escapeRegExp(prefix)}\s-\sList\s\\d+$`).test(f.name))
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+        // Build options: only lists in this series
+        siblings.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.name;
+            if (f.id === this.currentFolder) opt.selected = true;
+            container.appendChild(opt);
+        });
+        container.style.display = 'inline-block';
+    }
+
+    escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 }
 
