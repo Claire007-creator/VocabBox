@@ -994,7 +994,24 @@
             <div class="modal-body">
                 <div class="simple-import-section">
                     <div class="import-divider">
-                        <span class="import-instruction">Copy and paste your word list here (from Word, Excel, Google Docs, etc.)</span>
+                        <span class="import-instruction">Import IELTS vocabulary or paste your word list</span>
+                    </div>
+                    
+                    <!-- File Upload Section -->
+                    <div class="file-upload-section">
+                        <div class="form-group">
+                            <label for="vocabularyFileInput">Upload IELTS Vocabulary File (.txt)</label>
+                            <input type="file" id="vocabularyFileInput" accept=".txt" style="display: none;">
+                            <button type="button" class="btn btn-primary" id="selectFileBtn">
+                                <img src="books.png" alt="File" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px;">
+                                Choose IELTS 8000.txt File
+                            </button>
+                            <div id="selectedFileName" class="selected-file-name" style="display: none;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="import-divider">
+                        <span class="import-instruction">Or paste your word list here</span>
                     </div>
                     
                     <div class="form-group">
@@ -1002,6 +1019,19 @@
                     </div>
                     
                     <div class="delimiter-options">
+                        <div class="delimiter-section">
+                            <label class="delimiter-label">Target Folder:</label>
+                            <div class="form-group">
+                                <select id="importTargetFolder" class="form-select">
+                                    <option value="default">Default Folder</option>
+                                </select>
+                                <button type="button" class="btn btn-secondary" id="createFolderForImportBtn" style="margin-top: 10px;">
+                                    <img src="plus.png" alt="Add" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
+                                    Create New Folder
+                                </button>
+                            </div>
+                        </div>
+                        
                         <div class="delimiter-section">
                             <label class="delimiter-label">Between Term and Definition:</label>
                             <div class="radio-group">

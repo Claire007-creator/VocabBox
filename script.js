@@ -219,6 +219,13 @@ class VocaBox {
         this.previewCardsContainer = document.getElementById('previewCardsContainer');
         this.customTermDelimiter = document.getElementById('customTermDelimiter');
         this.customCardDelimiter = document.getElementById('customCardDelimiter');
+        
+        // File upload elements
+        this.vocabularyFileInput = document.getElementById('vocabularyFileInput');
+        this.selectFileBtn = document.getElementById('selectFileBtn');
+        this.selectedFileName = document.getElementById('selectedFileName');
+        this.importTargetFolder = document.getElementById('importTargetFolder');
+        this.createFolderForImportBtn = document.getElementById('createFolderForImportBtn');
 
         // Delete confirmation modal elements
         this.deleteConfirmModal = document.getElementById('deleteConfirmModal');
@@ -547,6 +554,11 @@ class VocaBox {
         this.closeImportModalBtn.addEventListener('click', () => this.closeImportModal());
         this.cancelImportBtn.addEventListener('click', () => this.closeImportModal());
         this.confirmImportBtn.addEventListener('click', () => this.handleImport());
+        
+        // File upload functionality
+        this.selectFileBtn.addEventListener('click', () => this.vocabularyFileInput.click());
+        this.vocabularyFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.createFolderForImportBtn.addEventListener('click', () => this.createFolderForImport());
         
         // Delimiter option listeners
         this.wordListTextarea.addEventListener('input', () => this.updatePreview());
@@ -2392,6 +2404,7 @@ class VocaBox {
     openImportModal() {
         this.importWordListModal.classList.add('active');
         this.resetImportModal();
+        this.updateImportFolderSelector();
     }
 
     closeImportModal() {
@@ -2406,6 +2419,9 @@ class VocaBox {
         this.previewCardsContainer.innerHTML = '<div class="preview-placeholder">Nothing to preview yet.</div>';
         this.customTermDelimiter.value = '';
         this.customCardDelimiter.value = '';
+        this.vocabularyFileInput.value = '';
+        this.selectedFileName.style.display = 'none';
+        this.importTargetFolder.value = 'default';
         // Reset radio buttons to defaults
         document.querySelector('input[name="termDelimiter"][value="space"]').checked = true;
         document.querySelector('input[name="cardDelimiter"][value="newline"]').checked = true;
@@ -2516,6 +2532,69 @@ class VocaBox {
         this.importError.style.display = 'block';
     }
 
+    // File upload methods
+    async handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (!file.name.toLowerCase().endsWith('.txt')) {
+            this.showImportError('Please select a .txt file.');
+            return;
+        }
+        
+        try {
+            const text = await this.readFileAsText(file);
+            this.wordListTextarea.value = text;
+            this.selectedFileName.textContent = `Selected: ${file.name}`;
+            this.selectedFileName.style.display = 'block';
+            this.updatePreview();
+        } catch (error) {
+            this.showImportError('Error reading file: ' + error.message);
+        }
+    }
+    
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file);
+        });
+    }
+    
+    createFolderForImport() {
+        const folderName = prompt('Enter folder name for IELTS vocabulary:');
+        if (!folderName || !folderName.trim()) return;
+        
+        const trimmedName = folderName.trim();
+        
+        // Check if folder name already exists
+        if (this.folders.some(folder => folder.name.toLowerCase() === trimmedName.toLowerCase())) {
+            alert('A folder with this name already exists');
+            return;
+        }
+        
+        this.createFolder(trimmedName, 'IELTS vocabulary folder');
+        
+        // Update the import folder selector
+        this.updateImportFolderSelector();
+        
+        // Select the newly created folder
+        this.importTargetFolder.value = this.folders[this.folders.length - 1].id;
+        
+        this.showNotification(`Folder "${trimmedName}" created successfully! 📁`, 'success');
+    }
+    
+    updateImportFolderSelector() {
+        this.importTargetFolder.innerHTML = '<option value="default">Default Folder</option>';
+        this.folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.name;
+            this.importTargetFolder.appendChild(option);
+        });
+    }
+
     async handleImport() {
         const text = this.wordListTextarea.value.trim();
         
@@ -2532,9 +2611,10 @@ class VocaBox {
                 return;
             }
             
+            const targetFolderId = this.importTargetFolder.value;
             let importedCount = 0;
             for (const row of parsedData) {
-                this.addCard(row.front, row.back, row.category);
+                this.addCard(row.front, row.back, row.category, null, targetFolderId);
                 importedCount++;
             }
             
