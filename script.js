@@ -227,6 +227,14 @@ class VocaBox {
         this.importTargetFolder = document.getElementById('importTargetFolder');
         this.createFolderForImportBtn = document.getElementById('createFolderForImportBtn');
 
+        // Collections UI
+        this.collectionsBtn = document.getElementById('collectionsBtn');
+        this.collectionsModal = document.getElementById('collectionsModal');
+        this.closeCollectionsBtn = document.getElementById('closeCollectionsBtn');
+        this.importIELTSBtn = document.getElementById('importIELTSBtn');
+        this.ieltsPrefixInput = document.getElementById('ieltsPrefixInput');
+        this.collectionsError = document.getElementById('collectionsError');
+
         // Delete confirmation modal elements
         this.deleteConfirmModal = document.getElementById('deleteConfirmModal');
         this.cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
@@ -526,6 +534,9 @@ class VocaBox {
         // Import Word List button
         this.importWordListBtn.addEventListener('click', () => this.openImportModal());
 
+        // Collections button
+        this.collectionsBtn.addEventListener('click', () => this.openCollectionsModal());
+
         // Folder functionality
         this.createFolderBtn.addEventListener('click', () => this.openCreateFolderModal());
         this.closeCreateFolderBtn.addEventListener('click', () => this.closeCreateFolderModal());
@@ -570,6 +581,10 @@ class VocaBox {
         });
         this.customTermDelimiter.addEventListener('input', () => this.updatePreview());
         this.customCardDelimiter.addEventListener('input', () => this.updatePreview());
+
+        // Collections modal listeners
+        this.closeCollectionsBtn.addEventListener('click', () => this.closeCollectionsModal());
+        this.importIELTSBtn.addEventListener('click', () => this.handleImportIELTSCollection());
 
         // Delete confirmation modal buttons
         this.cancelDeleteBtn.addEventListener('click', () => this.closeDeleteConfirmModal());
@@ -683,6 +698,12 @@ class VocaBox {
         this.deleteConfirmModal.addEventListener('click', (e) => {
             if (e.target === this.deleteConfirmModal) {
                 this.closeDeleteConfirmModal();
+            }
+        });
+
+        this.collectionsModal.addEventListener('click', (e) => {
+            if (e.target === this.collectionsModal) {
+                this.closeCollectionsModal();
             }
         });
 
@@ -2425,6 +2446,87 @@ class VocaBox {
         // Reset radio buttons to defaults
         document.querySelector('input[name="termDelimiter"][value="space"]').checked = true;
         document.querySelector('input[name="cardDelimiter"][value="newline"]').checked = true;
+    }
+
+    // Collections Methods
+    openCollectionsModal() {
+        this.collectionsModal.classList.add('active');
+        this.collectionsError.style.display = 'none';
+    }
+
+    closeCollectionsModal() {
+        this.collectionsModal.classList.remove('active');
+    }
+
+    async handleImportIELTSCollection() {
+        try {
+            const prefix = (this.ieltsPrefixInput.value || 'IELTS 8000 - List').trim();
+            const text = await this.fetchLocalCollectionText('IELTS 8000.txt');
+            const items = this.parseIELTSFormat(text);
+
+            if (items.length === 0) {
+                this.showCollectionsError('No items parsed from IELTS collection.');
+                return;
+            }
+
+            const chunks = this.chunkArray(items, 200);
+            let created = 0;
+            chunks.forEach((chunk, index) => {
+                const listName = `${prefix} ${String(index + 1).padStart(2, '0')}`;
+                this.createFolder(listName, 'Prebuilt IELTS list');
+                const folderId = this.folders[this.folders.length - 1].id;
+                chunk.forEach(row => {
+                    this.addCard(row.front, row.back, 'card', null, folderId);
+                });
+                created += chunk.length;
+            });
+
+            this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
+            this.closeCollectionsModal();
+            this.renderFolders();
+            this.renderCards();
+        } catch (err) {
+            this.showCollectionsError('Failed to import IELTS collection: ' + err.message);
+        }
+    }
+
+    showCollectionsError(message) {
+        this.collectionsError.textContent = message;
+        this.collectionsError.style.display = 'block';
+    }
+
+    async fetchLocalCollectionText(path) {
+        const resp = await fetch(path, { cache: 'no-cache' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return await resp.text();
+    }
+
+    parseIELTSFormat(text) {
+        const lines = text.split(/\r?\n/);
+        const rows = [];
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            // Expected like: "3. divide, v. 中文释义"
+            const afterNumber = trimmed.replace(/^\s*\d+\.?\s*/, '');
+            const firstComma = afterNumber.indexOf(',');
+            if (firstComma === -1) continue;
+            const word = afterNumber.slice(0, firstComma).trim();
+            const rest = afterNumber.slice(firstComma + 1).trim();
+            // Treat everything after first comma as back/definition (word form + Chinese)
+            const front = word;
+            const back = rest;
+            rows.push({ front, back });
+        }
+        return rows;
+    }
+
+    chunkArray(arr, size) {
+        const result = [];
+        for (let i = 0; i < arr.length; i += size) {
+            result.push(arr.slice(i, i + size));
+        }
+        return result;
     }
 
     getDelimiters() {

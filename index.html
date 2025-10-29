@@ -41,6 +41,12 @@
                     </span>
                     Add Card
                 </button>
+                <button class="btn btn-primary" id="collectionsBtn">
+                    <span class="btn-icon">
+                        <img src="books.png" alt="Collections" class="btn-icon-image">
+                    </span>
+                    Collections
+                </button>
                 <button class="btn btn-success" id="testModeBtn">
                     <span class="btn-icon">
                         <img src="test.png" alt="Test" class="btn-icon-image">
@@ -107,6 +113,33 @@
             </div>
         </main>
     </div>
+    <!-- Collections Modal -->
+    <div class="modal" id="collectionsModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2><img src="books.png" alt="Collections" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Word Collections</h2>
+                <button class="close-btn" id="closeCollectionsBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="collections-list" id="collectionsList">
+                    <div class="collection-card" data-collection-id="ielts8000">
+                        <div class="collection-icon"><img src="books.png" alt="IELTS" style="width: 60px; height: 60px;"></div>
+                        <div class="collection-info">
+                            <h3>IELTS 8000</h3>
+                            <p>8,000-word set. Will create 40 lists (200 words each).</p>
+                            <div class="collection-actions">
+                                <label class="delimiter-label" style="margin-right: 8px;">Prefix</label>
+                                <input type="text" id="ieltsPrefixInput" class="form-input" value="IELTS 8000 - List" style="max-width: 220px;">
+                                <button class="btn btn-primary" id="importIELTSBtn">Add to My Folders</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="collectionsError" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Create Folder Modal -->
     <div class="modal" id="createFolderModal">
