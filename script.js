@@ -13380,8 +13380,11 @@ class VocaBox {
     renderFolders() {
         this.folderList.innerHTML = '';
         
-        // Only show parent folders (folders without a parentFolderId) in sidebar
-        const parentFolders = this.folders.filter(folder => !folder.parentFolderId);
+        // Only show parent folders (no parentFolderId) and hide legacy child lists named "Prefix - List XX"
+        const parentFolders = this.folders.filter(folder => {
+            const isLegacyChild = /.+\s-\sList\s\d+$/i.test(folder.name);
+            return !folder.parentFolderId && !isLegacyChild;
+        });
         parentFolders.forEach(folder => {
             const folderElement = this.createFolderElement(folder);
             this.folderList.appendChild(folderElement);
@@ -13393,17 +13396,17 @@ class VocaBox {
         folderDiv.className = 'folder-item';
         folderDiv.dataset.folderId = folder.id;
         
-        // Count cards: if parent folder, include all child folder cards
+        // Count cards: if parent, include all child folders (new + legacy naming)
         let cardCount = 0;
         if (folder.parentFolderId) {
-            // This is a child folder - just count its own cards
+            // Child folder: own cards only
             cardCount = this.cards.filter(card => card.folderId === folder.id).length;
         } else {
-            // This is a parent folder - count cards from all child folders
-            const childFolders = this.folders.filter(f => f.parentFolderId === folder.id);
-            childFolders.forEach(childFolder => {
-                cardCount += this.cards.filter(card => card.folderId === childFolder.id).length;
-            });
+            // Parent folder: include children by parentFolderId or legacy name pattern
+            const legacyPrefix = `${folder.name} - List `;
+            const childFolders = this.folders.filter(f => f.parentFolderId === folder.id || f.name.startsWith(legacyPrefix));
+            const childIds = new Set(childFolders.map(f => f.id));
+            this.cards.forEach(c => { if (childIds.has(c.folderId)) cardCount++; });
         }
         
         // Define folder colors (same as cards)
@@ -13621,9 +13624,10 @@ class VocaBox {
         // If current folder is a parent, show its child folders
         let childFolders = [];
         if (!currentFolderObj.parentFolderId) {
-            // This is a parent folder - get all its children
+            // This is a parent folder - get all its children (new + legacy naming)
+            const legacyPrefix = `${currentFolderObj.name} - List `;
             childFolders = this.folders
-                .filter(f => f.parentFolderId === this.currentFolder)
+                .filter(f => f.parentFolderId === this.currentFolder || f.name.startsWith(legacyPrefix))
                 .sort((a, b) => {
                     // Extract numbers for proper sorting (List 01, List 02, ... List 40)
                     const numA = parseInt(a.name.match(/List\s(\d+)/)?.[1] || '0');
@@ -13633,8 +13637,10 @@ class VocaBox {
         } else {
             // This is a child folder - show siblings (same parent)
             const parentId = currentFolderObj.parentFolderId;
+            const parentObj = this.folders.find(f => f.id === parentId);
+            const legacyPrefix = parentObj ? `${parentObj.name} - List ` : '';
             childFolders = this.folders
-                .filter(f => f.parentFolderId === parentId)
+                .filter(f => f.parentFolderId === parentId || (legacyPrefix && f.name.startsWith(legacyPrefix)))
                 .sort((a, b) => {
                     const numA = parseInt(a.name.match(/List\s(\d+)/)?.[1] || '0');
                     const numB = parseInt(b.name.match(/List\s(\d+)/)?.[1] || '0');
