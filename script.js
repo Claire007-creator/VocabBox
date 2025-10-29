@@ -2493,10 +2493,11 @@ class VocaBox {
             
             // One-click apply: always use the built-in dataset
             const text = this.getEmbeddedIELTSData();
-            const folderIds = await this.importIELTSText(text, prefix);
-            // Auto-select first created list so users can start immediately
-            if (Array.isArray(folderIds) && folderIds.length > 0) {
-                this.selectFolder(folderIds[0]);
+            const parentFolderId = await this.importIELTSText(text, prefix);
+            // Auto-select parent folder so users can see the dropdown with all lists
+            if (parentFolderId) {
+                this.selectFolder(parentFolderId);
+                this.updateListDropdownForHeader();
             }
         } catch (err) {
             this.showCollectionsError('Failed to import IELTS collection: ' + err.message);
@@ -2538,20 +2539,41 @@ class VocaBox {
             this.showCollectionsError('No items parsed from IELTS collection.');
             return;
         }
+        
+        // Extract parent name from prefix (e.g., "IELTS 8000 - List" -> "IELTS 8000")
+        const parentName = prefix.replace(/\s*-\s*List\s*$/, '').trim() || prefix.split(' - ')[0] || 'IELTS 8000';
+        
+        // Create parent folder first
+        this.createFolder(parentName, 'IELTS vocabulary collection', null);
+        const parentFolderId = this.folders[this.folders.length - 1].id;
+        
         const chunks = this.chunkArray(items, 200);
         let created = 0;
         const createdFolderIds = [];
+        
         chunks.forEach((chunk, index) => {
-            const listName = `${prefix} ${String(index + 1).padStart(2, '0')}`;
-            this.createFolder(listName, 'Prebuilt IELTS list');
-            const folderId = this.folders[this.folders.length - 1].id;
-            createdFolderIds.push(folderId);
+            const listName = `List ${String(index + 1).padStart(2, '0')}`;
+            // Create child folder with parentFolderId
+            const folder = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                name: listName,
+                description: 'Prebuilt IELTS list',
+                parentFolderId: parentFolderId,
+                createdAt: new Date().toISOString()
+            };
+            this.folders.push(folder);
+            createdFolderIds.push(folder.id);
+            
             // Bulk add silently to avoid repeated renders/saves
             chunk.forEach(row => {
-                this.addCardSilent(row.front, row.back, 'card', null, folderId);
+                this.addCardSilent(row.front, row.back, 'card', null, folder.id);
             });
             created += chunk.length;
         });
+        
+        // Save folders after creating all child folders
+        this.saveFolders(this.folders);
+        
         // Single save + render after batch
         this.saveCards();
         this.renderFolders();
@@ -2559,7 +2581,7 @@ class VocaBox {
         this.updateCardCount();
         this.closeCollectionsModal();
         this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
-        return createdFolderIds;
+        return parentFolderId;
     }
 
     parseIELTSFormat(text) {
@@ -13341,11 +13363,12 @@ class VocaBox {
         localStorage.setItem(userKey, JSON.stringify(folders));
     }
 
-    createFolder(name, description = '') {
+    createFolder(name, description = '', parentFolderId = null) {
         const folder = {
-            id: Date.now().toString(),
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             name: name,
             description: description,
+            parentFolderId: parentFolderId || null,
             createdAt: new Date().toISOString()
         };
         this.folders.push(folder);
@@ -13357,7 +13380,9 @@ class VocaBox {
     renderFolders() {
         this.folderList.innerHTML = '';
         
-        this.folders.forEach(folder => {
+        // Only show parent folders (folders without a parentFolderId) in sidebar
+        const parentFolders = this.folders.filter(folder => !folder.parentFolderId);
+        parentFolders.forEach(folder => {
             const folderElement = this.createFolderElement(folder);
             this.folderList.appendChild(folderElement);
         });
@@ -13368,7 +13393,18 @@ class VocaBox {
         folderDiv.className = 'folder-item';
         folderDiv.dataset.folderId = folder.id;
         
-        const cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+        // Count cards: if parent folder, include all child folder cards
+        let cardCount = 0;
+        if (folder.parentFolderId) {
+            // This is a child folder - just count its own cards
+            cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+        } else {
+            // This is a parent folder - count cards from all child folders
+            const childFolders = this.folders.filter(f => f.parentFolderId === folder.id);
+            childFolders.forEach(childFolder => {
+                cardCount += this.cards.filter(card => card.folderId === childFolder.id).length;
+            });
+        }
         
         // Define folder colors (same as cards)
         const folderColors = [
@@ -13522,6 +13558,20 @@ class VocaBox {
         if (this.currentFolder === 'all') {
             return this.cards;
         }
+        
+        const selectedFolder = this.folders.find(f => f.id === this.currentFolder);
+        if (!selectedFolder) {
+            return [];
+        }
+        
+        // If parent folder selected, show cards from all child folders
+        if (!selectedFolder.parentFolderId) {
+            const childFolders = this.folders.filter(f => f.parentFolderId === this.currentFolder);
+            const childFolderIds = childFolders.map(f => f.id);
+            return this.cards.filter(card => childFolderIds.includes(card.folderId));
+        }
+        
+        // If child folder selected, show only its cards
         return this.cards.filter(card => card.folderId === this.currentFolder);
     }
 
@@ -13557,7 +13607,7 @@ class VocaBox {
         this.showNotification(`Folder "${name}" created successfully! 📁`, 'success');
     }
 
-    // Populate the list-only dropdown in header with sibling "List XX" folders
+    // Populate the list-only dropdown in header with child folders
     updateListDropdownForHeader() {
         if (!this.listDropdown) return;
         const container = this.listDropdown;
@@ -13567,37 +13617,38 @@ class VocaBox {
             container.style.display = 'none';
             return;
         }
-        const name = currentFolderObj.name || '';
         
-        // Match pattern: "Prefix - List XX" (e.g., "IELTS 8000 - List 01")
-        // Folder names are created as: `${prefix} ${index}` where prefix includes " - List"
-        const match = name.match(/^(.+?)\s-\sList\s(\d+)$/);
-        if (!match) {
+        // If current folder is a parent, show its child folders
+        let childFolders = [];
+        if (!currentFolderObj.parentFolderId) {
+            // This is a parent folder - get all its children
+            childFolders = this.folders
+                .filter(f => f.parentFolderId === this.currentFolder)
+                .sort((a, b) => {
+                    // Extract numbers for proper sorting (List 01, List 02, ... List 40)
+                    const numA = parseInt(a.name.match(/List\s(\d+)/)?.[1] || '0');
+                    const numB = parseInt(b.name.match(/List\s(\d+)/)?.[1] || '0');
+                    return numA - numB;
+                });
+        } else {
+            // This is a child folder - show siblings (same parent)
+            const parentId = currentFolderObj.parentFolderId;
+            childFolders = this.folders
+                .filter(f => f.parentFolderId === parentId)
+                .sort((a, b) => {
+                    const numA = parseInt(a.name.match(/List\s(\d+)/)?.[1] || '0');
+                    const numB = parseInt(b.name.match(/List\s(\d+)/)?.[1] || '0');
+                    return numA - numB;
+                });
+        }
+
+        if (childFolders.length === 0) {
             container.style.display = 'none';
             return;
         }
-        
-        const prefix = match[1].trim(); // e.g., "IELTS 8000"
-        
-        // Find all folders matching the same prefix pattern
-        // Pattern: "IELTS 8000 - List 01", "IELTS 8000 - List 02", etc.
-        const prefixPattern = new RegExp(`^${this.escapeRegExp(prefix)}\\s-\\sList\\s\\d+$`);
-        const siblings = this.folders
-            .filter(f => prefixPattern.test(f.name))
-            .sort((a, b) => {
-                // Extract numbers for proper sorting (01, 02, ... 40)
-                const numA = parseInt(a.name.match(/List\s(\d+)/)?.[1] || '0');
-                const numB = parseInt(b.name.match(/List\s(\d+)/)?.[1] || '0');
-                return numA - numB;
-            });
 
-        if (siblings.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-
-        // Build options: all lists in this series
-        siblings.forEach(f => {
+        // Build options: all child lists
+        childFolders.forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;
             opt.textContent = f.name;
@@ -13608,7 +13659,10 @@ class VocaBox {
         });
         
         // Debug: log what we found
-        console.log(`[List Dropdown] Found ${siblings.length} sibling lists for "${prefix}":`, siblings.map(f => f.name));
+        const parentName = currentFolderObj.parentFolderId 
+            ? this.folders.find(f => f.id === currentFolderObj.parentFolderId)?.name || 'Unknown'
+            : currentFolderObj.name;
+        console.log(`[List Dropdown] Found ${childFolders.length} child lists for "${parentName}":`, childFolders.map(f => f.name));
         
         // Make dropdown visible and fully interactive
         container.style.display = 'inline-block';
