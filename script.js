@@ -2213,7 +2213,9 @@ class VocaBox {
     }
 
     updateCardCount() {
-        this.cardCount.textContent = this.cards.length;
+        // Show count for the current selection (folder or list), not global total
+        const visibleCount = this.getCardsForCurrentFolder().length;
+        this.cardCount.textContent = visibleCount;
     }
 
     escapeHtml(text) {
