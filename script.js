@@ -13497,6 +13497,7 @@ class VocaBox {
         this.currentCardIndex = 0; // Reset to first card when changing folders
         this.updateListDropdownForHeader();
         this.renderCards();
+        this.updateCardCount();
         this.updateFolderSelectors();
         
         // Update active folder visual state
