@@ -2544,10 +2544,24 @@ class VocaBox {
         
         // Extract parent name from prefix (e.g., "IELTS 8000 - List" -> "IELTS 8000")
         const parentName = prefix.replace(/\s*-\s*List\s*$/, '').trim() || prefix.split(' - ')[0] || 'IELTS 8000';
-        
-        // Create parent folder first
-        this.createFolder(parentName, 'IELTS vocabulary collection', null);
-        const parentFolderId = this.folders[this.folders.length - 1].id;
+        // If parent exists, wipe its child lists and cards to avoid duplication on re-import
+        let parentFolder = this.folders.find(f => !f.parentFolderId && f.name === parentName);
+        if (parentFolder) {
+            const legacyPrefix = `${parentName} - List `;
+            const childFoldersExisting = this.folders.filter(f => f.parentFolderId === parentFolder.id || f.name.startsWith(legacyPrefix));
+            const childIds = new Set(childFoldersExisting.map(f => f.id));
+            // Remove cards in those child folders
+            this.cards = this.cards.filter(c => !childIds.has(c.folderId));
+            // Remove child folders
+            this.folders = this.folders.filter(f => !childIds.has(f.id));
+            this.saveCards();
+            this.saveFolders(this.folders);
+        } else {
+            // Create parent if not exists
+            this.createFolder(parentName, 'IELTS vocabulary collection', null);
+            parentFolder = this.folders[this.folders.length - 1];
+        }
+        const parentFolderId = parentFolder.id;
         
         const chunks = this.chunkArray(items, 200);
         let created = 0;
@@ -2584,6 +2598,34 @@ class VocaBox {
         this.closeCollectionsModal();
         this.showNotification(`Imported ${created} words into ${chunks.length} lists.`, 'success');
         return parentFolderId;
+    }
+
+    // Remove any cards under a given parent folder that are not present in the embedded IELTS dataset,
+    // and de-duplicate by exact front+back pair (keep first occurrence)
+    cleanIELTSCollection(parentName = 'IELTS 8000') {
+        const parent = this.folders.find(f => !f.parentFolderId && f.name === parentName);
+        if (!parent) return { removed: 0, kept: 0 };
+        const legacyPrefix = `${parent.name} - List `;
+        const childFolders = this.folders.filter(f => f.parentFolderId === parent.id || f.name.startsWith(legacyPrefix));
+        const childIds = new Set(childFolders.map(f => f.id));
+        const allowedRows = this.parseIELTSFormat(this.getEmbeddedIELTSData());
+        const allowedSet = new Set(allowedRows.map(r => `${r.front}\u0001${r.back}`));
+        const seen = new Set();
+        const before = this.cards.length;
+        this.cards = this.cards.filter(card => {
+            if (!childIds.has(card.folderId)) return true; // keep cards outside this collection
+            const key = `${card.front}\u0001${card.back}`;
+            if (!allowedSet.has(key)) return false; // not in dataset
+            if (seen.has(key)) return false; // duplicate
+            seen.add(key);
+            return true;
+        });
+        const removed = before - this.cards.length;
+        this.saveCards();
+        this.renderFolders();
+        this.renderCards();
+        this.updateCardCount();
+        return { removed, kept: this.cards.length };
     }
 
     parseIELTSFormat(text) {
