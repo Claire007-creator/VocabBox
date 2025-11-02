@@ -41,12 +41,6 @@
                     </span>
                     Add Card
                 </button>
-                <button class="btn btn-primary" id="collectionsBtn">
-                    <span class="btn-icon">
-                        <img src="books.png" alt="Collections" class="btn-icon-image">
-                    </span>
-                    Collections
-                </button>
                 <button class="btn btn-success" id="testModeBtn">
                     <span class="btn-icon">
                         <img src="test.png" alt="Test" class="btn-icon-image">
@@ -58,6 +52,12 @@
                         <img src="plus.png" alt="Import" class="btn-icon-image">
                     </span>
                     +Import
+                </button>
+                <button class="btn btn-wordbooks" id="collectionsBtn">
+                    <span class="btn-icon">
+                        <img src="books.png" alt="Word Books" class="btn-icon-image">
+                    </span>
+                    Word Books
                 </button>
             </div>
 
@@ -128,11 +128,7 @@
                             <h3>IELTS 8000</h3>
                             <p>8,000-word set. Will create 40 lists (200 words each).</p>
                             <div class="collection-actions">
-                                <label class="delimiter-label" style="margin-right: 8px;">Prefix</label>
-                                <input type="text" id="ieltsPrefixInput" class="form-input" value="IELTS 8000 - List" style="max-width: 220px;">
                                 <button class="btn btn-primary" id="importIELTSBtn">Apply this word book</button>
-                                <input type="file" id="ieltsLocalFile" accept=".txt" style="display:none;" />
-                                <button class="btn btn-secondary" id="importIELTSFromLocalBtn">Use Local File</button>
                             </div>
                         </div>
                     </div>

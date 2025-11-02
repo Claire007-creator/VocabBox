@@ -342,6 +342,20 @@ body {
     box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
 }
 
+.btn-wordbooks {
+    background: #C85A6E;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 10px 20px;
+}
+
+.btn-wordbooks:hover {
+    background: #B54A5E;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(200, 90, 110, 0.4);
+}
+
 .btn-danger {
     background: #C85A6E;
     color: white;
@@ -2799,7 +2813,8 @@ body {
     border-radius: 12px;
     padding: 15px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    width: 200px;
+    width: 250px;
+    min-width: 250px;
     flex-shrink: 0;
     position: sticky;
     top: 20px;
@@ -2853,6 +2868,7 @@ body {
     align-items: center;
     gap: 6px;
     font-size: 0.85rem;
+    min-height: 40px;
 }
 
 .folder-item:hover {
@@ -2876,8 +2892,8 @@ body {
     color: #2c3e50;
     flex: 1;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    min-width: 0;
 }
 
 .folder-count {
