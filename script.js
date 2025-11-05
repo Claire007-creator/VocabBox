@@ -64,6 +64,7 @@ class VocaBox {
         this.updateListDropdownForHeader();
         this.renderCards();
         this.updateCardCount();
+        this.updateCurrentFolderInfo(); // Explicitly update the button on page load
         this.applyCustomColors();
         
         // Close folder dropdowns when clicking outside
@@ -170,6 +171,8 @@ class VocaBox {
         this.cardsContainer = document.getElementById('cardsContainer');
         this.cardsEmptyState = document.getElementById('cardsEmptyState');
         this.cardCount = document.getElementById('cardCount');
+        this.currentFolderInfo = document.getElementById('currentFolderInfo');
+        this.currentFolderContent = document.getElementById('currentFolderContent');
         this.cardsNavigation = document.getElementById('cardsNavigation');
         this.prevCardViewBtn = document.getElementById('prevCardViewBtn');
         this.nextCardViewBtn = document.getElementById('nextCardViewBtn');
@@ -246,6 +249,7 @@ class VocaBox {
         this.selectedFileName = document.getElementById('selectedFileName');
         this.importTargetFolder = document.getElementById('importTargetFolder');
         this.createFolderForImportBtn = document.getElementById('createFolderForImportBtn');
+        this.createListForImportBtn = document.getElementById('createListForImportBtn');
 
         // Collections UI
         this.collectionsBtn = document.getElementById('collectionsBtn');
@@ -602,6 +606,7 @@ class VocaBox {
         this.selectFileBtn.addEventListener('click', () => this.vocabularyFileInput.click());
         this.vocabularyFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.createFolderForImportBtn.addEventListener('click', () => this.createFolderForImport());
+        this.createListForImportBtn.addEventListener('click', () => this.createListForImport());
         
         // Delimiter option listeners
         this.wordListTextarea.addEventListener('input', () => this.updatePreview());
@@ -690,6 +695,173 @@ class VocaBox {
         this.typingNextBtn.addEventListener('click', () => this.nextTypingCard());
         this.replayTypingAudioBtn.addEventListener('click', () => this.replayTypingAudio());
 
+        // Keyboard shortcuts for typing mode
+        if (this.typingAnswer) {
+            // Save base line-height for later reset
+            const baseComputed = window.getComputedStyle(this.typingAnswer);
+            this._typingAnswerBaseLineHeight = baseComputed.lineHeight === 'normal'
+                ? (parseFloat(baseComputed.fontSize) * 1.4) + 'px'
+                : baseComputed.lineHeight;
+
+            // Centering updater for textarea (vertical + horizontal for single-line)
+            this.updateTypingAnswerCentering = () => {
+                const ta = this.typingAnswer;
+                if (!ta) return;
+                // Consider single-line when no newlines and content height <= ~1.5 lines
+                const style = window.getComputedStyle(ta);
+                const lineHeightPx = style.lineHeight === 'normal'
+                    ? parseFloat(style.fontSize) * 1.4
+                    : parseFloat(style.lineHeight);
+                const hasNewline = /\n/.test(ta.value);
+                const contentHeight = ta.scrollHeight - (parseFloat(style.paddingTop) + parseFloat(style.paddingBottom));
+                const isSingle = !hasNewline && contentHeight <= lineHeightPx * 1.2;
+                if (isSingle) {
+                    ta.classList.add('single-line');
+                    ta.style.lineHeight = ta.clientHeight + 'px';
+                } else {
+                    ta.classList.remove('single-line');
+                    ta.style.lineHeight = this._typingAnswerBaseLineHeight;
+                }
+            };
+
+            this.typingAnswer.addEventListener('keydown', (e) => {
+                // Avoid triggering while composing IME text
+                if (e.isComposing) return;
+                // Only act when typing mode screen is active/visible
+                if (!this.typingModeScreen || !this.typingModeScreen.classList.contains('active')) {
+                    return;
+                }
+                
+                const isAnswerChecked = this.answerResult && this.answerResult.style.display === 'block';
+                
+                // Enter without Shift
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (isAnswerChecked) {
+                        // Answer already checked - move to next card
+                        if (this.currentTypingIndex < this.typingTestCards.length - 1) {
+                            this.nextTypingCard();
+                        } else {
+                            // Last card - show results
+                            this.showTestResults();
+                        }
+                    } else {
+                        // Answer not checked yet - check the answer
+                        this.checkAnswer();
+                    }
+                }
+            });
+
+            this.typingAnswer.addEventListener('input', () => this.updateTypingAnswerCentering());
+            window.addEventListener('resize', () => this.updateTypingAnswerCentering());
+        }
+        
+        // Global keyboard listener for typing mode (for arrow keys)
+        // This handles navigation when answer is already checked
+        document.addEventListener('keydown', (e) => {
+            // Only handle if typing mode is active
+            if (!this.typingModeScreen || !this.typingModeScreen.classList.contains('active')) {
+                return;
+            }
+            
+            const isAnswerChecked = this.answerResult && this.answerResult.style.display === 'block';
+            
+            // Right Arrow - move to next card if answer is checked
+            if (e.key === 'ArrowRight' && isAnswerChecked) {
+                e.preventDefault();
+                if (this.currentTypingIndex < this.typingTestCards.length - 1) {
+                    this.nextTypingCard();
+                } else {
+                    // Last card - show results
+                    this.showTestResults();
+                }
+            }
+            
+            // Left Arrow - move to previous card if answer is checked
+            if (e.key === 'ArrowLeft' && isAnswerChecked) {
+                e.preventDefault();
+                if (this.currentTypingIndex > 0) {
+                    this.previousTypingCard();
+                }
+            }
+            
+            // Note: Enter key is handled in the typingAnswer field listener above
+            // to distinguish between checking answer and moving to next card
+        });
+
+        // Global keyboard listener for main card view (front page)
+        document.addEventListener('keydown', (e) => {
+            // Only handle if on main card view (not in test mode, not in modals)
+            const isModalOpen = document.querySelector('.modal.active');
+            const isTestModeActive = this.testModeScreen && this.testModeScreen.classList.contains('active');
+            const isTypingModeActive = this.typingModeScreen && this.typingModeScreen.classList.contains('active');
+            
+            // Don't handle if any modal is open or in test/typing modes
+            if (isModalOpen || isTestModeActive || isTypingModeActive) {
+                return;
+            }
+            
+            // Check if user is typing in an input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                return;
+            }
+            
+            // Enter/Return - flip the current card
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const currentCard = this.cardsContainer.querySelector('.card-item');
+                if (currentCard) {
+                    const flipContainer = currentCard.querySelector('.card-flip-container');
+                    if (flipContainer) {
+                        flipContainer.click(); // Trigger the flip
+                    }
+                }
+            }
+            
+            // Right Arrow - move to next card
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                this.nextCardView();
+            }
+            
+            // Left Arrow - move to previous card
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                this.previousCardView();
+            }
+        });
+
+        // Global keyboard listener for card flipping mode (Learn/Test)
+        document.addEventListener('keydown', (e) => {
+            // Only handle if card flipping mode is active
+            if (!this.testModeScreen || !this.testModeScreen.classList.contains('active')) {
+                return;
+            }
+            
+            // Check if user is typing in an input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                return;
+            }
+            
+            // Right Arrow or Enter - move to next card
+            if (e.key === 'ArrowRight' || e.key === 'Enter') {
+                e.preventDefault();
+                this.nextCard();
+            }
+            
+            // Left Arrow - move to previous card
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                this.previousCard();
+            }
+            
+            // Space - flip card
+            if (e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                this.flipCard();
+            }
+        });
+
         // Finish Test button
         if (this.finishTestBtn) {
             this.finishTestBtn.addEventListener('click', (e) => {
@@ -708,6 +880,22 @@ class VocaBox {
                 this.closeTestResults();
             }
         });
+
+        // Helper: center single-line content for arbitrary element
+        this.applySingleLineCentering = (el) => {
+            if (!el) return;
+            // Remove existing class first
+            el.classList.remove('single-line-centered');
+            // Measure lines
+            const style = window.getComputedStyle(el);
+            const lineHeight = style.lineHeight === 'normal' ? parseFloat(style.fontSize) * 1.4 : parseFloat(style.lineHeight);
+            const hasExplicitBreaks = /<br\s*\/?>|\n/.test(el.innerHTML);
+            const blocky = el.querySelector('p, ul, ol, li, div');
+            const isSingleLine = !hasExplicitBreaks && !blocky && el.scrollHeight <= lineHeight * 1.4;
+            if (isSingleLine) {
+                el.classList.add('single-line-centered');
+            }
+        };
 
         // Close modal on outside click (disabled for Add Card and Add Test modals)
         // this.addCardModal.addEventListener('click', (e) => {
@@ -1834,7 +2022,7 @@ class VocaBox {
 
     // Optimized bulk add without save/render; call saveCards/render manually after batch
     addCardSilent(front, back, category = 'card', audioId = null, folderId = 'default') {
-        this.cards.push({
+        this.cards.unshift({
             id: Date.now() + Math.random(),
             front: front,
             back: back,
@@ -2016,19 +2204,23 @@ class VocaBox {
     }
 
     renderCards() {
+        console.log('[renderCards] Starting render...');
         this.cardsContainer.innerHTML = '';
 
         // Show cards for current folder
         const cardsToShow = this.getCardsForCurrentFolder();
+        console.log('[renderCards] Cards to show:', cardsToShow.length);
 
         // Show/hide empty state
         if (cardsToShow.length === 0) {
+            console.log('[renderCards] No cards to show - displaying empty state');
             this.cardsEmptyState.classList.remove('hidden');
             this.cardsNavigation.style.display = 'none';
             // Hide decoration cat when no cards
             const cardsDecoration = document.querySelector('.cat-decoration');
             if (cardsDecoration) cardsDecoration.style.display = 'none';
         } else {
+            console.log('[renderCards] Showing cards, currentCardIndex:', this.currentCardIndex);
             this.cardsEmptyState.classList.add('hidden');
             this.cardsNavigation.style.display = 'flex';
             // Show decoration cat when cards exist
@@ -2163,6 +2355,12 @@ class VocaBox {
                 flipInner.style.transform = 'rotateX(180deg)';
             }
         });
+
+        // Apply single-line centering to both faces initially
+        cardDiv.querySelectorAll('.card-content').forEach(el => this.applySingleLineCentering(el));
+        // Re-center on window resize
+        const recalc = () => cardDiv.querySelectorAll('.card-content').forEach(el => this.applySingleLineCentering(el));
+        window.addEventListener('resize', recalc);
         
         // Prevent button clicks from triggering flip
         const actionButtons = cardDiv.querySelectorAll('.card-actions button, .card-header button');
@@ -2229,7 +2427,96 @@ class VocaBox {
     updateCardCount() {
         // Show count for the current selection (folder or list), not global total
         const visibleCount = this.getCardsForCurrentFolder().length;
-        this.cardCount.textContent = visibleCount;
+        
+        // Safety check: ensure element exists
+        if (!this.cardCount) {
+            console.warn('Card count element not found, re-caching');
+            this.cardCount = document.getElementById('cardCount');
+            
+            // If still not found, skip but continue with other updates
+            if (!this.cardCount) {
+                console.warn('Could not find card count element, skipping update');
+            } else {
+                this.cardCount.textContent = visibleCount;
+            }
+        } else {
+            this.cardCount.textContent = visibleCount;
+        }
+        
+        // Update current folder info display
+        this.updateCurrentFolderInfo();
+    }
+    
+    updateCurrentFolderInfo() {
+        if (!this.currentFolderInfo || !this.currentFolderContent) {
+            console.log('[updateCurrentFolderInfo] Elements not found');
+            return;
+        }
+        
+        console.log(`[updateCurrentFolderInfo] Updating for folder: ${this.currentFolder}`);
+        
+        // Show folder info - always visible
+        if (this.currentFolder === 'all') {
+            // Count all cards
+            const cardCount = this.cards.length;
+            const text = `All Folders-${cardCount} cards`;
+            console.log(`[updateCurrentFolderInfo] Setting text to: ${text}`);
+            this.currentFolderContent.textContent = text;
+            this.currentFolderInfo.style.display = 'flex';
+            return;
+        }
+        
+        // Find the current folder
+        const folder = this.folders.find(f => f.id === this.currentFolder);
+        if (!folder) {
+            console.log(`[updateCurrentFolderInfo] Folder not found for ID: ${this.currentFolder}`);
+            const cardCount = this.cards.length;
+            const text = `All Folders-${cardCount} cards`;
+            this.currentFolderContent.textContent = text;
+            this.currentFolderInfo.style.display = 'flex';
+            return;
+        }
+        
+        console.log(`[updateCurrentFolderInfo] Found folder: ${folder.name}`);
+        
+        // Count cards in this folder (using same logic as createFolderElement)
+        let cardCount = 0;
+        let formattedText = '';
+        
+        if (folder.parentFolderId) {
+            // Child folder: own cards only
+            cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+            
+            // Get parent folder name
+            const parentFolder = this.folders.find(f => f.id === folder.parentFolderId);
+            if (parentFolder) {
+                // Format: "ParentName-ChildName-cardCount cards"
+                formattedText = `${parentFolder.name}-${folder.name}-${cardCount} cards`;
+            } else {
+                // Parent not found, just show child name
+                formattedText = `${folder.name}-${cardCount} cards`;
+            }
+        } else {
+            // Parent folder: check if it has child folders
+            const childIds = this.getChildFolderIdsForParent(folder.id);
+            if (childIds.size > 0) {
+                // Has children: count cards in child folders only, NOT cards directly in parent
+                this.cards.forEach(c => { if (childIds.has(c.folderId)) cardCount++; });
+            } else {
+                // No children: count cards directly in this folder
+                cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+            }
+            // Format: "FolderName-cardCount cards"
+            formattedText = `${folder.name}-${cardCount} cards`;
+        }
+        
+        console.log(`[updateCurrentFolderInfo] Setting button text to: ${formattedText}`);
+        
+        // Update display
+        this.currentFolderContent.textContent = formattedText;
+        this.currentFolderInfo.style.display = 'flex';
+        
+        console.log(`[updateCurrentFolderInfo] Button text updated successfully`);
     }
 
     escapeHtml(text) {
@@ -2471,6 +2758,11 @@ class VocaBox {
         this.importWordListModal.classList.add('active');
         this.resetImportModal();
         this.updateImportFolderSelector();
+        
+        // Set the import target folder to the currently selected folder
+        if (this.currentFolder && this.currentFolder !== 'all') {
+            this.importTargetFolder.value = this.currentFolder;
+        }
     }
 
     closeImportModal() {
@@ -11453,6 +11745,19 @@ class VocaBox {
     updatePreview() {
         const text = this.wordListTextarea.value.trim();
         
+        // Safety check: ensure elements exist
+        if (!this.previewCount || !this.previewCardsContainer) {
+            console.warn('Preview elements not found, re-caching DOM elements');
+            this.previewCount = document.getElementById('previewCount');
+            this.previewCardsContainer = document.getElementById('previewCardsContainer');
+            
+            // If still not found, return silently
+            if (!this.previewCount || !this.previewCardsContainer) {
+                console.error('Could not find preview elements');
+                return;
+            }
+        }
+        
         if (!text) {
             this.previewCount.textContent = '0';
             this.previewCardsContainer.innerHTML = '<div class="preview-placeholder">Nothing to preview yet.</div>';
@@ -11508,6 +11813,18 @@ class VocaBox {
     }
 
     showImportError(message) {
+        // Safety check: ensure element exists
+        if (!this.importError) {
+            console.warn('Import error element not found, re-caching');
+            this.importError = document.getElementById('importError');
+            
+            if (!this.importError) {
+                console.error('Could not find import error element');
+                alert(message); // Fallback to alert
+                return;
+            }
+        }
+        
         this.importError.textContent = message;
         this.importError.style.display = 'block';
     }
@@ -11543,7 +11860,7 @@ class VocaBox {
     }
     
     createFolderForImport() {
-        const folderName = prompt('Enter folder name for IELTS vocabulary:');
+        const folderName = prompt('Enter folder name:');
         if (!folderName || !folderName.trim()) return;
         
         const trimmedName = folderName.trim();
@@ -11554,7 +11871,7 @@ class VocaBox {
             return;
         }
         
-        this.createFolder(trimmedName, 'IELTS vocabulary folder');
+        this.createFolder(trimmedName, 'Vocabulary folder');
         
         // Update the import folder selector
         this.updateImportFolderSelector();
@@ -11565,13 +11882,79 @@ class VocaBox {
         this.showNotification(`Folder "${trimmedName}" created successfully! 📁`, 'success');
     }
     
+    createListForImport() {
+        // Get all parent folders (folders without parentFolderId)
+        const parentFolders = this.folders.filter(f => !f.parentFolderId);
+        
+        if (parentFolders.length === 0) {
+            alert('Please create a parent folder first before creating a list.');
+            return;
+        }
+        
+        // Ask user to select parent folder
+        let parentOptions = 'Select a parent folder:\n\n';
+        parentFolders.forEach((folder, index) => {
+            parentOptions += `${index + 1}. ${folder.name}\n`;
+        });
+        
+        const parentChoice = prompt(parentOptions + '\nEnter the number of the parent folder:');
+        if (!parentChoice) return;
+        
+        const parentIndex = parseInt(parentChoice) - 1;
+        if (isNaN(parentIndex) || parentIndex < 0 || parentIndex >= parentFolders.length) {
+            alert('Invalid selection');
+            return;
+        }
+        
+        const parentFolder = parentFolders[parentIndex];
+        
+        // Ask for list name
+        const listName = prompt(`Enter list name for "${parentFolder.name}":\n(e.g., "List 01", "11.5", etc.)`);
+        if (!listName || !listName.trim()) return;
+        
+        const trimmedName = listName.trim();
+        
+        // Check if list name already exists under this parent
+        if (this.folders.some(folder => 
+            folder.parentFolderId === parentFolder.id && 
+            folder.name.toLowerCase() === trimmedName.toLowerCase()
+        )) {
+            alert('A list with this name already exists under this parent folder');
+            return;
+        }
+        
+        // Create child folder with parentFolderId
+        this.createFolder(trimmedName, 'Child list', parentFolder.id);
+        
+        // Update the import folder selector
+        this.updateImportFolderSelector();
+        
+        // Select the newly created list
+        this.importTargetFolder.value = this.folders[this.folders.length - 1].id;
+        
+        this.showNotification(`List "${trimmedName}" created under "${parentFolder.name}" successfully! 📋`, 'success');
+    }
+    
     updateImportFolderSelector() {
         this.importTargetFolder.innerHTML = '<option value="default">Default Folder</option>';
-        this.folders.forEach(folder => {
-            const option = document.createElement('option');
-            option.value = folder.id;
-            option.textContent = folder.name;
-            this.importTargetFolder.appendChild(option);
+        
+        // Show parent folders and their children in a hierarchical way
+        const parentFolders = this.folders.filter(f => !f.parentFolderId);
+        
+        parentFolders.forEach(parent => {
+            const parentOption = document.createElement('option');
+            parentOption.value = parent.id;
+            parentOption.textContent = parent.name;
+            this.importTargetFolder.appendChild(parentOption);
+            
+            // Add child folders indented
+            const children = this.folders.filter(f => f.parentFolderId === parent.id);
+            children.forEach(child => {
+                const childOption = document.createElement('option');
+                childOption.value = child.id;
+                childOption.textContent = `  ↳ ${child.name}`;
+                this.importTargetFolder.appendChild(childOption);
+            });
         });
     }
 
@@ -11592,11 +11975,45 @@ class VocaBox {
             }
             
             const targetFolderId = this.importTargetFolder.value;
+            console.log('[handleImport] Target folder ID:', targetFolderId);
+            console.log('[handleImport] Current folder before import:', this.currentFolder);
+            console.log('[handleImport] Cards to import:', parsedData.length);
+            
+            // Use bulk import with addCardSilent to avoid rendering after each card
             let importedCount = 0;
             for (const row of parsedData) {
-                this.addCard(row.front, row.back, row.category, null, targetFolderId);
+                this.addCardSilent(row.front, row.back, row.category, null, targetFolderId);
                 importedCount++;
             }
+            
+            console.log('[handleImport] Cards added, total cards now:', this.cards.length);
+            console.log('[handleImport] First card folderId:', this.cards[0]?.folderId);
+            
+            // Now save and render once after all cards are added
+            this.saveCards();
+            this.renderFolders();
+            
+            // Switch to the target folder first to ensure cards are visible
+            if (targetFolderId && targetFolderId !== this.currentFolder) {
+                this.currentFolder = targetFolderId;
+                console.log('[handleImport] Switched currentFolder to:', this.currentFolder);
+                
+                // Update sidebar to highlight the selected folder
+                const allFolderItems = document.querySelectorAll('.folder-item');
+                allFolderItems.forEach(item => item.classList.remove('active'));
+                
+                const activeFolder = document.querySelector(`[data-folder-id="${targetFolderId}"]`);
+                console.log('[handleImport] Active folder element:', activeFolder);
+                if (activeFolder) {
+                    activeFolder.classList.add('active');
+                }
+            }
+            
+            console.log('[handleImport] About to render cards...');
+            // Now render cards and update UI
+            this.renderCards();
+            this.updateCardCount();
+            this.updateCurrentFolderInfo();
             
             this.showImportSuccess(importedCount);
             this.closeImportModal();
@@ -13050,6 +13467,11 @@ class VocaBox {
         this.answerResult.style.display = 'none';
         this.typingCardNum.textContent = this.currentTypingIndex + 1;
         this.updateTypingProgress();
+        // Reset centering state for new question
+        if (this.updateTypingAnswerCentering) {
+            // Defer to ensure layout is ready
+            setTimeout(() => this.updateTypingAnswerCentering(), 0);
+        }
         
         // Add click handlers for hidden content
         this.addHiddenContentClickHandlers();
@@ -13293,6 +13715,15 @@ class VocaBox {
     }
 
     previousTypingCard() {
+        // Auto-check the current answer before moving if there's text
+        const currentAnswer = this.typingAnswer.value.trim();
+        const isAnswerChecked = this.answerResult && this.answerResult.style.display === 'block';
+        
+        if (currentAnswer && !isAnswerChecked) {
+            // Auto-check the answer before moving
+            this.checkAnswer();
+        }
+        
         if (this.currentTypingIndex > 0) {
             this.currentTypingIndex--;
             this.loadTypingCard();
@@ -13300,6 +13731,15 @@ class VocaBox {
     }
 
     nextTypingCard() {
+        // Auto-check the current answer before moving if there's text
+        const currentAnswer = this.typingAnswer.value.trim();
+        const isAnswerChecked = this.answerResult && this.answerResult.style.display === 'block';
+        
+        if (currentAnswer && !isAnswerChecked) {
+            // Auto-check the answer before moving
+            this.checkAnswer();
+        }
+        
         if (this.currentTypingIndex < this.typingTestCards.length - 1) {
             this.currentTypingIndex++;
             this.loadTypingCard();
@@ -13315,6 +13755,15 @@ class VocaBox {
     }
 
     showTestResults() {
+        // Auto-check the current answer if there's text and it hasn't been checked
+        const currentAnswer = this.typingAnswer.value.trim();
+        const isAnswerChecked = this.answerResult && this.answerResult.style.display === 'block';
+        
+        if (currentAnswer && !isAnswerChecked) {
+            // Auto-check the answer before showing results
+            this.checkAnswer();
+        }
+        
         // Calculate unanswered questions
         const totalQuestions = this.typingTestCards.length;
         const answeredCount = this.testResults.answers.length;
@@ -13420,6 +13869,21 @@ class VocaBox {
         const card = this.flipTestCards[this.currentTestIndex];
         this.cardFront.innerHTML = card.front;
         this.cardBack.innerHTML = card.back;
+        // Center single-line content on flashcard
+        this.applySingleLineCentering(this.cardFront);
+        this.applySingleLineCentering(this.cardBack);
+        // Re-apply on resize (debounced)
+        if (!this._recenterHandler) {
+            let raf = null;
+            this._recenterHandler = () => {
+                if (raf) cancelAnimationFrame(raf);
+                raf = requestAnimationFrame(() => {
+                    this.applySingleLineCentering(this.cardFront);
+                    this.applySingleLineCentering(this.cardBack);
+                });
+            };
+            window.addEventListener('resize', this._recenterHandler);
+        }
         this.currentCardNum.textContent = this.currentTestIndex + 1;
         this.flashcardInner.classList.remove('flipped');
         this.isFlipped = false;
@@ -13568,11 +14032,15 @@ class VocaBox {
             // Child folder: own cards only
             cardCount = this.cards.filter(card => card.folderId === folder.id).length;
         } else {
-            // Parent folder: use the same helper function as getCardsForCurrentFolder()
-            // This ensures the count matches exactly
+            // Parent folder: check if it has child folders
             const childIds = this.getChildFolderIdsForParent(folder.id);
-            // Count cards in child folders only, NOT cards directly in parent
-            this.cards.forEach(c => { if (childIds.has(c.folderId)) cardCount++; });
+            if (childIds.size > 0) {
+                // Has children: count cards in child folders only, NOT cards directly in parent
+                this.cards.forEach(c => { if (childIds.has(c.folderId)) cardCount++; });
+            } else {
+                // No children: count cards directly in this folder
+                cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+            }
         }
         
         // Define folder colors (same as cards)
@@ -13608,8 +14076,10 @@ class VocaBox {
         
         folderDiv.innerHTML = `
             <img src="books.png" alt="Folder" class="folder-icon" style="width: 16px; height: 16px;">
-            <span class="folder-name">${folder.name}</span>
-            <span class="folder-count">${cardCount}</span>
+            <div class="folder-info">
+                <span class="folder-name">${folder.name}</span>
+                <span class="folder-count">${cardCount}</span>
+            </div>
             <div class="folder-actions" style="display: flex; gap: 4px; margin-left: auto;">
                 <button class="folder-rename-btn" data-folder-id="${folder.id}" title="Rename folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
                     <img src="pencil.png" alt="Rename" style="width: 14px; height: 14px;">
@@ -13686,18 +14156,27 @@ class VocaBox {
     }
 
     selectFolder(folderId) {
+        console.log(`[selectFolder] Selecting folder: ${folderId}`);
         this.currentFolder = folderId;
         this.currentCardIndex = 0; // Reset to first card when changing folders
+        
+        // Explicitly update the button FIRST before other updates
+        this.updateCurrentFolderInfo();
+        
         this.updateListDropdownForHeader();
         this.renderCards();
         this.updateCardCount();
         this.updateFolderSelectors();
+        console.log(`[selectFolder] Folder selection complete. Button should now show folder info.`);
         
         // Update active folder visual state
         document.querySelectorAll('.folder-item').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`[data-folder-id="${folderId}"]`).classList.add('active');
+        const activeFolder = document.querySelector(`[data-folder-id="${folderId}"]`);
+        if (activeFolder) {
+            activeFolder.classList.add('active');
+        }
     }
 
     renderTypingFolderSelection() {
@@ -13717,61 +14196,197 @@ class VocaBox {
             '#B66899'  // 10
         ];
         
+        // Helper function to count cards (matching createFolderElement logic)
+        const countCardsForFolder = (folder) => {
+            let cardCount = 0;
+            if (folder.parentFolderId) {
+                // Child folder: own cards only
+                cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+            } else {
+                // Parent folder: check if it has child folders
+                const childIds = this.getChildFolderIdsForParent(folder.id);
+                if (childIds.size > 0) {
+                    // Has children: count cards in child folders only, NOT cards directly in parent
+                    this.cards.forEach(c => { if (childIds.has(c.folderId)) cardCount++; });
+                } else {
+                    // No children: count cards directly in this folder
+                    cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+                }
+            }
+            return cardCount;
+        };
+        
+        // Get all parent folders (no parentFolderId)
+        const parentFolders = [
+            { id: 'default', name: 'Default Folder' },
+            ...this.folders.filter(f => f.id !== 'default' && !f.parentFolderId && !/.+\s-\sList\s\d+$/i.test(f.name))
+        ];
+        
         // Add "All Folders" option (with default gray color)
         const allFoldersDiv = document.createElement('div');
         allFoldersDiv.className = 'folder-option-card';
         allFoldersDiv.style.borderLeft = '4px solid #9e9e9e';
+        const allCardsCount = this.cards.length;
         allFoldersDiv.innerHTML = `
             <div class="folder-icon">
                 <img src="card.png" alt="Card" style="width: 40px; height: 40px;">
             </div>
             <div class="folder-info">
                 <div class="folder-name">All Folders</div>
-                <div class="folder-description">Practice with cards from all folders</div>
+                <div class="folder-description">Practice with cards from all folders (${allCardsCount} card${allCardsCount !== 1 ? 's' : ''})</div>
             </div>
-            <button class="btn btn-primary folder-select-btn">Select</button>
+            <button class="btn btn-primary folder-select-btn" ${allCardsCount === 0 ? 'disabled' : ''}>Select</button>
         `;
         allFoldersDiv.querySelector('.folder-select-btn').addEventListener('click', () => {
-            this.typingSelectedFolderId = 'all';
-            this.openTypingSideSelection();
+            if (allCardsCount > 0) {
+                this.typingSelectedFolderId = 'all';
+                this.openTypingSideSelection();
+            }
         });
         this.typingFolderSelectionContainer.appendChild(allFoldersDiv);
         
-        // Add individual folder options with colors
-        const allFolders = [
-            { id: 'default', name: 'Default Folder' },
-            ...this.folders.filter(f => f.id !== 'default')
-        ];
-        
-        this.folders.forEach(folder => {
-            const folderDiv = document.createElement('div');
-            folderDiv.className = 'folder-option-card';
+        // Process parent folders and their children
+        parentFolders.forEach(parentFolderData => {
+            // Get actual folder object if it exists, or use the data
+            const parentFolder = this.folders.find(f => f.id === parentFolderData.id) || parentFolderData;
             
-            const cardCount = this.cards.filter(card => (card.folderId || 'default') === folder.id).length;
+            // Get child folders for this parent
+            const childIds = this.getChildFolderIdsForParent(parentFolder.id);
+            const childFolders = childIds.size > 0 
+                ? this.folders.filter(f => childIds.has(f.id)).sort((a, b) => {
+                    // Sort by list number if present
+                    const aNum = a.name.match(/List\s+(\d+)/i)?.[1];
+                    const bNum = b.name.match(/List\s+(\d+)/i)?.[1];
+                    if (aNum && bNum) return parseInt(aNum) - parseInt(bNum);
+                    if (aNum) return -1;
+                    if (bNum) return 1;
+                    return a.name.localeCompare(b.name);
+                })
+                : [];
             
-            // Get color for this folder
-            const folderIndex = allFolders.findIndex(f => f.id === folder.id);
+            // Count cards for parent folder (using same logic as createFolderElement)
+            const parentCardCount = countCardsForFolder(parentFolder);
+            
+            // Get color for parent folder
+            const folderIndex = parentFolders.findIndex(f => f.id === parentFolder.id);
             const colorIndex = folderIndex >= 0 ? folderIndex % folderColors.length : 0;
-            const folderColor = folderColors[colorIndex];
+            const parentColor = folderColors[colorIndex];
             
-            // Apply color strip
-            folderDiv.style.borderLeft = `4px solid ${folderColor}`;
+            // Create parent folder card
+            const parentDiv = document.createElement('div');
+            parentDiv.className = 'folder-option-card';
+            if (childFolders.length > 0) {
+                parentDiv.classList.add('parent-folder-card');
+            }
+            parentDiv.style.borderLeft = `4px solid ${parentColor}`;
             
-            folderDiv.innerHTML = `
+            const parentDescription = childFolders.length > 0 
+                ? `${parentCardCount} cards in ${childFolders.length} list${childFolders.length !== 1 ? 's' : ''}`
+                : `${parentCardCount} card${parentCardCount !== 1 ? 's' : ''}`;
+            
+            // Add expand/collapse button if there are children
+            const toggleButton = childFolders.length > 0 
+                ? `<button class="folder-toggle-btn" title="Toggle lists" style="background: none; border: none; cursor: pointer; padding: 4px 8px; font-size: 1.2rem; color: #5FB3A7; transition: transform 0.3s ease;">
+                    <span class="toggle-icon">▼</span>
+                </button>`
+                : '';
+            
+            parentDiv.innerHTML = `
                 <div class="folder-icon">
                     <img src="card.png" alt="Card" style="width: 40px; height: 40px;">
                 </div>
                 <div class="folder-info">
-                    <div class="folder-name">${folder.name}</div>
-                    <div class="folder-description">${cardCount} card${cardCount !== 1 ? 's' : ''}</div>
+                    <div class="folder-name">${parentFolder.name}</div>
+                    <div class="folder-description">${parentDescription}</div>
                 </div>
-                <button class="btn btn-primary folder-select-btn">Select</button>
+                ${toggleButton}
+                <button class="btn btn-primary folder-select-btn" ${parentCardCount === 0 ? 'disabled' : ''}>Select</button>
             `;
-            folderDiv.querySelector('.folder-select-btn').addEventListener('click', () => {
-                this.typingSelectedFolderId = folder.id;
-                this.openTypingSideSelection();
-            });
-            this.typingFolderSelectionContainer.appendChild(folderDiv);
+            
+            const parentBtn = parentDiv.querySelector('.folder-select-btn');
+            if (parentCardCount > 0) {
+                parentBtn.addEventListener('click', () => {
+                    this.typingSelectedFolderId = parentFolder.id;
+                    this.openTypingSideSelection();
+                });
+            } else {
+                parentBtn.style.opacity = '0.5';
+                parentBtn.style.cursor = 'not-allowed';
+            }
+            
+            this.typingFolderSelectionContainer.appendChild(parentDiv);
+            
+            // Add child folders if they exist
+            if (childFolders.length > 0) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'folder-children-container';
+                childrenContainer.style.display = 'block'; // Start expanded
+                
+                childFolders.forEach(childFolder => {
+                    const childCardCount = countCardsForFolder(childFolder);
+                    
+                    // Use next color in sequence for children (or same parent color with different shade)
+                    const childColor = parentColor;
+                    
+                    const childDiv = document.createElement('div');
+                    childDiv.className = 'folder-option-card child-folder-card';
+                    childDiv.style.borderLeft = `4px solid ${childColor}`;
+                    childDiv.style.opacity = '0.9';
+                    
+                    childDiv.innerHTML = `
+                        <div class="folder-icon" style="margin-left: 20px;">
+                            <img src="card.png" alt="Card" style="width: 32px; height: 32px;">
+                        </div>
+                        <div class="folder-info">
+                            <div class="folder-name">${childFolder.name}</div>
+                            <div class="folder-description">${childCardCount} card${childCardCount !== 1 ? 's' : ''}</div>
+                        </div>
+                        <button class="btn btn-primary folder-select-btn" ${childCardCount === 0 ? 'disabled' : ''}>Select</button>
+                    `;
+                    
+                    const childBtn = childDiv.querySelector('.folder-select-btn');
+                    if (childCardCount > 0) {
+                        childBtn.addEventListener('click', () => {
+                            this.typingSelectedFolderId = childFolder.id;
+                            this.openTypingSideSelection();
+                        });
+                    } else {
+                        childBtn.style.opacity = '0.5';
+                        childBtn.style.cursor = 'not-allowed';
+                    }
+                    
+                    childrenContainer.appendChild(childDiv);
+                });
+                
+                // Add toggle functionality
+                const toggleBtn = parentDiv.querySelector('.folder-toggle-btn');
+                const toggleIcon = toggleBtn?.querySelector('.toggle-icon');
+                
+                if (toggleBtn && toggleIcon) {
+                    // Store reference to children container on the toggle button for easy access
+                    toggleBtn.dataset.childrenId = `children-${parentFolder.id}`;
+                    childrenContainer.id = `children-${parentFolder.id}`;
+                    
+                    toggleBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isExpanded = !childrenContainer.classList.contains('collapsed');
+                        
+                        if (isExpanded) {
+                            // Collapse
+                            childrenContainer.classList.add('collapsed');
+                            toggleIcon.textContent = '▶';
+                            toggleIcon.style.transform = 'rotate(-90deg)';
+                        } else {
+                            // Expand
+                            childrenContainer.classList.remove('collapsed');
+                            toggleIcon.textContent = '▼';
+                            toggleIcon.style.transform = 'rotate(0deg)';
+                        }
+                    });
+                }
+                
+                this.typingFolderSelectionContainer.appendChild(childrenContainer);
+            }
         });
     }
 
@@ -13842,24 +14457,44 @@ class VocaBox {
     }
 
     getCardsForCurrentFolder() {
+        console.log('[getCardsForCurrentFolder] currentFolder:', this.currentFolder);
+        console.log('[getCardsForCurrentFolder] total cards:', this.cards.length);
+        
         if (this.currentFolder === 'all') {
             return this.cards;
         }
         
         const selectedFolder = this.folders.find(f => f.id === this.currentFolder);
+        console.log('[getCardsForCurrentFolder] selectedFolder:', selectedFolder);
+        
         if (!selectedFolder) {
+            console.log('[getCardsForCurrentFolder] No folder found! Returning empty array');
             return [];
         }
         
         // If parent folder selected, show cards from all child folders
         if (!selectedFolder.parentFolderId) {
             const childFolderIds = this.getChildFolderIdsForParent(this.currentFolder);
+            console.log('[getCardsForCurrentFolder] Parent folder - childFolderIds:', Array.from(childFolderIds));
+            
+            // If NO child folders exist, show cards directly in this folder
+            if (childFolderIds.size === 0) {
+                const filtered = this.cards.filter(card => card.folderId === this.currentFolder);
+                console.log('[getCardsForCurrentFolder] Parent folder with NO children - showing cards directly in folder:', filtered.length);
+                return filtered;
+            }
+            
             // Only return cards in child folders, NOT cards directly in parent
-            return this.cards.filter(card => childFolderIds.has(card.folderId));
+            const filtered = this.cards.filter(card => childFolderIds.has(card.folderId));
+            console.log('[getCardsForCurrentFolder] Filtered cards for parent:', filtered.length);
+            return filtered;
         }
         
         // If child folder selected, show only its cards
-        return this.cards.filter(card => card.folderId === this.currentFolder);
+        const filtered = this.cards.filter(card => card.folderId === this.currentFolder);
+        console.log('[getCardsForCurrentFolder] Child folder - filtered cards:', filtered.length);
+        console.log('[getCardsForCurrentFolder] Sample card folderIds:', this.cards.slice(0, 3).map(c => c.folderId));
+        return filtered;
     }
 
     // Folder Modal Methods

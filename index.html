@@ -82,7 +82,11 @@
                 <!-- Cards Column -->
                 <div class="column">
                     <div class="cards-header">
-                        <h3 class="column-title">Cards (<span id="cardCount">0</span>)</h3>
+                        <div class="cards-header-left">
+                            <div class="current-folder-info" id="currentFolderInfo">
+                                <span class="folder-info-content" id="currentFolderContent">All Folders-0 cards</span>
+                            </div>
+                        </div>
                         <div class="folder-selector">
                             <select id="listDropdown" class="folder-dropdown" style="display: none;">
                                 <option value="">All Lists</option>
@@ -1019,7 +1023,7 @@
     <div class="modal" id="importWordListModal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h2>📚 Import Word List</h2>
+                <h2><img src="cards.png" alt="Import" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Import Word List</h2>
                 <button class="close-btn" id="closeImportModalBtn">&times;</button>
             </div>
             <div class="modal-body">
@@ -1033,9 +1037,9 @@
                         <div class="form-group">
                             <label for="vocabularyFileInput">Upload IELTS Vocabulary File (.txt)</label>
                             <input type="file" id="vocabularyFileInput" accept=".txt" style="display: none;">
-                            <button type="button" class="btn btn-primary" id="selectFileBtn">
+                            <button type="button" class="btn btn-secondary btn-small" id="selectFileBtn">
                                 <img src="books.png" alt="File" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 8px;">
-                                Choose IELTS 8000.txt File
+                                Apply IELTS 8000
                             </button>
                             <div id="selectedFileName" class="selected-file-name" style="display: none;"></div>
                         </div>
@@ -1052,13 +1056,17 @@
                     <div class="delimiter-options">
                         <div class="delimiter-section">
                             <label class="delimiter-label">Target Folder:</label>
-                            <div class="form-group">
+                            <div class="form-group folder-selector-group">
                                 <select id="importTargetFolder" class="form-select">
                                     <option value="default">Default Folder</option>
                                 </select>
-                                <button type="button" class="btn btn-secondary" id="createFolderForImportBtn" style="margin-top: 10px;">
-                                    <img src="plus.png" alt="Add" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;">
-                                    Create New Folder
+                                <button type="button" class="btn btn-secondary btn-small" id="createFolderForImportBtn">
+                                    <img src="plus.png" alt="Add" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;">
+                                    Folder
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-small" id="createListForImportBtn">
+                                    <img src="plus.png" alt="Add" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;">
+                                    List
                                 </button>
                             </div>
                         </div>
