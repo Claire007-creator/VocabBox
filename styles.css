@@ -257,9 +257,68 @@ body {
 .action-buttons {
     display: flex;
     gap: 25px;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
     justify-content: center;
     flex-wrap: wrap;
+}
+
+/* Font Size Control - Inline version at bottom of cards */
+.font-size-control-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.font-size-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.font-size-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid #5FB3A7;
+    background: white;
+    color: #5FB3A7;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.font-size-btn:hover {
+    background: #5FB3A7;
+    color: white;
+    transform: scale(1.1);
+}
+
+.font-size-btn:active {
+    transform: scale(0.95);
+}
+
+.font-size-value {
+    min-width: 50px;
+    text-align: center;
+    font-weight: 600;
+    color: #5FB3A7;
+    font-size: 0.95rem;
+}
+
+.font-size-reset {
+    width: auto;
+    padding: 0 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .btn {
@@ -332,6 +391,23 @@ body {
     padding: 8px 16px;
     font-size: 0.9rem;
     min-width: auto;
+}
+
+.btn-large {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    min-width: 160px;
+}
+
+.btn-create-full {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    justify-content: center;
+    display: flex;
+    align-items: center;
 }
 
 .btn-import {
@@ -634,7 +710,7 @@ body {
 .card-content {
     width: 100%;
     max-height: 100%;
-    font-size: 1.1rem;
+    font-size: 1.6rem;
     line-height: 1.8;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -831,6 +907,21 @@ body {
 
 .card-actions {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.card-action-left {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.card-action-right {
+    display: flex;
+    gap: 10px;
     justify-content: flex-end;
 }
 
@@ -927,6 +1018,12 @@ body {
     background: rgba(0, 0, 0, 0.6);
     z-index: 3000;
     animation: fadeIn 0.3s ease;
+}
+
+/* Ensure create folder and list modals appear on top of other modals */
+#createFolderModal,
+#createListModal {
+    z-index: 4000;
 }
 
 .modal.active {
@@ -1032,6 +1129,8 @@ body {
     color: #999;
     transition: color 0.3s ease;
     padding: 10px;
+    position: relative;
+    z-index: 1000;
 }
 
 .close-btn:hover {
@@ -1835,7 +1934,7 @@ body {
 
 .flashcard-front p,
 .flashcard-back p {
-    font-size: 1.2rem;
+    font-size: 1.8rem;
     font-weight: 500;
     text-align: left;
     word-wrap: break-word;
@@ -1935,12 +2034,12 @@ body {
 
 .typing-question h3 {
     color: #5FB3A7;
-    font-size: 1.2rem;
+    font-size: 1.6rem;
     margin-bottom: 10px;
 }
 
 .question-content {
-    font-size: 1.1rem;
+    font-size: 1.6rem;
     line-height: 1.6;
     color: #333;
     padding: 15px;
@@ -1959,7 +2058,7 @@ body {
     padding: 12px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: 1rem;
+    font-size: 1.3rem;
     font-family: inherit;
     line-height: 1.5;
     resize: vertical;
@@ -2291,12 +2390,12 @@ body {
     }
     
     .typing-question h3 {
-        font-size: 1.1rem;
+        font-size: 1.4rem;
         margin-bottom: 8px;
     }
     
     .question-content {
-        font-size: 1rem;
+        font-size: 1.4rem;
         padding: 12px;
     }
     
@@ -2344,7 +2443,7 @@ body {
     
     .flashcard-front p,
     .flashcard-back p {
-        font-size: 1.4rem;
+        font-size: 2rem;
     }
     
     .test-actions {
@@ -2526,6 +2625,108 @@ body {
     min-width: 130px;
     padding: 10px 20px;
     font-size: 0.95rem;
+}
+
+/* Answers Review Section */
+.answers-review-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #e0e0e0;
+}
+
+.answers-review-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.review-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.incorrect-title {
+    background: #ffe5e5;
+    color: #c62828;
+}
+
+.unanswered-title {
+    background: #fff4e5;
+    color: #f57c00;
+}
+
+.incorrect-answers-section,
+.unanswered-section {
+    margin-bottom: 25px;
+}
+
+.review-answers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.review-answer-item {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.2s ease;
+}
+
+.review-answer-item:hover {
+    border-color: #5FB3A7;
+    box-shadow: 0 2px 8px rgba(95, 179, 167, 0.2);
+}
+
+.review-answer-question {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.review-answer-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.95rem;
+}
+
+.review-answer-row {
+    display: flex;
+    gap: 8px;
+}
+
+.review-answer-label {
+    font-weight: 600;
+    color: #666;
+    min-width: 100px;
+}
+
+.review-answer-value {
+    color: #333;
+}
+
+.review-answer-value.correct {
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.review-answer-value.incorrect {
+    color: #c62828;
+    font-weight: 600;
+}
+
+.review-answer-value.unanswered {
+    color: #f57c00;
+    font-style: italic;
 }
 
 .btn-success {

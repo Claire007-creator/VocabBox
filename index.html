@@ -129,10 +129,10 @@
                     <div class="collection-card" data-collection-id="ielts8000">
                         <div class="collection-icon"><img src="books.png" alt="IELTS" style="width: 60px; height: 60px;"></div>
                         <div class="collection-info">
-                            <h3>IELTS 8000</h3>
-                            <p>8,000-word set. Will create 40 lists (200 words each).</p>
+                            <h3>IELTS 8000 <span style="color: #5FB3A7; font-size: 0.8rem; font-weight: 600;">✓ Built-in</span></h3>
+                            <p>8,000-word set automatically loaded. Creates 40 lists (200 words each). Already available in your folders!</p>
                             <div class="collection-actions">
-                                <button class="btn btn-primary" id="importIELTSBtn">Apply this word book</button>
+                                <button class="btn btn-secondary" id="importIELTSBtn">Reload/Re-import</button>
                             </div>
                         </div>
                     </div>
@@ -147,7 +147,7 @@
     <div class="modal" id="createFolderModal">
         <div class="modal-content modal-small">
             <div class="modal-header">
-                <h2>📁 Create New Folder</h2>
+                <h2><img src="test.png" alt="Folder" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Create New Folder</h2>
                 <button class="close-btn" id="closeCreateFolderBtn">&times;</button>
             </div>
             <div class="modal-body">
@@ -163,6 +163,34 @@
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="cancelCreateFolderBtn">Cancel</button>
                         <button type="submit" class="btn btn-primary">Create Folder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create List Modal -->
+    <div class="modal" id="createListModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2><img src="test.png" alt="List" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Create New List</h2>
+                <button class="close-btn" id="closeCreateListBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createListForm">
+                    <div class="form-group">
+                        <label for="listParentFolder">Parent Folder</label>
+                        <select id="listParentFolder" class="form-select" required>
+                            <option value="">Select a parent folder</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="listName">List Name</label>
+                        <input type="text" id="listName" class="form-input" placeholder="Enter list name" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelCreateListBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create List</button>
                     </div>
                 </form>
             </div>
@@ -283,9 +311,25 @@
                         <div class="add-card-controls-column">
                             <div class="form-group">
                                 <label for="addCardFolder">Folder</label>
-                                <select id="addCardFolder" class="form-select">
-                                    <option value="default">Default Folder</option>
-                                </select>
+                                <div class="folder-selector-group">
+                                    <select id="addCardFolder" class="form-select">
+                                        <option value="default">Default Folder</option>
+                                    </select>
+                                    <button type="button" class="btn btn-secondary btn-small" id="createFolderForAddCardBtn">
+                                        <img src="plus.png" alt="Add" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"> Folder
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group" id="addCardListGroup" style="display: none;">
+                                <label for="addCardList">List (Optional)</label>
+                                <div class="folder-selector-group">
+                                    <select id="addCardList" class="form-select">
+                                        <option value="">No List (Save to Folder)</option>
+                                    </select>
+                                    <button type="button" class="btn btn-secondary btn-small" id="createListForAddCardBtn">
+                                        <img src="plus.png" alt="Add" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"> List
+                                    </button>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Audio (Optional)</label>
@@ -309,9 +353,8 @@
                                 </div>
                             </div>
                             <div class="form-actions">
-                                <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
-                                <button type="button" class="btn btn-warning" id="addNextCardBtn">Next Card</button>
-                                <button type="submit" class="btn btn-success" id="finishBtn">Finish</button>
+                                <button type="button" class="btn btn-warning btn-large" id="addNextCardBtn">Next Card</button>
+                                <button type="submit" class="btn btn-success btn-large" id="finishBtn">Finish</button>
                             </div>
                         </div>
                     </div>
@@ -1211,20 +1254,24 @@
                                 <div class="stat-label">Incorrect Answers</div>
                             </div>
                         </div>
-                        <div class="stat-item stat-unanswered">
-                            <div class="stat-info">
-                                <div class="stat-number" id="unansweredQuestions">0</div>
-                                <div class="stat-label">Unanswered</div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="performance-message" id="performanceMessage">
                         <p></p>
                     </div>
 
+                    <!-- Incorrect Answers List -->
+                    <div class="answers-review-section" id="answersReviewSection" style="display: none;">
+                        <div class="answers-review-container">
+                            <!-- Incorrect Answers -->
+                            <div class="incorrect-answers-section" id="incorrectAnswersSection" style="display: none;">
+                                <h3 class="review-section-title incorrect-title">❌ Incorrect Answers</h3>
+                                <div class="review-answers-list" id="incorrectAnswersList"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="results-actions">
-                        <button class="btn btn-secondary" id="reviewTestBtn">Review Answers</button>
                         <button class="btn btn-primary" id="retakeTestBtn">Retake Test</button>
                         <button class="btn btn-create" id="exitToHomeBtn">Back to Home</button>
                     </div>
@@ -1233,6 +1280,10 @@
         </div>
     </div>
 
+    <!-- IELTS 8000 Built-in Data -->
+    <script src="ielts-8000-data.js"></script>
+    
+    <!-- Main Application Script -->
     <script src="script.js"></script>
 </body>
 </html>
