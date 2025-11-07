@@ -44,6 +44,8 @@ class VocaBox {
         this.analyzeAndCleanupOrphanedCards();
         // Delete specific orphaned cards by content (DISABLED - was too aggressive)
         // this.deleteSpecificOrphanedCards();
+        // Migrate folder-level cards to List 01 (one-time migration)
+        this.migrateFolderLevelCardsToList1();
         
         // Analyze current state after all cleanup
         this.logCurrentCardState();
@@ -256,19 +258,26 @@ class VocaBox {
         this.importWordListModal = document.getElementById('importWordListModal');
         this.closeImportModalBtn = document.getElementById('closeImportModalBtn');
         this.cancelImportBtn = document.getElementById('cancelImportBtn');
-        this.confirmImportBtn = document.getElementById('confirmImportBtn');
-        this.wordListTextarea = document.getElementById('wordListTextarea');
+        // Support both old and new IDs for backward compatibility
+        this.confirmImportBtn = document.getElementById('importCardsBtn') || document.getElementById('confirmImportBtn');
+        // Support both old and new IDs for backward compatibility
+        this.wordListTextarea = document.getElementById('bulkTextInput') || document.getElementById('wordListTextarea');
         this.importError = document.getElementById('importError');
-        this.previewCount = document.getElementById('previewCount');
+        // Support both old and new IDs for backward compatibility
+        this.previewCount = document.getElementById('importPreviewCount') || document.getElementById('previewCount');
         this.previewCardsContainer = document.getElementById('previewCardsContainer');
-        this.customTermDelimiter = document.getElementById('customTermDelimiter');
-        this.customCardDelimiter = document.getElementById('customCardDelimiter');
+        // Support both old and new IDs for backward compatibility
+        this.customTermDelimiter = document.getElementById('customTermDefDelim') || document.getElementById('customTermDelimiter');
+        this.customCardDelimiter = document.getElementById('customCardDelim') || document.getElementById('customCardDelimiter');
         
         // File upload elements
         this.vocabularyFileInput = document.getElementById('vocabularyFileInput');
         this.selectFileBtn = document.getElementById('selectFileBtn');
         this.selectedFileName = document.getElementById('selectedFileName');
-        this.importTargetFolder = document.getElementById('importTargetFolder');
+        // Support both old and new IDs for backward compatibility
+        this.importTargetFolder = document.getElementById('importFolderSelect') || document.getElementById('importTargetFolder');
+        this.importTargetList = document.getElementById('importListSelect') || document.getElementById('importTargetList');
+        this.importListGroup = document.getElementById('importListGroup');
         this.createFolderForImportBtn = document.getElementById('createFolderForImportBtn');
         this.createListForImportBtn = document.getElementById('createListForImportBtn');
 
@@ -579,7 +588,14 @@ class VocaBox {
         // this.createTestBtn.addEventListener('click', () => this.openCreateTestModal());
 
         // Import Word List button
-        this.importWordListBtn.addEventListener('click', () => this.openImportModal());
+        if (this.importWordListBtn) {
+            this.importWordListBtn.addEventListener('click', () => {
+                console.log('[Event] Import button clicked');
+                this.openImportModal();
+            });
+        } else {
+            console.error('[attachEventListeners] importWordListBtn not found!');
+        }
 
         // Collections button
         this.collectionsBtn.addEventListener('click', () => this.openCollectionsModal());
@@ -676,7 +692,17 @@ class VocaBox {
         this.selectFileBtn.addEventListener('click', () => this.vocabularyFileInput.click());
         this.vocabularyFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.createFolderForImportBtn.addEventListener('click', () => this.createFolderForImport());
-        this.createListForImportBtn.addEventListener('click', () => this.createListForImport());
+        if (this.createListForImportBtn) {
+            this.createListForImportBtn.addEventListener('click', () => this.createListForImport());
+        }
+        
+        // Import folder/list selector updates - use bindOnce to prevent double-binding
+        if (this.importTargetFolder) {
+            this.bindOnce(this.importTargetFolder, 'change', () => {
+                console.log('[Event] Import folder selector changed to:', this.importTargetFolder.value);
+                this.refreshImportListSection();
+            });
+        }
         
         // Add Card list functionality
         if (this.addCardFolder) {
@@ -690,15 +716,24 @@ class VocaBox {
         }
         
         // Delimiter option listeners
-        this.wordListTextarea.addEventListener('input', () => this.updatePreview());
-        document.querySelectorAll('input[name="termDelimiter"]').forEach(radio => {
+        if (this.wordListTextarea) {
+            this.wordListTextarea.addEventListener('input', () => this.updatePreview());
+        } else {
+            console.error('[attachEventListeners] wordListTextarea not found!');
+        }
+        // Support both old and new names for backward compatibility
+        document.querySelectorAll('input[name="termDefDelimiter"], input[name="termDelimiter"]').forEach(radio => {
             radio.addEventListener('change', () => this.updatePreview());
         });
         document.querySelectorAll('input[name="cardDelimiter"]').forEach(radio => {
             radio.addEventListener('change', () => this.updatePreview());
         });
-        this.customTermDelimiter.addEventListener('input', () => this.updatePreview());
-        this.customCardDelimiter.addEventListener('input', () => this.updatePreview());
+        if (this.customTermDelimiter) {
+            this.customTermDelimiter.addEventListener('input', () => this.updatePreview());
+        }
+        if (this.customCardDelimiter) {
+            this.customCardDelimiter.addEventListener('input', () => this.updatePreview());
+        }
 
         // Collections modal listeners
         if (this.closeCollectionsBtn) {
@@ -2922,14 +2957,83 @@ class VocaBox {
 
     // Import Word List Methods
     openImportModal() {
+        // Re-cache modal element first in case it wasn't in DOM when initialized
+        if (!this.importWordListModal) {
+            this.importWordListModal = document.getElementById('importWordListModal');
+        }
+        
+        if (!this.importWordListModal) {
+            console.error('[openImportModal] Modal element not found!');
+            return;
+        }
+        
+        console.log('[openImportModal] Modal element found, adding active class');
         this.importWordListModal.classList.add('active');
+        console.log('[openImportModal] Modal classList after adding active:', this.importWordListModal.classList.toString());
+        console.log('[openImportModal] Modal computed display:', window.getComputedStyle(this.importWordListModal).display);
+        
+        // Re-cache elements in case modal wasn't in DOM when initialized
+        this.wordListTextarea = document.getElementById('bulkTextInput') || document.getElementById('wordListTextarea');
+        this.previewCount = document.getElementById('importPreviewCount') || document.getElementById('previewCount');
+        this.customTermDelimiter = document.getElementById('customTermDefDelim') || document.getElementById('customTermDelimiter');
+        this.customCardDelimiter = document.getElementById('customCardDelim') || document.getElementById('customCardDelimiter');
+        this.importTargetFolder = document.getElementById('importFolderSelect') || document.getElementById('importTargetFolder');
+        this.importTargetList = document.getElementById('importListSelect') || document.getElementById('importTargetList');
+        this.importListGroup = document.getElementById('importListGroup');
+        this.createListForImportBtn = document.getElementById('createListForImportBtn');
+        
+        console.log('[openImportModal] Re-cached elements:', {
+            wordListTextarea: !!this.wordListTextarea,
+            previewCount: !!this.previewCount,
+            importTargetFolder: !!this.importTargetFolder,
+            importTargetList: !!this.importTargetList,
+            importListGroup: !!this.importListGroup,
+            createListForImportBtn: !!this.createListForImportBtn
+        });
+        
+        // Re-attach event listener for create list button if needed
+        if (this.createListForImportBtn && !this.createListForImportBtn.hasAttribute('data-listener-attached')) {
+            this.createListForImportBtn.addEventListener('click', () => this.createListForImport());
+            this.createListForImportBtn.setAttribute('data-listener-attached', 'true');
+        }
+        
         this.resetImportModal();
         this.updateImportFolderSelector();
         
         // Set the import target folder to the currently selected folder
         if (this.currentFolder && this.currentFolder !== 'all') {
-            this.importTargetFolder.value = this.currentFolder;
+            const selectedFolder = this.folders.find(f => f.id === this.currentFolder);
+            if (selectedFolder && !selectedFolder.parentFolderId) {
+                // If current folder is a parent, select it
+                this.importTargetFolder.value = this.currentFolder;
+            } else if (selectedFolder && selectedFolder.parentFolderId) {
+                // If current folder is a child (list), select its parent and the list
+                this.importTargetFolder.value = selectedFolder.parentFolderId;
+                this.updateImportListSelector();
+                if (this.importTargetList) {
+                    this.importTargetList.value = this.currentFolder;
+                }
+            } else {
+                this.importTargetFolder.value = this.currentFolder;
+            }
+        } else {
+            // If no folder selected or "all" is selected, default to "default" folder
+            // This ensures the list group is always visible when a parent folder exists
+            if (this.importTargetFolder) {
+                this.importTargetFolder.value = 'default';
+            }
         }
+        
+        // Refresh list section immediately
+        this.refreshImportListSection();
+        
+        // Update preview if there's already text in the textarea
+        setTimeout(() => {
+            if (this.wordListTextarea && this.wordListTextarea.value.trim()) {
+                console.log('[openImportModal] Text found in textarea, updating preview');
+                this.updatePreview();
+            }
+        }, 100);
     }
 
     closeImportModal() {
@@ -2948,8 +3052,11 @@ class VocaBox {
         this.selectedFileName.style.display = 'none';
         this.importTargetFolder.value = 'default';
         // Reset radio buttons to defaults
-        document.querySelector('input[name="termDelimiter"][value="space"]').checked = true;
-        document.querySelector('input[name="cardDelimiter"][value="newline"]').checked = true;
+        // Support both old and new names for backward compatibility
+        const termSpaceRadio = document.querySelector('input[name="termDefDelimiter"][value="space"]') || document.querySelector('input[name="termDelimiter"][value="space"]');
+        const cardNewlineRadio = document.querySelector('input[name="cardDelimiter"][value="newline"]');
+        if (termSpaceRadio) termSpaceRadio.checked = true;
+        if (cardNewlineRadio) cardNewlineRadio.checked = true;
     }
 
     // Collections Methods
@@ -11888,8 +11995,17 @@ class VocaBox {
     */
 
     getDelimiters() {
-        const termDelimiter = document.querySelector('input[name="termDelimiter"]:checked').value;
-        const cardDelimiter = document.querySelector('input[name="cardDelimiter"]:checked').value;
+        // Support both old and new names for backward compatibility
+        const termDelimiterRadio = document.querySelector('input[name="termDefDelimiter"]:checked') || document.querySelector('input[name="termDelimiter"]:checked');
+        const cardDelimiterRadio = document.querySelector('input[name="cardDelimiter"]:checked');
+        
+        if (!termDelimiterRadio || !cardDelimiterRadio) {
+            console.error('[getDelimiters] Could not find delimiter radio buttons');
+            return { termDelim: ' ', cardDelim: '\n' };
+        }
+        
+        const termDelimiter = termDelimiterRadio.value;
+        const cardDelimiter = cardDelimiterRadio.value;
         
         let termDelim = ' ';
         if (termDelimiter === 'comma') termDelim = ',';
@@ -11906,13 +12022,19 @@ class VocaBox {
     parseSimpleText(text) {
         const { termDelim, cardDelim } = this.getDelimiters();
         
+        console.log('[parseSimpleText] Parsing text with delimiters:', { termDelim, cardDelim, termDelimLength: termDelim.length, cardDelimLength: cardDelim.length });
+        console.log('[parseSimpleText] Text length:', text.length, 'First 200 chars:', text.substring(0, 200));
+        
         // Split by card delimiter
         const cards = text.split(cardDelim).map(card => card.trim()).filter(card => card);
+        console.log('[parseSimpleText] Cards after splitting by cardDelim:', cards.length, 'Sample cards:', cards.slice(0, 3));
+        
         const data = [];
         
         for (const card of cards) {
             // Split by term delimiter
             const parts = card.split(termDelim);
+            console.log('[parseSimpleText] Card parts:', parts.length, 'Parts:', parts);
             
             if (parts.length >= 2) {
                 const front = parts[0].trim();
@@ -11924,19 +12046,37 @@ class VocaBox {
                         back: back,
                         category: 'imported'
                     });
+                    console.log('[parseSimpleText] Added card:', { front, back });
+                } else {
+                    console.log('[parseSimpleText] Skipped card - empty front or back:', { front, back });
                 }
+            } else {
+                console.log('[parseSimpleText] Skipped card - not enough parts:', parts);
             }
         }
+        
+        console.log('[parseSimpleText] Final parsed data count:', data.length);
         return data;
     }
 
     updatePreview() {
+        // Re-cache textarea if needed
+        if (!this.wordListTextarea) {
+            this.wordListTextarea = document.getElementById('bulkTextInput') || document.getElementById('wordListTextarea');
+        }
+        
+        if (!this.wordListTextarea) {
+            console.error('[updatePreview] Textarea not found!');
+            return;
+        }
+        
         const text = this.wordListTextarea.value.trim();
+        console.log('[updatePreview] Called with text length:', text.length);
         
         // Safety check: ensure elements exist
         if (!this.previewCount || !this.previewCardsContainer) {
             console.warn('Preview elements not found, re-caching DOM elements');
-            this.previewCount = document.getElementById('previewCount');
+            this.previewCount = document.getElementById('importPreviewCount') || document.getElementById('previewCount');
             this.previewCardsContainer = document.getElementById('previewCardsContainer');
             
             // If still not found, return silently
@@ -11954,6 +12094,7 @@ class VocaBox {
         
         try {
             const parsedData = this.parseSimpleText(text);
+            console.log('[updatePreview] Parsed', parsedData.length, 'cards');
             this.previewCount.textContent = parsedData.length;
             
             if (parsedData.length === 0) {
@@ -12072,16 +12213,18 @@ class VocaBox {
         
         parentFolders.forEach(folder => {
             const option = document.createElement('option');
-            option.value = folder.id;
+            option.value = this._toStr(folder.id);
             option.textContent = folder.name;
             this.listParentFolder.appendChild(option);
         });
         
         // Pre-select the currently selected folder in Import modal if it's a parent folder
-        const currentFolderId = this.importTargetFolder ? this.importTargetFolder.value : null;
-        const currentFolder = this.folders.find(f => f.id === currentFolderId);
-        if (currentFolder && !currentFolder.parentFolderId) {
-            this.listParentFolder.value = currentFolderId;
+        const currentFolderId = this.importTargetFolder ? this._toStr(this.importTargetFolder.value) : null;
+        if (currentFolderId) {
+            const currentFolder = this.folders.find(f => this._toStr(f.id) === currentFolderId);
+            if (currentFolder && !currentFolder.parentFolderId) {
+                this.listParentFolder.value = this._toStr(currentFolder.id);
+            }
         }
         
         // Clear the list name input
@@ -12092,10 +12235,15 @@ class VocaBox {
         this.listName.focus();
     }
     
-    updateImportFolderSelector() {
+    updateImportFolderSelector(selectedFolderId = null) {
+        if (!this.importTargetFolder) return;
+
+        // Remember currently selected value so we can restore it after rebuilding options
+        const previousValue = selectedFolderId || this.importTargetFolder.value || 'default';
+
         this.importTargetFolder.innerHTML = '<option value="default">Default Folder</option>';
         
-        // Show parent folders and their children in a hierarchical way
+        // Show only parent folders (not children)
         const parentFolders = this.folders.filter(f => !f.parentFolderId);
         
         parentFolders.forEach(parent => {
@@ -12103,20 +12251,157 @@ class VocaBox {
             parentOption.value = parent.id;
             parentOption.textContent = parent.name;
             this.importTargetFolder.appendChild(parentOption);
-            
-            // Add child folders indented
-            const children = this.folders.filter(f => f.parentFolderId === parent.id);
-            children.forEach(child => {
-                const childOption = document.createElement('option');
-                childOption.value = child.id;
-                childOption.textContent = `  ↳ ${child.name}`;
-                this.importTargetFolder.appendChild(childOption);
-            });
         });
+
+        // Try to restore the previous selection if it still exists
+        const options = Array.from(this.importTargetFolder.options).map(opt => opt.value);
+        if (previousValue && options.includes(previousValue)) {
+            this.importTargetFolder.value = previousValue;
+        } else {
+            this.importTargetFolder.value = 'default';
+        }
+
+        console.log('[updateImportFolderSelector] Selected folder after rebuild:', this.importTargetFolder.value);
+        
+        // Update list selector when folder selector is updated
+        this.updateImportListSelector();
+    }
+    
+    updateImportListSelector() {
+        // Re-cache elements if needed
+        if (!this.importTargetList) {
+            this.importTargetList = document.getElementById('importListSelect') || document.getElementById('importTargetList');
+        }
+        if (!this.importListGroup) {
+            this.importListGroup = document.getElementById('importListGroup');
+        }
+        
+        if (!this.importTargetList || !this.importListGroup) {
+            console.warn('[updateImportListSelector] Elements not found:', {
+                importTargetList: !!this.importTargetList,
+                importListGroup: !!this.importListGroup
+            });
+            return;
+        }
+        
+        if (!this.importTargetFolder) {
+            this.importTargetFolder = document.getElementById('importFolderSelect') || document.getElementById('importTargetFolder');
+        }
+        
+        if (!this.importTargetFolder) {
+            console.warn('[updateImportListSelector] importTargetFolder not found');
+            return;
+        }
+        
+        // Reload folders to ensure we have the latest data (including newly created lists)
+        this.folders = this.loadFolders();
+        
+        const selectedFolderId = this.importTargetFolder.value;
+        console.log('[updateImportListSelector] Reloading folders.');
+        console.log('[updateImportListSelector] Selected folder ID:', selectedFolderId);
+        console.log('[updateImportListSelector] All folders:', this.folders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
+        
+        // Try to find folder with strict equality first, then try string comparison
+        let selectedFolder = this.folders.find(f => f.id === selectedFolderId);
+        if (!selectedFolder) {
+            selectedFolder = this.folders.find(f => String(f.id) === String(selectedFolderId));
+        }
+        console.log('[updateImportListSelector] Selected folder:', selectedFolder);
+        
+        // Keep previous selection so we can restore it when rebuilding options
+        const previousValue = this.importTargetList.value;
+        
+        // Clear existing options
+        this.importTargetList.innerHTML = '';
+        
+        // Show list selector only if a parent folder is selected
+        if (selectedFolder && !selectedFolder.parentFolderId) {
+            // Always show the list group for parent folders
+            this.importListGroup.style.display = 'block';
+            console.log('[updateImportListSelector] Showing list group for parent folder:', selectedFolder.name);
+            
+            // Populate with child folders (lists) of the selected parent
+            // Use both strict and string comparison to handle type mismatches
+            const selectedFolderIdStr = String(selectedFolderId);
+            console.log('[updateImportListSelector] Looking for children of folder ID:', selectedFolderId, 'type:', typeof selectedFolderId);
+            console.log('[updateImportListSelector] All folders with parentFolderId:', this.folders.filter(f => f.parentFolderId).map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId, parentFolderIdType: typeof f.parentFolderId })));
+            
+            const childFolders = this.folders.filter(f => {
+                if (!f.parentFolderId) return false;
+                const parentIdStr = String(f.parentFolderId);
+                // Try multiple comparison methods
+                const match1 = f.parentFolderId === selectedFolderId;
+                const match2 = parentIdStr === selectedFolderIdStr;
+                const match3 = String(f.parentFolderId) === String(selectedFolderId);
+                const matches = match1 || match2 || match3;
+                
+                if (matches) {
+                    console.log('[updateImportListSelector] ✓ Matched child folder:', f.name, 'parentFolderId:', f.parentFolderId, 'type:', typeof f.parentFolderId, 'selectedFolderId:', selectedFolderId, 'type:', typeof selectedFolderId);
+                } else {
+                    console.log('[updateImportListSelector] ✗ No match:', f.name, 'parentFolderId:', f.parentFolderId, 'type:', typeof f.parentFolderId, 'vs selectedFolderId:', selectedFolderId, 'type:', typeof selectedFolderId);
+                }
+                return matches;
+            });
+            console.log('[updateImportListSelector] Child folders found:', childFolders.length, childFolders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId, parentFolderIdType: typeof f.parentFolderId })));
+            
+            if (childFolders.length === 0) {
+                // No lists exist yet - show "No List (Save to Folder)" option
+                const noListOption = document.createElement('option');
+                noListOption.value = '';
+                noListOption.textContent = 'No List (Save to Folder)';
+                this.importTargetList.appendChild(noListOption);
+                this.importTargetList.value = '';
+                console.log('[updateImportListSelector] No child lists available. Showing "No List" option.');
+            } else {
+                // Lists exist - only show the actual lists, NO "No List" option
+            childFolders.forEach(child => {
+                const option = document.createElement('option');
+                option.value = child.id;
+                option.textContent = child.name;
+                this.importTargetList.appendChild(option);
+                    console.log('[updateImportListSelector] Added option:', child.name, 'with value:', child.id);
+            });
+
+                // Restore previous selection if possible, otherwise default to the first child
+                const optionValues = Array.from(this.importTargetList.options).map(opt => opt.value);
+                if (previousValue && optionValues.includes(previousValue)) {
+                    this.importTargetList.value = previousValue;
+        } else {
+                    this.importTargetList.value = childFolders[0].id;
+                }
+                console.log('[updateImportListSelector] Selected list after rebuild:', this.importTargetList.value);
+            }
+        } else {
+            console.log('[updateImportListSelector] Not showing list selector - selectedFolder:', selectedFolder, 'has parentFolderId:', selectedFolder?.parentFolderId);
+            // Hide list group only if we have a valid folder that is NOT a parent
+            if (selectedFolder && selectedFolder.parentFolderId) {
+                // This is a child folder (list), so hide the list selector
+                this.importListGroup.style.display = 'none';
+                this.importTargetList.value = '';
+            } else if (!selectedFolder) {
+                // No folder selected or folder not found - hide list group
+                this.importListGroup.style.display = 'none';
+                this.importTargetList.value = '';
+            }
+            // If selectedFolder is null but we have a folderId, it might be a parent folder that wasn't found
+            // In that case, we'll keep the list group visible if it was already visible
+        }
     }
 
     async handleImport() {
+        // Re-cache textarea if needed
+        if (!this.wordListTextarea) {
+            this.wordListTextarea = document.getElementById('bulkTextInput') || document.getElementById('wordListTextarea');
+        }
+        
+        if (!this.wordListTextarea) {
+            this.showImportError('Textarea element not found. Please refresh the page.');
+            console.error('[handleImport] Textarea not found!');
+            return;
+        }
+        
         const text = this.wordListTextarea.value.trim();
+        console.log('[handleImport] Text from textarea, length:', text.length, 'First 100 chars:', text.substring(0, 100));
         
         if (!text) {
             this.showImportError('Please enter some words and definitions.');
@@ -12131,46 +12416,130 @@ class VocaBox {
                 return;
             }
             
+            // Reload folders to ensure we have latest data (including newly created lists)
+            this.folders = this.loadFolders();
+            
+            // Use list if selected, otherwise auto-create/reuse List 01
+            let targetListId = this.importTargetList && this.importTargetList.value && this.importTargetList.value !== 'none' ? this.importTargetList.value : null;
             const targetFolderId = this.importTargetFolder.value;
-            console.log('[handleImport] Target folder ID:', targetFolderId);
+            
+            // If "No List" is selected, auto-create/reuse List 01
+            if (!targetListId && targetFolderId) {
+                const folder = this.folders.find(f => f.id === targetFolderId || String(f.id) === String(targetFolderId));
+                if (folder && !folder.parentFolderId) {
+                    // It's a parent folder, create/get List 01
+                    console.log('[handleImport] No list selected, auto-creating List 01 for folder:', folder.name);
+                    const list1 = await this.getOrCreateList1(folder);
+                    if (list1) {
+                        targetListId = list1.id;
+                        // Update the dropdown to show the selected list
+                        if (this.importTargetList) {
+                            this.importTargetList.value = targetListId;
+                            this.refreshImportListSection(); // Refresh to ensure it's in the dropdown
+                        }
+                        console.log('[handleImport] Auto-selected List 01:', list1.name);
+                    }
+                }
+            }
+            
+            const finalTargetId = targetListId || targetFolderId;
+            
+            console.log('[handleImport] Target folder ID:', this.importTargetFolder.value);
+            console.log('[handleImport] Target list ID:', targetListId);
+            console.log('[handleImport] Final target ID (list or folder):', finalTargetId);
             console.log('[handleImport] Current folder before import:', this.currentFolder);
             console.log('[handleImport] Cards to import:', parsedData.length);
+            
+            // Verify the target exists
+            if (targetListId) {
+                // Verify the list exists
+                let listFolder = this.folders.find(f => f.id === targetListId);
+                if (!listFolder) {
+                    listFolder = this.folders.find(f => String(f.id) === String(targetListId));
+                }
+                if (!listFolder) {
+                    console.error('[handleImport] List not found! ID:', targetListId);
+                    console.error('[handleImport] Available folders:', this.folders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
+                    this.showImportError('List not found. Please select a valid list.');
+                    return;
+                }
+                console.log('[handleImport] Verified list exists:', listFolder.name, 'parentFolderId:', listFolder.parentFolderId);
+            }
             
             // Use bulk import with addCardSilent to avoid rendering after each card
             let importedCount = 0;
             for (const row of parsedData) {
-                this.addCardSilent(row.front, row.back, row.category, null, targetFolderId);
+                this.addCardSilent(row.front, row.back, row.category, null, finalTargetId);
                 importedCount++;
             }
+            
+            console.log('[handleImport] Cards added with folderId:', finalTargetId);
+            console.log('[handleImport] Sample card folderIds after import:', this.cards.slice(0, 3).map(c => ({ id: c.id, folderId: c.folderId })));
             
             console.log('[handleImport] Cards added, total cards now:', this.cards.length);
             console.log('[handleImport] First card folderId:', this.cards[0]?.folderId);
             
             // Now save and render once after all cards are added
             this.saveCards();
+            // Ensure folders are saved before we try to look them up
+            this.saveFolders(this.folders);
             this.renderFolders();
             
-            // Switch to the target folder first to ensure cards are visible
-            if (targetFolderId && targetFolderId !== this.currentFolder) {
-                this.currentFolder = targetFolderId;
-                console.log('[handleImport] Switched currentFolder to:', this.currentFolder);
-                
-                // Update sidebar to highlight the selected folder
-                const allFolderItems = document.querySelectorAll('.folder-item');
-                allFolderItems.forEach(item => item.classList.remove('active'));
-                
-                const activeFolder = document.querySelector(`[data-folder-id="${targetFolderId}"]`);
-                console.log('[handleImport] Active folder element:', activeFolder);
-                if (activeFolder) {
-                    activeFolder.classList.add('active');
-                }
-            }
+            // Determine which folder to switch to after import
+            // If importing to a list, switch to the list itself so cards are visible
+            // Otherwise, switch to the target folder
+            let folderToSwitchTo = finalTargetId;
             
-            console.log('[handleImport] About to render cards...');
-            // Now render cards and update UI
-            this.renderCards();
-            this.updateCardCount();
-            this.updateCurrentFolderInfo();
+            // Debug: Log all cards and their folderIds
+            console.log('[handleImport] Total cards after import:', this.cards.length);
+            console.log('[handleImport] Cards with folderIds:', this.cards.map(c => ({ id: c.id, folderId: c.folderId })));
+            console.log('[handleImport] All folders:', this.folders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
+            
+            // Switch to the appropriate folder to ensure cards are visible
+            if (folderToSwitchTo && folderToSwitchTo !== this.currentFolder) {
+                console.log('[handleImport] Switching to folder:', folderToSwitchTo);
+                this.selectFolder(folderToSwitchTo);
+                console.log('[handleImport] After selectFolder, currentFolder:', this.currentFolder);
+                
+                // If we imported to a list, update the header dropdown to show the list
+                if (targetListId) {
+                    // Update the list dropdown in the header to show the newly imported list
+                    setTimeout(() => {
+                        this.updateListDropdownForHeader();
+                        // Try to select the list in the header dropdown
+                        if (this.listDropdown) {
+                            this.listDropdown.value = targetListId;
+                            // Trigger change event to switch to the list view
+                            this.listDropdown.dispatchEvent(new Event('change'));
+                        }
+                    }, 150);
+                }
+                
+                // Force a re-render to ensure cards show up
+                setTimeout(() => {
+                    this.renderCards();
+                    this.updateCardCount();
+                    this.updateCurrentFolderInfo();
+                }, 100);
+            } else {
+                // If already on the correct folder, just render cards
+                console.log('[handleImport] Already on correct folder, rendering cards...');
+                
+                // If we imported to a list, update the header dropdown to show the list
+                if (targetListId) {
+                    this.updateListDropdownForHeader();
+                    // Try to select the list in the header dropdown
+                    if (this.listDropdown) {
+                        this.listDropdown.value = targetListId;
+                        // Trigger change event to switch to the list view
+                        this.listDropdown.dispatchEvent(new Event('change'));
+                    }
+                }
+                
+                this.renderCards();
+                this.updateCardCount();
+                this.updateCurrentFolderInfo();
+            }
             
             this.showImportSuccess(importedCount);
             this.closeImportModal();
@@ -14254,20 +14623,36 @@ class VocaBox {
         folderDiv.dataset.folderId = folder.id;
         
         // Count cards: if parent, include all child folders (new + legacy naming)
+        // Reload cards and folders to ensure we have latest data
+        this.cards = this.loadCards();
+        this.folders = this.loadFolders();
+        
         let cardCount = 0;
         if (folder.parentFolderId) {
             // Child folder: own cards only
-            cardCount = this.cards.filter(card => card.folderId === folder.id).length;
+            // Use both strict and string comparison to handle type mismatches
+            cardCount = this.cards.filter(card => {
+                return card.folderId === folder.id || String(card.folderId) === String(folder.id);
+            }).length;
         } else {
-            // Parent folder: check if it has child folders
+            // Parent folder: count cards in parent folder AND all child folders
             const childIds = this.getChildFolderIdsForParent(folder.id);
-            if (childIds.size > 0) {
-                // Has children: count cards in child folders only, NOT cards directly in parent
-                this.cards.forEach(c => { if (childIds.has(c.folderId)) cardCount++; });
-            } else {
-                // No children: count cards directly in this folder
-                cardCount = this.cards.filter(card => card.folderId === folder.id).length;
-            }
+            console.log('[createFolderElement] Counting cards for parent folder:', folder.name, 'childIds:', Array.from(childIds));
+            
+            // Create a set that includes both the parent folder ID and all child folder IDs
+            const relevantFolderIds = new Set(Array.from(childIds));
+            relevantFolderIds.add(folder.id); // Add the parent folder itself
+            
+            // Convert to strings for comparison to handle type mismatches
+            const relevantIdStrings = new Set(Array.from(relevantFolderIds).map(id => String(id)));
+            this.cards.forEach(c => {
+                const cardFolderIdStr = String(c.folderId);
+                if (relevantFolderIds.has(c.folderId) || relevantIdStrings.has(cardFolderIdStr)) {
+                    cardCount++;
+                    console.log('[createFolderElement] Card matches:', c.id, 'folderId:', c.folderId);
+                }
+            });
+            console.log('[createFolderElement] Total card count for parent folder (including direct cards):', folder.name, ':', cardCount);
         }
         
         // Define folder colors (same as cards)
@@ -14311,11 +14696,9 @@ class VocaBox {
                 <button class="folder-rename-btn" data-folder-id="${folder.id}" title="Rename folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
                     <img src="pencil.png" alt="Rename" style="width: 14px; height: 14px;">
                 </button>
-                ${folder.id !== 'default' ? `
-                    <button class="folder-delete-btn" data-folder-id="${folder.id}" title="Delete folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
-                        <img src="trashbin.png" alt="Delete" style="width: 14px; height: 14px;">
-                    </button>
-                ` : ''}
+                <button class="folder-delete-btn" data-folder-id="${folder.id}" title="Delete folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
+                    <img src="trashbin.png" alt="Delete" style="width: 14px; height: 14px;">
+                </button>
             </div>
         `;
         
@@ -14721,7 +15104,7 @@ class VocaBox {
     async handleCreateList(e) {
         e.preventDefault();
         
-        const selectedFolderId = this.listParentFolder.value;
+        const selectedFolderId = this._toStr(this.listParentFolder.value);
         const trimmedName = this.listName.value.trim();
         
         if (!selectedFolderId) {
@@ -14734,7 +15117,7 @@ class VocaBox {
             return;
         }
         
-        const parentFolder = this.folders.find(f => f.id === selectedFolderId);
+        const parentFolder = this.folders.find(f => this._toStr(f.id) === selectedFolderId);
         if (!parentFolder || parentFolder.parentFolderId) {
             this.showNotification('Please select a valid parent folder.', 'error');
             return;
@@ -14742,12 +15125,17 @@ class VocaBox {
         
         // Check if list with this name already exists under this parent
         const existingList = this.folders.find(f => 
-            f.name === trimmedName && f.parentFolderId === selectedFolderId
+            f.name === trimmedName && this._toStr(f.parentFolderId) === selectedFolderId
         );
         
         if (existingList) {
             this.showNotification('A list with this name already exists in this folder.', 'error');
             return;
+        }
+        
+        // Ensure the import modal's folder dropdown is set to the parent folder
+        if (this.listCreationContext === 'import' && this.importTargetFolder) {
+            this.importTargetFolder.value = selectedFolderId;
         }
         
         // Create the new list (child folder)
@@ -14756,19 +15144,29 @@ class VocaBox {
         // Close the modal
         this.closeCreateListModal();
         
-        // Get the newly created list
-        const newList = this.folders.find(f => 
-            f.name === trimmedName && f.parentFolderId === selectedFolderId
+        // Reload folders to ensure we have the newly created list
+        this.folders = this.loadFolders();
+        
+        // Get the newly created list - use normalized string comparison
+        let newList = this.folders.find(f => 
+            f.name === trimmedName && this._toStr(f.parentFolderId) === selectedFolderId
         );
+        if (!newList) {
+            // Try finding by name and parentFolderId separately
+            newList = this.folders.find(f => 
+                f.name === trimmedName && f.parentFolderId
+            );
+        }
+        
+        console.log('[handleCreateList] Newly created list:', newList);
+        console.log('[handleCreateList] All folders after creation:', this.folders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
         
         // Update the appropriate selector based on context
         if (this.listCreationContext === 'import') {
-            // Update Import modal selector
-            this.updateImportFolderSelector();
-            
-            // Select the newly created list in import dropdown
-            if (newList && this.importTargetFolder) {
-                this.importTargetFolder.value = newList.id;
+            // Call onListCreated to refresh and select the new list
+            // This will ensure folder is set, refresh dropdown, and select the new list
+            if (newList) {
+                this.onListCreated(newList);
             }
             
             // Reset context
@@ -14788,11 +15186,217 @@ class VocaBox {
         this.showNotification(`List "${trimmedName}" created successfully!`, 'success');
     }
 
-    // Helper function to get child folder IDs for a parent folder (used by both counting methods)
+    // Helper: Prevent double-binding event listeners
+    bindOnce(el, ev, fn) {
+        if (!el || el.__vbBound) return;
+        el.addEventListener(ev, fn);
+        el.__vbBound = true;
+    }
+
+    // Helper: Normalize IDs to strings for comparison
+    _toStr(x) {
+        return x == null ? '' : String(x);
+    }
+
+    // Helper: Format list name with index
+    formatListName(parentFolderName, index) {
+        return `${parentFolderName} - List ${String(index).padStart(2, '0')}`;
+    }
+
+    // Helper: Get folder by ID
+    getFolderById(folderId) {
+        this.folders = this.loadFolders();
+        const folderIdStr = this._toStr(folderId);
+        return this.folders.find(f => this._toStr(f.id) === folderIdStr);
+    }
+
+    // Helper: Get lists for a folder (child folders)
+    getListsByFolderId(folderId) {
+        this.folders = this.loadFolders();
+        const folderIdStr = this._toStr(folderId);
+        return this.folders.filter(f => 
+            f.parentFolderId && this._toStr(f.parentFolderId) === folderIdStr
+        );
+    }
+
+    // Helper: Get or create "List 01" for a folder
+    async getOrCreateList1(folder) {
+        if (!folder || !folder.id) return null;
+        
+        this.folders = this.loadFolders();
+        const lists = this.getListsByFolderId(folder.id);
+        
+        // Look for "List 01" or "List 1" pattern
+        const list1Pattern = /List\s+0?1$/i;
+        let found = lists.find(l => list1Pattern.test(l.name));
+        
+        if (found) {
+            console.log('[getOrCreateList1] Found existing List 01:', found.name);
+            return found;
+        }
+        
+        // Create "List 01"
+        const listName = this.formatListName(folder.name, 1);
+        console.log('[getOrCreateList1] Creating new List 01:', listName);
+        
+        await this.createFolder(listName, 'Child list', folder.id);
+        this.folders = this.loadFolders();
+        
+        const newList = this.folders.find(f => 
+            f.name === listName && f.parentFolderId && 
+            (f.parentFolderId === folder.id || String(f.parentFolderId) === String(folder.id))
+        );
+        
+        if (!newList) {
+            console.error('[getOrCreateList1] Failed to create List 01');
+            return null;
+        }
+        
+        console.log('[getOrCreateList1] Created List 01:', newList);
+        return newList;
+    }
+
+    // Refresh the List selector in import modal
+    refreshImportListSection() {
+        const folderSel = this.importTargetFolder || document.getElementById('importFolderSelect');
+        const listSel = this.importTargetList || document.getElementById('importListSelect');
+        const listGroup = this.importListGroup || document.getElementById('importListGroup');
+        const createListBtn = this.createListForImportBtn || document.getElementById('createListForImportBtn');
+        
+        if (!folderSel || !listSel) {
+            console.warn('[refreshImportListSection] Elements not found');
+            return;
+        }
+        
+        const folderId = this._toStr(folderSel.value);
+        listSel.innerHTML = ''; // Clear
+        
+        if (!folderId || folderId === '') {
+            const opt = document.createElement('option');
+            opt.value = 'none';
+            opt.textContent = 'No List (Save to Folder)';
+            listSel.appendChild(opt);
+            if (listGroup) listGroup.style.display = 'none';
+            if (createListBtn) createListBtn.disabled = true;
+            return;
+        }
+        
+        // Show list group for parent folders
+        if (listGroup) listGroup.style.display = 'block';
+        if (createListBtn) createListBtn.disabled = false;
+        
+        const folder = this.getFolderById(folderId);
+        
+        if (!folder || folder.parentFolderId) {
+            // Not a parent folder, hide list selector
+            if (listGroup) listGroup.style.display = 'none';
+            return;
+        }
+        
+        const lists = this.getListsByFolderId(folderId);
+        
+        // Sort lists by extracting index from name (for "List 01", "List 02", etc.) or by name
+        const sortedLists = [...lists].sort((a, b) => {
+            const aMatch = a.name.match(/List\s+(\d+)/i);
+            const bMatch = b.name.match(/List\s+(\d+)/i);
+            if (aMatch && bMatch) {
+                return parseInt(aMatch[1]) - parseInt(bMatch[1]);
+            }
+            return a.name.localeCompare(b.name);
+        });
+        
+        if (!sortedLists.length) {
+            // No lists exist yet
+            const opt = document.createElement('option');
+            opt.value = 'none';
+            opt.textContent = 'No List (Save to Folder)';
+            listSel.appendChild(opt);
+            listSel.value = 'none';
+        } else {
+            for (const list of sortedLists) {
+                const opt = document.createElement('option');
+                opt.value = this._toStr(list.id); // Force string id
+                // Use list.name directly (lists can have custom names like "11.6")
+                opt.textContent = list.name;
+                listSel.appendChild(opt);
+            }
+            
+            // If app tracks an active list, keep it in sync
+            if (typeof this.getActiveListId === 'function') {
+                const active = this._toStr(this.getActiveListId());
+                if (active && Array.from(listSel.options).some(opt => this._toStr(opt.value) === active)) {
+                    listSel.value = active;
+                } else if (sortedLists.length > 0) {
+                    listSel.value = this._toStr(sortedLists[0].id);
+                }
+            } else {
+                // Try to preserve current selection if it exists, otherwise select first
+                const currentValue = this._toStr(listSel.value);
+                if (currentValue && Array.from(listSel.options).some(opt => this._toStr(opt.value) === currentValue)) {
+                    listSel.value = currentValue;
+                } else if (sortedLists.length > 0) {
+                    listSel.value = this._toStr(sortedLists[0].id);
+                }
+            }
+        }
+        
+        console.log('[refreshImportListSection] Refreshed for folder:', folderId, 'lists:', sortedLists.length);
+    }
+
+    // Called after a list is successfully created
+    onListCreated(newList) {
+        // newList is expected to be { id, name, parentFolderId }
+        if (!newList || !newList.id) {
+            console.warn('[onListCreated] Invalid list object:', newList);
+            return;
+        }
+
+        const folderSel = this.importTargetFolder || document.getElementById('importFolderSelect');
+        const listSel = this.importTargetList || document.getElementById('importListSelect');
+
+        // Ensure the modal is pointing at the correct parent folder
+        if (folderSel && this._toStr(folderSel.value) !== this._toStr(newList.parentFolderId)) {
+            folderSel.value = this._toStr(newList.parentFolderId);
+        }
+
+        // Rebuild the dropdown for that folder and select the new list
+        this.refreshImportListSection();
+        
+        if (listSel) {
+            listSel.value = this._toStr(newList.id);
+            // Fire change event so any dependent UI updates
+            listSel.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log('[onListCreated] Selected new list in dropdown:', newList.name, 'ID:', newList.id);
+        }
+
+        // Keep global UI in sync so the main page focuses it after import
+        if (typeof this.setActiveFolderId === 'function') {
+            this.setActiveFolderId(newList.parentFolderId);
+        }
+        if (typeof this.setActiveListId === 'function') {
+            this.setActiveListId(newList.id);
+        }
+        if (typeof this.updateListDropdownForHeader === 'function') {
+            this.updateListDropdownForHeader();
+        }
+    }
+
     getChildFolderIdsForParent(parentFolderId) {
-        const parentFolder = this.folders.find(f => f.id === parentFolderId);
+        // Reload folders to ensure we have latest data
+        this.folders = this.loadFolders();
+        
+        // Try to find folder with strict equality first, then try string comparison
+        let parentFolder = this.folders.find(f => f.id === parentFolderId);
+        if (!parentFolder) {
+            // Try string comparison in case of type mismatch
+            parentFolder = this.folders.find(f => String(f.id) === String(parentFolderId));
+        }
+        
         if (!parentFolder || parentFolder.parentFolderId) {
             // Not a parent folder or folder doesn't exist
+            console.log('[getChildFolderIdsForParent] Invalid parent folder:', parentFolderId, parentFolder);
+            console.log('[getChildFolderIdsForParent] All folders:', this.folders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
+            console.log('[getChildFolderIdsForParent] Available folder IDs:', this.folders.map(f => f.id));
             return new Set();
         }
         
@@ -14800,71 +15404,179 @@ class VocaBox {
         const legacyPattern = new RegExp(`^${this.escapeRegExp(parentFolder.name)}\\s+-\\s+List\\s+\\d+$`, 'i');
         const allChildFolders = this.folders.filter(f => {
             // New style: has parentFolderId pointing to parent folder
-            if (f.parentFolderId === parentFolderId) return true;
+            if (f.parentFolderId === parentFolderId) {
+                console.log('[getChildFolderIdsForParent] Found child folder (new style):', f.id, f.name);
+                return true;
+            }
             // Legacy style: must EXACTLY match the pattern "ParentName - List XX"
-            if (legacyPattern.test(f.name)) return true;
+            if (legacyPattern.test(f.name)) {
+                console.log('[getChildFolderIdsForParent] Found child folder (legacy style):', f.id, f.name);
+                return true;
+            }
             return false;
         });
         
+        console.log('[getChildFolderIdsForParent] All child folders for parent', parentFolderId, ':', allChildFolders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
+        
         if (allChildFolders.length === 0) {
+            console.log('[getChildFolderIdsForParent] No child folders found for parent:', parentFolderId);
             return new Set();
         }
         
-        // Deduplicate by list number: prefer folders with parentFolderId (new style)
+        // For new-style folders (with parentFolderId), no deduplication needed - just return all
+        // For legacy folders, we still need deduplication, but new-style folders take priority
+        const newStyleFolders = allChildFolders.filter(f => {
+            const matches = f.parentFolderId === parentFolderId || 
+                          (f.parentFolderId && String(f.parentFolderId) === String(parentFolderId));
+            return matches;
+        });
+        const legacyFolders = allChildFolders.filter(f => !f.parentFolderId);
+        
+        // If we have new-style folders, use only those (they're the correct ones)
+        if (newStyleFolders.length > 0) {
+            const childIds = new Set(newStyleFolders.map(f => f.id));
+            console.log('[getChildFolderIdsForParent] Returning new-style child folder IDs:', Array.from(childIds));
+            return childIds;
+        }
+        
+        // Otherwise, deduplicate legacy folders by list number
         const foldersByListNum = new Map();
-        allChildFolders.forEach(f => {
+        legacyFolders.forEach(f => {
             const listNum = f.name.match(/List\s+(\d+)/i)?.[1];
             if (!listNum) {
-                // Include folders that don't match pattern
+                // Include folders that don't match pattern (legacy custom names)
                 foldersByListNum.set(f.id, f);
                 return;
             }
             const existing = foldersByListNum.get(listNum);
             if (!existing) {
-                foldersByListNum.set(listNum, f);
-            } else {
-                // Prefer the one with parentFolderId (new style)
-                if (f.parentFolderId === parentFolderId && !existing.parentFolderId) {
                     foldersByListNum.set(listNum, f);
-                }
             }
         });
         
         // Return unique folder IDs (deduplicated) - ONLY child folders, not parent
-        return new Set(Array.from(foldersByListNum.values()).map(f => f.id));
+        const childIds = new Set(Array.from(foldersByListNum.values()).map(f => f.id));
+        console.log('[getChildFolderIdsForParent] Returning legacy child folder IDs:', Array.from(childIds));
+        return childIds;
+    }
+
+    // One-time migration: Move folder-level cards to "List 01"
+    async migrateFolderLevelCardsToList1() {
+        // Check if migration has already been run
+        const migrationKey = 'vocabox_folder_cards_migrated';
+        if (localStorage.getItem(migrationKey) === 'true') {
+            console.log('[migrateFolderLevelCardsToList1] Migration already completed');
+            return;
+        }
+
+        console.log('[migrateFolderLevelCardsToList1] Starting migration...');
+        this.folders = this.loadFolders();
+        this.cards = this.loadCards();
+
+        let migratedCount = 0;
+
+        // Get all parent folders
+        const parentFolders = this.folders.filter(f => !f.parentFolderId);
+
+        for (const folder of parentFolders) {
+            // Find cards directly in this folder (not in any child list)
+            const folderCards = this.cards.filter(card => {
+                const cardFolderId = card.folderId;
+                return (cardFolderId === folder.id || String(cardFolderId) === String(folder.id));
+            });
+
+            // Check if any of these cards are already in a child list
+            const lists = this.getListsByFolderId(folder.id);
+            const listIds = new Set(lists.map(l => l.id));
+            
+            const orphanCards = folderCards.filter(card => {
+                // Card is in parent folder and not in any child list
+                return !listIds.has(card.folderId);
+            });
+
+            if (orphanCards.length === 0) continue;
+
+            // Get or create List 01 for this folder
+            const list1 = await this.getOrCreateList1(folder);
+            if (!list1) {
+                console.warn('[migrateFolderLevelCardsToList1] Failed to create List 01 for folder:', folder.name);
+                continue;
+            }
+
+            // Move cards to List 01
+            for (const card of orphanCards) {
+                card.folderId = list1.id;
+                migratedCount++;
+            }
+
+            console.log(`[migrateFolderLevelCardsToList1] Migrated ${orphanCards.length} cards from "${folder.name}" to "${list1.name}"`);
+        }
+
+        if (migratedCount > 0) {
+            this.saveCards();
+            this.saveFolders(this.folders);
+            this.renderFolders();
+            console.log(`[migrateFolderLevelCardsToList1] Migration complete: ${migratedCount} cards migrated`);
+        }
+
+        // Mark migration as complete
+        localStorage.setItem(migrationKey, 'true');
     }
 
     getCardsForCurrentFolder() {
         console.log('[getCardsForCurrentFolder] currentFolder:', this.currentFolder);
+        
+        // Reload folders and cards to ensure we have latest data
+        this.folders = this.loadFolders();
+        this.cards = this.loadCards();
+        
         console.log('[getCardsForCurrentFolder] total cards:', this.cards.length);
         
         if (this.currentFolder === 'all') {
             return this.cards;
         }
         
-        const selectedFolder = this.folders.find(f => f.id === this.currentFolder);
-        console.log('[getCardsForCurrentFolder] selectedFolder:', selectedFolder);
-        
+        // Try to find folder with strict equality first, then try string comparison
+        let selectedFolder = this.folders.find(f => f.id === this.currentFolder);
         if (!selectedFolder) {
-            console.log('[getCardsForCurrentFolder] No folder found! Returning empty array');
-            return [];
+            // Try string comparison in case of type mismatch
+            selectedFolder = this.folders.find(f => String(f.id) === String(this.currentFolder));
         }
         
-        // If parent folder selected, show cards from all child folders
+        console.log('[getCardsForCurrentFolder] selectedFolder:', selectedFolder);
+        console.log('[getCardsForCurrentFolder] All folders:', this.folders.map(f => ({ id: f.id, name: f.name, parentFolderId: f.parentFolderId })));
+        
+        if (!selectedFolder) {
+            console.warn('[getCardsForCurrentFolder] No folder found with ID:', this.currentFolder);
+            console.warn('[getCardsForCurrentFolder] Available folder IDs:', this.folders.map(f => f.id));
+            // Fallback to 'all' if folder doesn't exist
+            console.log('[getCardsForCurrentFolder] Falling back to "all" folders');
+            this.currentFolder = 'all';
+            return this.cards;
+        }
+        
+        // If parent folder selected, show cards from parent folder AND all child folders
         if (!selectedFolder.parentFolderId) {
             const childFolderIds = this.getChildFolderIdsForParent(this.currentFolder);
             console.log('[getCardsForCurrentFolder] Parent folder - childFolderIds:', Array.from(childFolderIds));
             
-            // If NO child folders exist, show cards directly in this folder
-            if (childFolderIds.size === 0) {
-                const filtered = this.cards.filter(card => card.folderId === this.currentFolder);
-                console.log('[getCardsForCurrentFolder] Parent folder with NO children - showing cards directly in folder:', filtered.length);
-                return filtered;
-            }
+            // Create a set that includes both the parent folder ID and all child folder IDs
+            const relevantFolderIds = new Set(Array.from(childFolderIds));
+            relevantFolderIds.add(this.currentFolder); // Add the parent folder itself
             
-            // Only return cards in child folders, NOT cards directly in parent
-            const filtered = this.cards.filter(card => childFolderIds.has(card.folderId));
-            console.log('[getCardsForCurrentFolder] Filtered cards for parent:', filtered.length);
+            console.log('[getCardsForCurrentFolder] Filtering cards - looking for folderIds (parent + children):', Array.from(relevantFolderIds));
+            console.log('[getCardsForCurrentFolder] All card folderIds:', this.cards.map(c => c.folderId));
+            // Convert to strings for comparison to handle type mismatches
+            const relevantIdStrings = new Set(Array.from(relevantFolderIds).map(id => String(id)));
+            const filtered = this.cards.filter(card => {
+                const cardFolderIdStr = String(card.folderId);
+                const matches = relevantFolderIds.has(card.folderId) || relevantIdStrings.has(cardFolderIdStr);
+                if (matches) {
+                    console.log('[getCardsForCurrentFolder] Card matches:', card.id, 'folderId:', card.folderId);
+                }
+                return matches;
+            });
+            console.log('[getCardsForCurrentFolder] Filtered cards for parent (including direct cards):', filtered.length, 'cards');
             return filtered;
         }
         
@@ -14915,7 +15627,7 @@ class VocaBox {
             }
         }
         
-        // If Import modal is open, select the newly created folder
+        // If Import modal is open, select the newly created folder and refresh list section
         if (this.importWordListModal.classList.contains('active')) {
             const newFolder = this.folders.find(f => f.name === name && !f.parentFolderId);
             if (newFolder && this.importTargetFolder) {
@@ -14923,6 +15635,8 @@ class VocaBox {
                 this.updateImportFolderSelector();
                 // Select the newly created folder
                 this.importTargetFolder.value = newFolder.id;
+                // Immediately refresh the list section to show the List button
+                this.refreshImportListSection();
             }
         }
         
@@ -15465,28 +16179,28 @@ class VocaBox {
         const folder = this.folders.find(f => f.id === folderId);
         if (!folder) return;
         
-        // Don't allow deleting default folder
-        if (folderId === 'default') {
-            this.showNotification('Cannot delete the Default Folder.', 'warning');
-            return;
-        }
-        
         // Count cards in this folder and its children (if it's a parent)
         let cardCount = 0;
         let childFolders = [];
         
         if (folder.parentFolderId) {
             // Child folder: count own cards
-            cardCount = this.cards.filter(c => c.folderId === folderId).length;
+            cardCount = this.cards.filter(c => c.folderId === folderId || String(c.folderId) === String(folderId)).length;
         } else {
-            // Parent folder: count cards in all child folders
-            const legacyPrefix = `${folder.name} - List `;
+            // Parent folder: count cards in parent folder AND all child folders
             const legacyPattern = new RegExp(`^${this.escapeRegExp(folder.name)}\\s+-\\s+List\\s+\\d+$`, 'i');
             childFolders = this.folders.filter(f => 
                 f.parentFolderId === folderId || legacyPattern.test(f.name)
             );
             const childIds = new Set(childFolders.map(f => f.id));
-            cardCount = this.cards.filter(c => childIds.has(c.folderId)).length;
+            // Include both parent folder ID and child folder IDs
+            const relevantFolderIds = new Set(Array.from(childIds));
+            relevantFolderIds.add(folderId); // Add the parent folder itself
+            const relevantIdStrings = new Set(Array.from(relevantFolderIds).map(id => String(id)));
+            cardCount = this.cards.filter(c => {
+                const cardFolderIdStr = String(c.folderId);
+                return relevantFolderIds.has(c.folderId) || relevantIdStrings.has(cardFolderIdStr);
+            }).length;
         }
         
         // Ask for confirmation
@@ -15501,14 +16215,22 @@ class VocaBox {
         // Remove all child folders if parent
         if (!folder.parentFolderId && childFolders.length > 0) {
             const childIds = new Set(childFolders.map(f => f.id));
-            // Remove cards in child folders
-            this.cards = this.cards.filter(c => !childIds.has(c.folderId));
+            const childIdStrings = new Set(Array.from(childIds).map(id => String(id)));
+            // Remove cards in child folders (using type-safe comparison)
+            this.cards = this.cards.filter(c => {
+                const cardFolderIdStr = String(c.folderId);
+                return !childIds.has(c.folderId) && !childIdStrings.has(cardFolderIdStr);
+            });
             // Remove child folders
             this.folders = this.folders.filter(f => !childIds.has(f.id));
         }
         
-        // Remove cards in this folder
-        this.cards = this.cards.filter(c => c.folderId !== folderId);
+        // Remove cards in this folder (using type-safe comparison)
+        const folderIdStr = String(folderId);
+        this.cards = this.cards.filter(c => {
+            const cardFolderIdStr = String(c.folderId);
+            return c.folderId !== folderId && cardFolderIdStr !== folderIdStr;
+        });
         
         // Remove the folder itself
         this.folders = this.folders.filter(f => f.id !== folderId);
@@ -15517,9 +16239,10 @@ class VocaBox {
         this.saveCards();
         this.saveFolders(this.folders);
         
-        // If deleted folder was selected, switch to default or all
+        // If deleted folder was selected, switch to 'all' (or another folder if default was deleted)
         if (this.currentFolder === folderId || (folder.parentFolderId === null && childFolders.some(f => f.id === this.currentFolder))) {
-            const fallback = this.folders.find(f => f.id === 'default')?.id || 'all';
+            // If we deleted the default folder, switch to 'all', otherwise try to find default or use 'all'
+            const fallback = folderId === 'default' ? 'all' : (this.folders.find(f => f.id === 'default')?.id || 'all');
             this.selectFolder(fallback);
         } else {
             this.renderCards();

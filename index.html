@@ -1093,20 +1093,28 @@
                     </div>
                     
                     <div class="form-group">
-                        <textarea id="wordListTextarea" class="word-list-textarea" placeholder="Word 1 Definition 1&#10;Word 2 Definition 2&#10;Word 3 Definition 3"></textarea>
+                        <textarea id="bulkTextInput" class="word-list-textarea" placeholder="Word 1 Definition 1&#10;Word 2 Definition 2&#10;Word 3 Definition 3"></textarea>
                     </div>
                     
                     <div class="delimiter-options">
                         <div class="delimiter-section">
                             <label class="delimiter-label">Target Folder:</label>
                             <div class="form-group folder-selector-group">
-                                <select id="importTargetFolder" class="form-select">
+                                <select id="importFolderSelect" class="form-select">
                                     <option value="default">Default Folder</option>
                                 </select>
                                 <button type="button" class="btn btn-secondary btn-small" id="createFolderForImportBtn">
                                     <img src="plus.png" alt="Add" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;">
                                     Folder
                                 </button>
+                            </div>
+                        </div>
+                        <div class="delimiter-section" id="importListGroup" style="display: none;">
+                            <label class="delimiter-label">List (Optional):</label>
+                            <div class="form-group folder-selector-group">
+                                <select id="importListSelect" class="form-select">
+                                    <option value="">No List (Save to Folder)</option>
+                                </select>
                                 <button type="button" class="btn btn-secondary btn-small" id="createListForImportBtn">
                                     <img src="plus.png" alt="Add" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;">
                                     List
@@ -1118,21 +1126,21 @@
                             <label class="delimiter-label">Between Term and Definition:</label>
                             <div class="radio-group">
                                 <label class="radio-option">
-                                    <input type="radio" name="termDelimiter" value="space" checked>
+                                    <input type="radio" name="termDefDelimiter" value="space" checked>
                                     <span class="radio-text">Space</span>
                                 </label>
                                 <label class="radio-option">
-                                    <input type="radio" name="termDelimiter" value="comma">
+                                    <input type="radio" name="termDefDelimiter" value="comma">
                                     <span class="radio-text">Comma</span>
                                 </label>
                                 <label class="radio-option">
-                                    <input type="radio" name="termDelimiter" value="dash">
+                                    <input type="radio" name="termDefDelimiter" value="dash">
                                     <span class="radio-text">Dash</span>
                                 </label>
                                 <label class="radio-option">
-                                    <input type="radio" name="termDelimiter" value="custom">
+                                    <input type="radio" name="termDefDelimiter" value="custom">
                                     <span class="radio-text">Custom</span>
-                                    <input type="text" id="customTermDelimiter" class="custom-delimiter" placeholder="Enter custom delimiter">
+                                    <input type="text" id="customTermDefDelim" class="custom-delimiter" placeholder="Enter custom delimiter">
                                 </label>
                             </div>
                         </div>
@@ -1151,14 +1159,14 @@
                                 <label class="radio-option">
                                     <input type="radio" name="cardDelimiter" value="custom">
                                     <span class="radio-text">Custom</span>
-                                    <input type="text" id="customCardDelimiter" class="custom-delimiter" placeholder="Enter custom delimiter">
+                                    <input type="text" id="customCardDelim" class="custom-delimiter" placeholder="Enter custom delimiter">
                                 </label>
                             </div>
                         </div>
                     </div>
                     
                     <div class="preview-section">
-                        <div class="preview-header">Preview <span id="previewCount">0</span> cards</div>
+                        <div class="preview-header">Preview <span id="importPreviewCount">0</span> cards</div>
                         <div id="previewCardsContainer" class="preview-cards-container">
                             <div class="preview-placeholder">Nothing to preview yet.</div>
                         </div>
@@ -1169,7 +1177,7 @@
                 
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancelImportBtn">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmImportBtn">Import Cards</button>
+                    <button type="button" class="btn btn-primary" id="importCardsBtn">Import Cards</button>
                 </div>
             </div>
         </div>
