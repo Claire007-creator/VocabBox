@@ -13,6 +13,18 @@ body {
     color: #333;
 }
 
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+}
+
 .container {
     max-width: 2000px;
     margin: 0 auto;
@@ -543,7 +555,7 @@ body {
 }
 
 .card-item {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: white;
     border-radius: 15px;
     padding: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -570,52 +582,52 @@ body {
 
 /* Folder-based card colors - same background with colorful left borders */
 .card-item.folder-default {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #CD7D88;
 }
 
 .card-item.folder-ielts {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #BFDCDB;
 }
 
 .card-item.folder-unlock {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #87ABC5;
 }
 
 .card-item.folder-toefl {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #C5B5D3;
 }
 
 .card-item.folder-gre {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #DE9C73;
 }
 
 .card-item.folder-sat {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #5F2312;
 }
 
 .card-item.folder-vocabulary {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #DE634D;
 }
 
 .card-item.folder-grammar {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #E1A102;
 }
 
 .card-item.folder-folder9 {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #3A989E;
 }
 
 .card-item.folder-folder10 {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #B66899;
 }
 
@@ -646,7 +658,7 @@ body {
     border-radius: 15px;
     padding: 0;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: white;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -658,52 +670,52 @@ body {
 
 /* Apply folder colors to card faces */
 .card-item.folder-default .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #CD7D88;
 }
 
 .card-item.folder-ielts .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #BFDCDB;
 }
 
 .card-item.folder-unlock .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #87ABC5;
 }
 
 .card-item.folder-toefl .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #C5B5D3;
 }
 
 .card-item.folder-gre .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #DE9C73;
 }
 
 .card-item.folder-sat .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #5F2312;
 }
 
 .card-item.folder-vocabulary .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #DE634D;
 }
 
 .card-item.folder-grammar .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #E1A102;
 }
 
 .card-item.folder-folder9 .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #3A989E;
 }
 
 .card-item.folder-folder10 .card-face {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: white;
     border-left: 4px solid #B66899;
 }
 
@@ -2293,6 +2305,25 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Main Content Area */
+    .main-content {
+        padding: 30px 20px;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    /* Button Sizes */
+    .btn {
+        padding: 16px 24px;
+        font-size: 1.1rem;
+        min-height: 44px;
+    }
+    
+    /* Header */
     .header-layout {
         flex-direction: column;
         padding: 0 20px;
@@ -2329,6 +2360,7 @@ body {
     .auth-btn {
         padding: 10px 20px;
         font-size: 0.9rem;
+        min-height: 44px;
     }
     
     .app-title::after {
@@ -2337,6 +2369,21 @@ body {
         right: -30px;
     }
     
+    /* Card Elements */
+    .card-item {
+        padding: 15px;
+    }
+    
+    .card-content {
+        font-size: 1.2rem;
+        padding: 15px;
+    }
+    
+    .card-flip-container {
+        height: 350px;
+    }
+    
+    /* Single Column Layout */
     .single-column-layout {
         flex-direction: column;
         margin-top: 15px;
@@ -2357,6 +2404,7 @@ body {
     .folder-item {
         flex: 1;
         min-width: 120px;
+        min-height: 44px;
     }
     
     .column {
@@ -2367,6 +2415,28 @@ body {
         min-width: 120px;
     }
     
+    /* Modals */
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .modal-header {
+        padding: 12px 15px;
+        font-size: 1.1rem;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        padding: 10px;
+        font-size: 0.95rem;
+    }
+    
+    /* Test Mode Options */
     .test-mode-options {
         grid-template-columns: 1fr;
     }
@@ -2375,6 +2445,7 @@ body {
         grid-template-columns: 1fr;
     }
     
+    /* Typing Mode */
     .typing-textarea {
         min-height: 100px;
     }
@@ -2413,18 +2484,21 @@ body {
         padding: 10px 20px !important;
         font-size: 0.95rem !important;
         min-width: 100px !important;
+        min-height: 44px !important;
     }
     
     #typingPrevBtn, #typingNextBtn {
         padding: 10px 16px !important;
         font-size: 0.95rem !important;
         min-width: 80px !important;
+        min-height: 44px !important;
     }
     
     #finishTestBtn {
         padding: 12px 24px !important;
         font-size: 1rem !important;
         min-width: 160px !important;
+        min-height: 44px !important;
     }
     
     .answer-result {
@@ -2437,27 +2511,161 @@ body {
         margin-bottom: 8px;
     }
     
+    /* Flashcard */
     .flashcard-inner {
         height: 300px;
     }
     
     .flashcard-front p,
     .flashcard-back p {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
     
+    /* Test Actions */
     .test-actions {
         flex-direction: column;
+        gap: 12px;
     }
     
     .test-actions .btn {
         width: 100%;
+        min-height: 44px;
+    }
+    
+    /* Test Mode Screen */
+    .test-mode-screen {
+        padding: 10px;
+    }
+    
+    .test-container {
+        width: 100%;
+        padding: 0 10px;
+    }
+    
+    .test-header {
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .test-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .test-progress {
+        padding: 12px 15px;
+        margin-bottom: 20px;
+    }
+    
+    /* Cards Navigation */
+    .cards-navigation {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .cards-navigation .btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+    }
+    
+    /* Font Size Control */
+    .font-size-control-inline {
+        padding: 6px 10px;
+        gap: 6px;
+    }
+    
+    .font-size-btn {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+    
+    /* Card Actions */
+    .card-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .edit-btn,
+    .delete-btn {
+        min-height: 44px;
+        width: 100%;
+    }
+    
+    /* Button Variants */
+    .btn-small {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        min-height: 44px;
+    }
+    
+    .btn-large {
+        padding: 14px 24px;
+        font-size: 1rem;
+        min-height: 44px;
+    }
+    
+    .btn-create-full {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        min-height: 44px;
+    }
+    
+    /* Rich Editor */
+    .rich-editor {
+        font-size: 0.95rem;
+    }
+    
+    /* Editor Toolbar */
+    .editor-toolbar {
+        padding: 4px;
+        gap: 2px;
+        overflow-x: auto;
+    }
+    
+    .toolbar-btn {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        min-width: 32px;
+        min-height: 32px;
+    }
+    
+    /* Audio Replay Button */
+    .btn-audio-replay {
+        padding: 12px 24px;
+        font-size: 1rem;
+        min-height: 44px;
     }
 }
 
 @media (max-width: 480px) {
+    /* Main Content Area */
+    .main-content {
+        padding: 15px 10px;
+    }
+    
+    /* Action Buttons */
+    .action-buttons {
+        gap: 12px;
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+    
+    /* Button Sizes */
+    .btn {
+        padding: 14px 20px;
+        font-size: 1rem;
+        min-height: 44px;
+    }
+    
+    /* Header */
     .header-layout {
         gap: 10px;
+        padding: 0 15px;
     }
     
     .app-logo {
@@ -2481,10 +2689,228 @@ body {
     .auth-btn {
         padding: 8px 16px;
         font-size: 0.85rem;
+        min-height: 44px;
     }
     
     .header {
         padding: 20px 0;
+    }
+    
+    /* Card Elements */
+    .card-item {
+        padding: 12px;
+    }
+    
+    .card-content {
+        font-size: 1rem;
+        padding: 12px;
+    }
+    
+    .card-flip-container {
+        height: 280px;
+    }
+    
+    /* Folder Section */
+    .folder-section {
+        padding: 12px;
+    }
+    
+    .folder-item {
+        min-width: 100px;
+        padding: 8px 10px;
+    }
+    
+    /* Modals */
+    .modal-content {
+        width: 98%;
+        margin: 5px;
+        border-radius: 15px;
+    }
+    
+    .modal-body {
+        padding: 12px;
+    }
+    
+    .modal-header {
+        padding: 10px 12px;
+        font-size: 1rem;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 10px;
+    }
+    
+    .form-group label {
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+    
+    /* Typography */
+    .card-front-preview {
+        font-size: 1rem;
+    }
+    
+    .card-back-preview {
+        font-size: 0.85rem;
+    }
+    
+    /* Flashcard */
+    .flashcard-inner {
+        height: 250px;
+    }
+    
+    .flashcard-front p,
+    .flashcard-back p {
+        font-size: 1.5rem;
+        padding: 20px;
+    }
+    
+    /* Test Mode Screen */
+    .test-mode-screen {
+        padding: 5px;
+    }
+    
+    .test-container {
+        width: 100%;
+        padding: 0 5px;
+    }
+    
+    .test-header {
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .test-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .test-header .btn {
+        width: 100%;
+    }
+    
+    /* Test Progress */
+    .test-progress {
+        padding: 10px 12px;
+        margin-bottom: 15px;
+    }
+    
+    .test-progress p {
+        font-size: 0.85rem;
+    }
+    
+    /* Cards Navigation */
+    .cards-navigation {
+        padding: 10px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .cards-navigation .btn {
+        width: 100%;
+        padding: 12px;
+    }
+    
+    /* Current Folder Info */
+    .current-folder-info {
+        padding: 12px 15px;
+        font-size: 1rem;
+    }
+    
+    /* Column Title */
+    .column-title {
+        font-size: 1rem;
+        padding: 10px 12px;
+    }
+    
+    /* Button Variants */
+    .btn-small {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        min-height: 44px;
+    }
+    
+    .btn-large {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        min-height: 44px;
+    }
+    
+    .btn-create-full {
+        padding: 12px 14px;
+        font-size: 0.9rem;
+        min-height: 44px;
+    }
+    
+    /* Rich Editor */
+    .rich-editor {
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+    
+    /* Editor Toolbar */
+    .editor-toolbar {
+        padding: 3px;
+        gap: 2px;
+    }
+    
+    .toolbar-btn {
+        padding: 5px 6px;
+        font-size: 0.75rem;
+        min-width: 28px;
+        min-height: 28px;
+    }
+    
+    /* Audio Section */
+    .audio-section {
+        padding: 10px;
+    }
+    
+    .audio-player-container {
+        padding: 10px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    /* Folder Dropdown */
+    .folder-dropdown-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        min-height: 44px;
+    }
+    
+    /* Card Folder Info Button */
+    .card-folder-info-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        min-height: 36px;
+    }
+    
+    /* Audio Replay Button */
+    .btn-audio-replay {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        min-height: 44px;
+        width: 100%;
     }
 }
 
@@ -3361,5 +3787,210 @@ body {
 .form-select:focus {
     outline: none;
     border-color: #5FB3A7;
+}
+
+/* App Notifications - Toast and Modal Styles */
+:root {
+  --vb-bg: #ffffff;
+  --vb-text: #24323f;
+  --vb-muted: #6a7a89;
+  --vb-primary: #5FB3A7;         /* Match existing teal color */
+  --vb-primary-strong: #4FA397;
+  --vb-danger: #C85A6E;          /* Match existing danger color */
+  --vb-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  --vb-radius: 16px;
+}
+
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 4000;
+}
+
+.vb-toast {
+  background: var(--vb-bg);
+  color: var(--vb-text);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: var(--vb-shadow);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-width: 280px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 240ms ease-out;
+}
+
+.vb-toast__icon { 
+  font-size: 20px; 
+}
+
+.vb-toast__title { 
+  font-weight: 700; 
+  margin: 0; 
+}
+
+.vb-toast__desc { 
+  margin: 2px 0 0; 
+  color: var(--vb-muted); 
+  font-size: 14px; 
+}
+
+.vb-toast__close { 
+  background: transparent; 
+  border: 0; 
+  font-size: 18px; 
+  color: var(--vb-muted); 
+  cursor: pointer; 
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vb-toast__close:hover {
+  color: var(--vb-text);
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(-6px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Confirm Modal */
+.vb-modal { 
+  position: fixed; 
+  inset: 0; 
+  display: none; 
+  z-index: 5000; 
+}
+
+.vb-modal.is-open { 
+  display: block; 
+}
+
+.vb-modal__backdrop {
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0,0,0,0.45);
+}
+
+.vb-modal__card {
+  position: absolute;
+  top: 50%; 
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--vb-bg);
+  color: var(--vb-text);
+  width: min(560px, calc(100vw - 40px));
+  border-radius: var(--vb-radius);
+  box-shadow: var(--vb-shadow);
+  padding: 24px;
+}
+
+.vb-modal__close {
+  position: absolute; 
+  top: 10px; 
+  right: 12px;
+  background: transparent; 
+  border: 0; 
+  font-size: 22px; 
+  color: var(--vb-muted); 
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.vb-modal__close:hover {
+  color: var(--vb-text);
+}
+
+.vb-modal__header {
+  display: grid; 
+  grid-template-columns: 48px 1fr; 
+  gap: 12px; 
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.vb-modal__icon {
+  width: 48px; 
+  height: 48px; 
+  border-radius: 12px;
+  display: grid; 
+  place-items: center;
+  background: rgba(95, 179, 167, 0.1); 
+  color: var(--vb-primary); 
+  font-size: 22px;
+}
+
+.vb-modal__title { 
+  margin: 0; 
+  font-size: 22px; 
+  font-weight: 700;
+}
+
+.vb-modal__desc { 
+  margin: 6px 0 0; 
+  color: var(--vb-muted); 
+  grid-column: 1 / -1;
+  line-height: 1.5;
+}
+
+.vb-modal__actions {
+  display: flex; 
+  gap: 10px; 
+  justify-content: flex-end; 
+  margin-top: 20px;
+}
+
+.btn {
+  border: 0; 
+  cursor: pointer; 
+  border-radius: 999px; 
+  padding: 10px 18px; 
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary { 
+  background: var(--vb-primary); 
+  color: #fff; 
+}
+
+.btn-primary:hover { 
+  background: var(--vb-primary-strong); 
+}
+
+.btn-ghost { 
+  background: #eef3f4; 
+  color: var(--vb-text); 
+}
+
+.btn-ghost:hover { 
+  background: #e4ecec; 
+}
+
+.btn-danger { 
+  background: var(--vb-danger); 
+  color: #fff; 
+}
+
+.btn-danger:hover { 
+  background: #b24a3b; 
 }
 

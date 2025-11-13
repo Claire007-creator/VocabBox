@@ -1288,6 +1288,25 @@
         </div>
     </div>
 
+    <!-- App Notifications (Modal + Toast) -->
+    <div id="appToastContainer" class="toast-container"></div>
+
+    <div id="appConfirmModal" class="vb-modal" aria-hidden="true">
+      <div class="vb-modal__backdrop" data-close="true"></div>
+      <div class="vb-modal__card" role="dialog" aria-modal="true" aria-labelledby="vbConfirmTitle">
+        <button class="vb-modal__close" data-close="true" aria-label="Close">×</button>
+        <div class="vb-modal__header">
+          <div class="vb-modal__icon"><img src="trashbin.png" alt="Delete" style="width: 100%; height: 100%; object-fit: contain;"></div>
+          <h3 id="vbConfirmTitle" class="vb-modal__title">Confirm</h3>
+          <p id="vbConfirmDesc" class="vb-modal__desc">Are you sure?</p>
+        </div>
+        <div class="vb-modal__actions">
+          <button id="vbCancelBtn" class="btn btn-ghost">Cancel</button>
+          <button id="vbConfirmBtn" class="btn btn-primary">Confirm</button>
+        </div>
+      </div>
+    </div>
+
     <!-- IELTS 8000 Built-in Data -->
     <script src="ielts-8000-data.js"></script>
     

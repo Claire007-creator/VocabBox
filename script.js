@@ -1,6 +1,128 @@
 // VocaBox - Flashcard App
 // Main Application Logic
 
+// --- Toast Notification Utility ---
+function showToast({ title = 'Success', description = '', icon = '✅', timeout = 2500 } = {}) {
+    const wrap = document.getElementById('appToastContainer');
+    if (!wrap) {
+        console.error('Toast container not found');
+        return { close: () => {} };
+    }
+    
+    const t = document.createElement('div');
+    t.className = 'vb-toast';
+    t.innerHTML = `
+        <div class="vb-toast__icon">${icon}</div>
+        <div>
+            <div class="vb-toast__title">${title}</div>
+            ${description ? `<div class="vb-toast__desc">${description}</div>` : ''}
+        </div>
+        <button class="vb-toast__close" aria-label="Close">×</button>
+    `;
+    wrap.appendChild(t);
+    
+    const close = () => { 
+        t.style.opacity = '0';
+        t.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => t.remove(), 200);
+    };
+    
+    t.querySelector('.vb-toast__close').addEventListener('click', close);
+    if (timeout) setTimeout(close, timeout);
+    
+    return { close };
+}
+
+// --- Confirm Modal Utility ---
+function showConfirm({ 
+    title = 'Confirm', 
+    description = 'Are you sure?', 
+    confirmText = 'Confirm', 
+    cancelText = 'Cancel',
+    variant = 'primary' // 'primary' | 'danger'
+} = {}) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('appConfirmModal');
+        if (!modal) {
+            console.error('Confirm modal not found');
+            resolve(false);
+            return;
+        }
+        
+        const titleEl = document.getElementById('vbConfirmTitle');
+        const descEl = document.getElementById('vbConfirmDesc');
+        const okBtn = document.getElementById('vbConfirmBtn');
+        const cancelBtn = document.getElementById('vbCancelBtn');
+        
+        if (!titleEl || !descEl || !okBtn || !cancelBtn) {
+            console.error('Confirm modal elements not found');
+            resolve(false);
+            return;
+        }
+        
+        titleEl.textContent = title;
+        descEl.textContent = description;
+        okBtn.textContent = confirmText;
+        cancelBtn.textContent = cancelText;
+        
+        okBtn.classList.remove('btn-primary', 'btn-danger');
+        okBtn.classList.add(variant === 'danger' ? 'btn-danger' : 'btn-primary');
+        
+        const cleanup = () => {
+            modal.classList.remove('is-open');
+            modal.setAttribute('aria-hidden', 'true');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            modal.removeEventListener('click', onBackdrop);
+        };
+        
+        const onOk = () => { 
+            cleanup(); 
+            resolve(true); 
+        };
+        
+        const onCancel = () => { 
+            cleanup(); 
+            resolve(false); 
+        };
+        
+        const onBackdrop = (e) => { 
+            if (e.target.dataset.close) onCancel(); 
+        };
+        
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+    });
+}
+
+// --- Replace native dialogs globally ---
+const originalAlert = window.alert;
+const originalConfirm = window.confirm;
+
+window.alert = (msg) => {
+    showToast({ 
+        title: 'Notice', 
+        description: String(msg), 
+        icon: '💡', 
+        timeout: 3000 
+    });
+};
+
+window.confirm = (msg) => {
+    // Return a Promise<boolean> to mimic async usage
+    return showConfirm({ 
+        title: 'Please Confirm', 
+        description: String(msg),
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        variant: 'primary'
+    });
+};
+
 class VocaBox {
     constructor() {
         this.currentUser = this.loadCurrentUser();
@@ -693,7 +815,7 @@ class VocaBox {
         this.vocabularyFileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.createFolderForImportBtn.addEventListener('click', () => this.createFolderForImport());
         if (this.createListForImportBtn) {
-            this.createListForImportBtn.addEventListener('click', () => this.createListForImport());
+        this.createListForImportBtn.addEventListener('click', () => this.createListForImport());
         }
         
         // Import folder/list selector updates - use bindOnce to prevent double-binding
@@ -717,7 +839,7 @@ class VocaBox {
         
         // Delimiter option listeners
         if (this.wordListTextarea) {
-            this.wordListTextarea.addEventListener('input', () => this.updatePreview());
+        this.wordListTextarea.addEventListener('input', () => this.updatePreview());
         } else {
             console.error('[attachEventListeners] wordListTextarea not found!');
         }
@@ -729,10 +851,10 @@ class VocaBox {
             radio.addEventListener('change', () => this.updatePreview());
         });
         if (this.customTermDelimiter) {
-            this.customTermDelimiter.addEventListener('input', () => this.updatePreview());
+        this.customTermDelimiter.addEventListener('input', () => this.updatePreview());
         }
         if (this.customCardDelimiter) {
-            this.customCardDelimiter.addEventListener('input', () => this.updatePreview());
+        this.customCardDelimiter.addEventListener('input', () => this.updatePreview());
         }
 
         // Collections modal listeners
@@ -12222,7 +12344,7 @@ class VocaBox {
         const currentFolderId = this.importTargetFolder ? this._toStr(this.importTargetFolder.value) : null;
         if (currentFolderId) {
             const currentFolder = this.folders.find(f => this._toStr(f.id) === currentFolderId);
-            if (currentFolder && !currentFolder.parentFolderId) {
+        if (currentFolder && !currentFolder.parentFolderId) {
                 this.listParentFolder.value = this._toStr(currentFolder.id);
             }
         }
@@ -12380,8 +12502,8 @@ class VocaBox {
                 this.importTargetList.value = '';
             } else if (!selectedFolder) {
                 // No folder selected or folder not found - hide list group
-                this.importListGroup.style.display = 'none';
-                this.importTargetList.value = '';
+            this.importListGroup.style.display = 'none';
+            this.importTargetList.value = '';
             }
             // If selectedFolder is null but we have a folderId, it might be a parent folder that wasn't found
             // In that case, we'll keep the list group visible if it was already visible
@@ -12517,9 +12639,9 @@ class VocaBox {
                 
                 // Force a re-render to ensure cards show up
                 setTimeout(() => {
-                    this.renderCards();
-                    this.updateCardCount();
-                    this.updateCurrentFolderInfo();
+            this.renderCards();
+            this.updateCardCount();
+            this.updateCurrentFolderInfo();
                 }, 100);
             } else {
                 // If already on the correct folder, just render cards
@@ -14696,9 +14818,9 @@ class VocaBox {
                 <button class="folder-rename-btn" data-folder-id="${folder.id}" title="Rename folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
                     <img src="pencil.png" alt="Rename" style="width: 14px; height: 14px;">
                 </button>
-                <button class="folder-delete-btn" data-folder-id="${folder.id}" title="Delete folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
-                    <img src="trashbin.png" alt="Delete" style="width: 14px; height: 14px;">
-                </button>
+                    <button class="folder-delete-btn" data-folder-id="${folder.id}" title="Delete folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
+                        <img src="trashbin.png" alt="Delete" style="width: 14px; height: 14px;">
+                    </button>
             </div>
         `;
         
@@ -16175,7 +16297,7 @@ class VocaBox {
     }
 
     // Delete folder functionality from sidebar
-    deleteFolderFromSidebar(folderId) {
+    async deleteFolderFromSidebar(folderId) {
         const folder = this.folders.find(f => f.id === folderId);
         if (!folder) return;
         
@@ -16203,12 +16325,20 @@ class VocaBox {
             }).length;
         }
         
-        // Ask for confirmation
-        const confirmMessage = cardCount > 0
-            ? `Are you sure you want to delete "${folder.name}"?\n\nThis will delete the folder and ${cardCount} card(s) inside it.\n\nThis action cannot be undone.`
-            : `Are you sure you want to delete "${folder.name}"?\n\nThis action cannot be undone.`;
+        // Ask for confirmation using branded modal
+        const description = cardCount > 0
+            ? `This will delete the folder and ${cardCount} card(s) inside it. This action cannot be undone.`
+            : `This action cannot be undone.`;
         
-        if (!confirm(confirmMessage)) {
+        const ok = await showConfirm({
+            title: `Delete "${folder.name}"?`,
+            description: description,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            variant: 'danger'
+        });
+        
+        if (!ok) {
             return;
         }
         
@@ -16253,7 +16383,11 @@ class VocaBox {
         this.renderFolders();
         this.updateFolderSelectors();
         
-        this.showNotification(`Folder "${folder.name}" and ${cardCount} card(s) deleted successfully. 🗑️`, 'success');
+        showToast({ 
+            title: 'Deleted', 
+            description: `"${folder.name}" removed.`, 
+            icon: '🗑️' 
+        });
     }
 
     // Font Size Control Methods
