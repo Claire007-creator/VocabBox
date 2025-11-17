@@ -22,8 +22,10 @@
                     <button class="auth-btn sign-in-btn">Sign In</button>
                     <button class="auth-btn sign-up-btn">Sign Up</button>
                     </div>
-                    <div id="userInfo" style="display: none;">
+                    <div id="userInfo" style="display: none; align-items: center; gap: 10px; flex-wrap: wrap;">
                         <span class="user-welcome">Welcome, <span id="usernameDisplay"></span>!</span>
+                        <span id="subscriptionBadge" class="subscription-badge" style="padding: 4px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; background: #e0e0e0; color: #666;"></span>
+                        <button class="auth-btn" id="manageSubscriptionBtn" style="padding: 6px 12px; font-size: 0.85rem;">Manage Plan</button>
                         <button class="auth-btn sign-out-btn">Sign Out</button>
                     </div>
                 </div>
@@ -73,6 +75,16 @@
                             </span>
                             New Folder
                         </button>
+                        <div class="folder-actions">
+                            <button class="btn btn-folder-compact" id="exportDataBtn" title="Export your data">
+                                <span class="btn-icon">💾</span>
+                                <span class="btn-text">Export</span>
+                            </button>
+                            <button class="btn btn-folder-compact" id="importDataBtn" title="Import your data">
+                                <span class="btn-icon">📥</span>
+                                <span class="btn-text">Import</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="folder-list" id="folderList">
                         <!-- Folders will be dynamically inserted here -->
@@ -662,6 +674,12 @@
                         <p>Type answers for test cards. Tests your recall ability.</p>
                         <button class="btn btn-create mode-select-btn">Select</button>
                     </div>
+                    <div class="test-mode-card" id="selectMultipleChoiceMode">
+                        <div class="mode-icon"><img src="writing.png" alt="Multiple Choice" style="width: 60px; height: 60px;"></div>
+                        <h3>Multiple Choice</h3>
+                        <p>Choose the correct answer from several options.</p>
+                        <button class="btn btn-primary mode-select-btn">Select</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -694,8 +712,24 @@
         </div>
     </div>
 
-    <!-- Folder Selection Modal for Typing Practice -->
-    <div class="modal" id="typingFolderSelectModal">
+    <!-- Shared Folder/List Selection Modal -->
+    <div class="modal" id="sharedFolderSelectModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <button class="back-btn" id="backFromSharedFolderBtn">← Back</button>
+                <h2 id="sharedFolderSelectTitle"><img src="books.png" alt="Books" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Folder</h2>
+                <button class="close-btn" id="closeSharedFolderBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="folder-selection-options" id="sharedFolderSelectionContainer">
+                    <!-- Folders will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder Selection Modal for Typing Practice (kept for backward compatibility, redirects to shared) -->
+    <div class="modal" id="typingFolderSelectModal" style="display: none;">
         <div class="modal-content modal-medium">
             <div class="modal-header">
                 <button class="back-btn" id="backFromTypingFolderBtn">← Back</button>
@@ -704,6 +738,22 @@
             </div>
             <div class="modal-body">
                 <div class="folder-selection-options" id="typingFolderSelectionContainer">
+                    <!-- Folders will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder Selection Modal for Multiple Choice (kept for backward compatibility, redirects to shared) -->
+    <div class="modal" id="multipleChoiceFolderSelectModal" style="display: none;">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <button class="back-btn" id="backToMultipleChoiceModeBtn">← Back</button>
+                <h2><img src="writing.png" alt="Multiple Choice" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Folder</h2>
+                <button class="close-btn" id="closeMultipleChoiceFolderBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="folder-selection-options" id="multipleChoiceFolderSelectionContainer">
                     <!-- Folders will be dynamically inserted here -->
                 </div>
             </div>
@@ -1229,6 +1279,45 @@
         </div>
     </div>
 
+    <!-- Multiple Choice Mode Screen -->
+    <div class="test-mode-screen" id="multipleChoiceModeScreen">
+        <div class="test-container">
+            <div class="test-header">
+                <h2><img src="writing.png" alt="Multiple Choice" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Multiple Choice Mode</h2>
+                <button class="btn btn-secondary" id="exitMultipleChoiceBtn">Exit Test</button>
+            </div>
+            <div class="test-progress">
+                <p>Question <span id="mcCardNum">1</span> of <span id="mcTotalCards">0</span></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="mcProgressFill"></div>
+                </div>
+            </div>
+            <div class="typing-card">
+                <div class="typing-question">
+                    <h3>Question:</h3>
+                    <div class="question-content" id="mcQuestion"></div>
+                </div>
+                <div class="multiple-choice-options" id="multipleChoiceOptions">
+                    <!-- Options will be dynamically inserted here -->
+                </div>
+            </div>
+            <div class="test-actions">
+                <button class="btn btn-secondary" id="mcPrevBtn">← Previous</button>
+                <button class="btn btn-secondary" id="mcNextBtn">Next →</button>
+            </div>
+            <div class="audio-replay-section" id="mcAudioReplay" style="display: none;">
+                <button class="btn btn-audio-replay" id="replayMcAudioBtn">
+                    🔊 Replay Audio
+                </button>
+            </div>
+            <div class="finish-test-section" style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-success" id="finishMcTestBtn" style="font-size: 1.1rem; padding: 12px 30px; background: #F4D58D; color: #333;">
+                    ✓ Finish Test & See Results
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Test Results Modal -->
     <div class="modal" id="testResultsModal">
         <div class="modal-content modal-medium">
@@ -1307,11 +1396,227 @@
       </div>
     </div>
 
+    <!-- Upgrade/Subscription Modal -->
+    <div class="modal" id="upgradeModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2>Upgrade to Premium</h2>
+                <button class="close-btn" id="closeUpgradeBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="upgradeLimitMessage" style="margin-bottom: 20px;">
+                    <div class="info-message" style="background: #fff3cd; border-color: #ffc107;">
+                        <p><strong>You've reached your free tier limit!</strong></p>
+                        <p id="upgradeLimitText">Upgrade to Premium to unlock unlimited cards and folders.</p>
+                    </div>
+                </div>
+                
+                <div class="subscription-plans" style="display: grid; gap: 20px; margin-bottom: 20px;">
+                    <!-- Premium Plan -->
+                    <div class="plan-card" style="border: 2px solid #4CAF50; border-radius: 12px; padding: 20px; background: #f8fff9;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="margin: 0 0 5px 0; color: #4CAF50;">Premium</h3>
+                                <p style="margin: 0; color: #666; font-size: 0.9rem;">Best for serious learners</p>
+                            </div>
+                            <span class="plan-badge" style="background: #4CAF50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">POPULAR</span>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 2rem; font-weight: bold; color: #333;">
+                                $<span id="premiumMonthlyPrice">4.99</span>
+                                <span style="font-size: 1rem; font-weight: normal; color: #666;">/month</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                                or $<span id="premiumYearlyPrice">39.99</span>/year (save 33%)
+                            </div>
+                        </div>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 20px 0;">
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>Unlimited cards</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>Unlimited folders</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>Advanced statistics</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>Spaced repetition</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>Audio pronunciation</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>PDF export</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #4CAF50; font-weight: bold;">✓</span>
+                                <span>Priority support</span>
+                            </li>
+                        </ul>
+                        <button class="btn btn-primary" id="upgradeToPremiumBtn" style="width: 100%; padding: 12px; font-size: 1.1rem;">
+                            Upgrade to Premium
+                        </button>
+                    </div>
+
+                    <!-- Pro Plan -->
+                    <div class="plan-card" style="border: 2px solid #9C27B0; border-radius: 12px; padding: 20px; background: #faf5ff;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <h3 style="margin: 0 0 5px 0; color: #9C27B0;">Pro</h3>
+                                <p style="margin: 0; color: #666; font-size: 0.9rem;">For power users</p>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 2rem; font-weight: bold; color: #333;">
+                                $<span id="proMonthlyPrice">9.99</span>
+                                <span style="font-size: 1rem; font-weight: normal; color: #666;">/month</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                                or $<span id="proYearlyPrice">79.99</span>/year (save 33%)
+                            </div>
+                        </div>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 20px 0;">
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #9C27B0; font-weight: bold;">✓</span>
+                                <span>Everything in Premium</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #9C27B0; font-weight: bold;">✓</span>
+                                <span>AI-powered card generation</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #9C27B0; font-weight: bold;">✓</span>
+                                <span>Collaborative decks</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #9C27B0; font-weight: bold;">✓</span>
+                                <span>Advanced analytics dashboard</span>
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: #9C27B0; font-weight: bold;">✓</span>
+                                <span>API access</span>
+                            </li>
+                        </ul>
+                        <button class="btn btn-secondary" id="upgradeToProBtn" style="width: 100%; padding: 12px; font-size: 1.1rem; background: #9C27B0; border-color: #9C27B0;">
+                            Upgrade to Pro
+                        </button>
+                    </div>
+                </div>
+
+                <div style="text-align: center; padding-top: 20px; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 0.9rem; margin: 0;">
+                        💳 Secure payment via Stripe • Cancel anytime • 30-day money-back guarantee
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export/Import Data Modal -->
+    <div class="modal" id="exportImportModal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2 id="exportImportModalTitle">Export/Import Data</h2>
+                <button class="close-btn" id="closeExportImportBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="exportSection" style="display: none;">
+                    <div class="info-message" style="margin-bottom: 20px;">
+                        <p>Export all your data including cards, folders, and settings. This creates a backup file that you can import later or use on another device.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Export Options:</label>
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="exportCards" checked style="width: auto;">
+                                <span id="exportCardsLabel">Cards</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="exportFolders" checked style="width: auto;">
+                                <span id="exportFoldersLabel">Folders</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="exportSettings" checked style="width: auto;">
+                                <span>Settings (custom colors, preferences)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelExportBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirmExportBtn">💾 Download Export File</button>
+                    </div>
+                </div>
+                <div id="importSection" style="display: none;">
+                    <div class="info-message" style="margin-bottom: 20px;">
+                        <p><strong>Warning:</strong> Importing data will replace your current data. Make sure to export your current data first as a backup.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="importFileInput">Select Export File:</label>
+                        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                        <button type="button" class="btn btn-secondary" id="selectImportFileBtn" style="width: 100%; margin-top: 10px;">
+                            📁 Choose File
+                        </button>
+                        <div id="selectedFileName" style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; display: none;">
+                            <strong>Selected:</strong> <span id="fileNameDisplay"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Import Options:</label>
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="radio" name="importMode" value="replace" checked style="width: auto;">
+                                <span>Replace all data (recommended for first import)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="radio" name="importMode" value="merge" style="width: auto;">
+                                <span>Merge with existing data (may create duplicates)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="importError" class="error-message" style="display: none;"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelImportDataBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirmImportBtn" disabled>📥 Import Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration -->
+    <script src="config.js"></script>
+    
+    <!-- Supabase Client (loaded only if configured) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <!-- IELTS 8000 Built-in Data -->
     <script src="ielts-8000-data.js"></script>
     
     <!-- Main Application Script -->
     <script src="script.js"></script>
+
+    <!-- Footer with ICP and 公安备案 (Add your numbers after completing filings) -->
+    <footer style="text-align: center; padding: 20px; color: #666; font-size: 0.85rem; border-top: 1px solid #eee; margin-top: 40px; background: #f8f9fa;">
+        <p style="margin: 5px 0;">© 2024 VocaBox. All rights reserved.</p>
+        <p style="margin: 5px 0;">
+            <!-- Replace [ICP_NUMBER] with your actual ICP备案号 after approval -->
+            <a href="https://beian.miit.gov.cn" target="_blank" style="color: #666; text-decoration: none;">
+                ICP备案号: [ICP_NUMBER]
+            </a>
+            <span style="margin: 0 10px;">|</span>
+            <!-- Replace [PSB_NUMBER] with your actual 公安备案号 after approval -->
+            <a href="http://www.beian.gov.cn" target="_blank" style="color: #666; text-decoration: none;">
+                公安备案号: [PSB_NUMBER]
+            </a>
+        </p>
+    </footer>
 </body>
 </html>
 

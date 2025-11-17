@@ -126,7 +126,7 @@ window.confirm = (msg) => {
 class VocaBox {
     constructor() {
         this.currentUser = this.loadCurrentUser();
-        this.cards = this.loadCards();
+        this.cards = []; // Will be loaded asynchronously
         this.currentTestIndex = 0;
         this.isFlipped = false;
         this.currentEditingCardId = null;
@@ -134,6 +134,10 @@ class VocaBox {
         this.currentTypingIndex = 0;
         this.typingTestCards = [];
         this.flipTestCards = [];
+        this.mcTestCards = [];
+        this.currentMcIndex = 0;
+        this.mcSelectedFolderId = 'all';
+        this.mcAutoAdvanceTimeout = null;
         this.customColors = this.loadCustomColors();
         this.pendingDeleteId = null;
         this.audioDB = null;
@@ -142,6 +146,7 @@ class VocaBox {
         this.folders = this.loadFolders();
         this.currentFolder = 'all';
         this.typingSelectedFolderId = 'all'; // Track selected folder for typing mode
+        this.selectedFolderId = 'all'; // Track selected folder for Card Flipping mode
         
         // Card navigation
         this.currentCardIndex = 0; // Index of currently displayed card
@@ -154,10 +159,41 @@ class VocaBox {
         };
         this.currentAudioId = null;
         this.currentPlayingAudio = null; // Track currently playing audio
+        
+        // Supabase client (initialized if configured)
+        this.supabase = null;
+        this.initSupabase();
+        
+        // Subscription management
+        this.userSubscription = this.loadUserSubscription();
+        
         this.init();
     }
 
+    // Initialize Supabase client if configured
+    initSupabase() {
+        if (typeof CONFIG !== 'undefined' && CONFIG.features.useSupabase && CONFIG.supabase.url && CONFIG.supabase.anonKey) {
+            try {
+                if (typeof supabase !== 'undefined') {
+                    this.supabase = supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+                    console.log('[Supabase] Client initialized successfully');
+                } else {
+                    console.warn('[Supabase] Supabase library not loaded. Make sure the CDN script is included.');
+                }
+            } catch (e) {
+                console.error('[Supabase] Error initializing client:', e);
+            }
+        } else {
+            console.log('[Supabase] Not configured. Using localStorage only.');
+        }
+    }
+
     async init() {
+        // Load cards asynchronously (supports Supabase)
+        // CRITICAL: Ensure result is always an array
+        const loadedCards = await this.loadCards();
+        this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+        
         // Clean up orphaned legacy folders on app load
         this.cleanupOrphanedLegacyFolders();
         // Clean up orphaned cards (cards with invalid folderIds)
@@ -414,6 +450,34 @@ class VocaBox {
         this.ieltsLocalFile = document.getElementById('ieltsLocalFile');
         this.deleteIELTSBtn = document.getElementById('deleteIELTSBtn');
 
+        // Export/Import Data UI
+        this.exportDataBtn = document.getElementById('exportDataBtn');
+        this.importDataBtn = document.getElementById('importDataBtn');
+        this.exportImportModal = document.getElementById('exportImportModal');
+        this.closeExportImportBtn = document.getElementById('closeExportImportBtn');
+        this.exportImportModalTitle = document.getElementById('exportImportModalTitle');
+        this.exportSection = document.getElementById('exportSection');
+        this.importSection = document.getElementById('importSection');
+        this.exportCards = document.getElementById('exportCards');
+        this.exportFolders = document.getElementById('exportFolders');
+        this.exportSettings = document.getElementById('exportSettings');
+        this.confirmExportBtn = document.getElementById('confirmExportBtn');
+        this.cancelExportBtn = document.getElementById('cancelExportBtn');
+        this.importFileInput = document.getElementById('importFileInput');
+        this.selectImportFileBtn = document.getElementById('selectImportFileBtn');
+        this.selectedDataFileName = document.getElementById('selectedFileName');
+        this.fileNameDisplay = document.getElementById('fileNameDisplay');
+        this.confirmImportDataBtn = document.getElementById('confirmImportBtn');
+        this.cancelImportDataBtn = document.getElementById('cancelImportDataBtn');
+        this.importDataError = document.getElementById('importError');
+
+        // Upgrade/Subscription Modal elements
+        this.upgradeModal = document.getElementById('upgradeModal');
+        this.closeUpgradeBtn = document.getElementById('closeUpgradeBtn');
+        this.manageSubscriptionBtn = document.getElementById('manageSubscriptionBtn');
+        this.upgradeToPremiumBtn = document.getElementById('upgradeToPremiumBtn');
+        this.upgradeToProBtn = document.getElementById('upgradeToProBtn');
+
         // Delete confirmation modal elements
         this.deleteConfirmModal = document.getElementById('deleteConfirmModal');
         this.cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
@@ -424,6 +488,26 @@ class VocaBox {
         this.closeTestSelectBtn = document.getElementById('closeTestSelectBtn');
         this.selectFlipMode = document.getElementById('selectFlipMode');
         this.selectTypingMode = document.getElementById('selectTypingMode');
+        this.selectMultipleChoiceMode = document.getElementById('selectMultipleChoiceMode');
+        
+        // Multiple Choice mode elements
+        this.multipleChoiceFolderSelectModal = document.getElementById('multipleChoiceFolderSelectModal');
+        this.multipleChoiceFolderSelectionContainer = document.getElementById('multipleChoiceFolderSelectionContainer');
+        this.closeMultipleChoiceFolderBtn = document.getElementById('closeMultipleChoiceFolderBtn');
+        this.backToMultipleChoiceModeBtn = document.getElementById('backToMultipleChoiceModeBtn');
+        this.multipleChoiceModeScreen = document.getElementById('multipleChoiceModeScreen');
+        this.exitMultipleChoiceBtn = document.getElementById('exitMultipleChoiceBtn');
+        this.mcQuestion = document.getElementById('mcQuestion');
+        this.multipleChoiceOptions = document.getElementById('multipleChoiceOptions');
+        this.mcCardNum = document.getElementById('mcCardNum');
+        this.mcTotalCards = document.getElementById('mcTotalCards');
+        this.mcProgressFill = document.getElementById('mcProgressFill');
+        this.mcPrevBtn = document.getElementById('mcPrevBtn');
+        this.mcNextBtn = document.getElementById('mcNextBtn');
+        this.mcAudioReplay = document.getElementById('mcAudioReplay');
+        this.replayMcAudioBtn = document.getElementById('replayMcAudioBtn');
+        this.finishMcTestBtn = document.getElementById('finishMcTestBtn');
+        this.currentMcAudioId = null;
         
         // Side selection modal elements
         this.flipSideSelectModal = document.getElementById('flipSideSelectModal');
@@ -431,6 +515,15 @@ class VocaBox {
         this.backToFlipModeBtn = document.getElementById('backToFlipModeBtn');
         this.selectFrontFirst = document.getElementById('selectFrontFirst');
         this.selectBackFirst = document.getElementById('selectBackFirst');
+        
+        // Shared folder/list selection modal
+        this.sharedFolderSelectModal = document.getElementById('sharedFolderSelectModal');
+        this.sharedFolderSelectionContainer = document.getElementById('sharedFolderSelectionContainer');
+        this.closeSharedFolderBtn = document.getElementById('closeSharedFolderBtn');
+        this.backFromSharedFolderBtn = document.getElementById('backFromSharedFolderBtn');
+        this.sharedFolderSelectTitle = document.getElementById('sharedFolderSelectTitle');
+        this.sharedFolderSelectCallback = null; // Callback function when folder/list is selected
+        this.sharedFolderSelectMode = null; // 'typing', 'flip', or 'multipleChoice'
         
         this.typingFolderSelectModal = document.getElementById('typingFolderSelectModal');
         this.typingFolderSelectionContainer = document.getElementById('typingFolderSelectionContainer');
@@ -722,6 +815,67 @@ class VocaBox {
         // Collections button
         this.collectionsBtn.addEventListener('click', () => this.openCollectionsModal());
 
+        // Export/Import Data buttons
+        if (this.exportDataBtn) {
+            this.exportDataBtn.addEventListener('click', () => this.openExportModal());
+        }
+        if (this.importDataBtn) {
+            this.importDataBtn.addEventListener('click', () => this.openImportDataModal());
+        }
+        if (this.closeExportImportBtn) {
+            this.closeExportImportBtn.addEventListener('click', () => this.closeExportImportModal());
+        }
+        if (this.cancelExportBtn) {
+            this.cancelExportBtn.addEventListener('click', () => this.closeExportImportModal());
+        }
+        if (this.confirmExportBtn) {
+            this.confirmExportBtn.addEventListener('click', () => this.exportData());
+        }
+        if (this.selectImportFileBtn) {
+            this.selectImportFileBtn.addEventListener('click', () => {
+                if (this.importFileInput) {
+                    this.importFileInput.click();
+                }
+            });
+        }
+        if (this.importFileInput) {
+            this.importFileInput.addEventListener('change', (e) => this.handleImportFileSelect(e));
+        }
+        if (this.confirmImportDataBtn) {
+            this.confirmImportDataBtn.addEventListener('click', () => this.importData());
+        }
+        if (this.cancelImportDataBtn) {
+            this.cancelImportDataBtn.addEventListener('click', () => this.closeExportImportModal());
+        }
+        if (this.exportImportModal) {
+            this.exportImportModal.addEventListener('click', (e) => {
+                if (e.target === this.exportImportModal) {
+                    this.closeExportImportModal();
+                }
+            });
+        }
+
+        // Upgrade/Subscription Modal handlers
+        if (this.closeUpgradeBtn) {
+            this.closeUpgradeBtn.addEventListener('click', () => this.closeUpgradeModal());
+        }
+        if (this.manageSubscriptionBtn) {
+            this.manageSubscriptionBtn.addEventListener('click', () => this.openSubscriptionManagement());
+        }
+        if (this.upgradeToPremiumBtn) {
+            this.upgradeToPremiumBtn.addEventListener('click', () => this.handleUpgrade('premium'));
+        }
+        if (this.upgradeToProBtn) {
+            this.upgradeToProBtn.addEventListener('click', () => this.handleUpgrade('pro'));
+        }
+        if (this.upgradeModal) {
+            this.upgradeModal.addEventListener('click', (e) => {
+                if (e.target === this.upgradeModal) {
+                    this.closeUpgradeModal();
+                }
+            });
+        }
+
         // Folder functionality
         if (this.createFolderBtn) {
             this.createFolderBtn.addEventListener('click', () => this.openCreateFolderModal());
@@ -892,8 +1046,46 @@ class VocaBox {
         if (this.closeTestSelectBtn) {
             this.closeTestSelectBtn.addEventListener('click', () => this.closeTestModeSelection());
         }
-        this.selectFlipMode.addEventListener('click', () => this.openFlipSideSelection());
-        this.selectTypingMode.addEventListener('click', () => this.openTypingFolderSelection());
+        this.selectFlipMode.addEventListener('click', () => this.openSharedFolderSelection('flip'));
+        this.selectTypingMode.addEventListener('click', () => this.openSharedFolderSelection('typing'));
+        
+        // Multiple Choice mode selection
+        if (this.selectMultipleChoiceMode) {
+            this.selectMultipleChoiceMode.addEventListener('click', () => this.openSharedFolderSelection('multipleChoice'));
+        }
+        
+        // Shared folder selection modal
+        if (this.closeSharedFolderBtn) {
+            this.closeSharedFolderBtn.addEventListener('click', () => this.closeSharedFolderSelection());
+        }
+        if (this.backFromSharedFolderBtn) {
+            this.backFromSharedFolderBtn.addEventListener('click', () => this.backToTestModeSelection());
+        }
+
+        // Multiple Choice folder selection modal
+        if (this.closeMultipleChoiceFolderBtn) {
+            this.closeMultipleChoiceFolderBtn.addEventListener('click', () => this.closeMultipleChoiceFolderSelection());
+        }
+        if (this.backToMultipleChoiceModeBtn) {
+            this.backToMultipleChoiceModeBtn.addEventListener('click', () => this.backToTestModeSelection());
+        }
+        
+        // Multiple Choice mode screen
+        if (this.exitMultipleChoiceBtn) {
+            this.exitMultipleChoiceBtn.addEventListener('click', () => this.exitMultipleChoiceMode());
+        }
+        if (this.mcPrevBtn) {
+            this.mcPrevBtn.addEventListener('click', () => this.prevMcCard());
+        }
+        if (this.mcNextBtn) {
+            this.mcNextBtn.addEventListener('click', () => this.nextMcCard());
+        }
+        if (this.replayMcAudioBtn) {
+            this.replayMcAudioBtn.addEventListener('click', () => this.replayMcAudio());
+        }
+        if (this.finishMcTestBtn) {
+            this.finishMcTestBtn.addEventListener('click', () => this.finishMcTest());
+        }
 
         // Typing folder selection modal
         if (this.closeTypingFolderBtn) {
@@ -1250,6 +1442,19 @@ class VocaBox {
 
     // Authentication Methods
     loadCurrentUser() {
+        // Try Supabase session first if configured
+        if (this.supabase) {
+            const session = this.supabase.auth.session();
+            if (session && session.user) {
+                return {
+                    id: session.user.id,
+                    username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+                    email: session.user.email
+                };
+            }
+        }
+
+        // Fall back to localStorage
         const user = localStorage.getItem('vocaBoxCurrentUser');
         return user ? JSON.parse(user) : null;
     }
@@ -1257,9 +1462,180 @@ class VocaBox {
     saveCurrentUser(user) {
         if (user) {
             localStorage.setItem('vocaBoxCurrentUser', JSON.stringify(user));
+            // Reload subscription when user changes
+            if (this.loadUserSubscription) {
+                this.userSubscription = this.loadUserSubscription();
+            }
         } else {
             localStorage.removeItem('vocaBoxCurrentUser');
+            this.userSubscription = { tier: 'free', status: 'active' };
         }
+    }
+
+    // Subscription Management Methods
+    loadUserSubscription() {
+        if (!this.currentUser) {
+            return { tier: 'free', status: 'active' };
+        }
+
+        const userKey = this.currentUser.id || this.currentUser.username;
+        const subscription = localStorage.getItem(`vocaBoxSubscription_${userKey}`);
+        
+        if (subscription) {
+            return JSON.parse(subscription);
+        }
+
+        // Default to free tier
+        const defaultSub = {
+            tier: typeof CONFIG !== 'undefined' ? CONFIG.subscription.defaultTier : 'free',
+            status: 'active',
+            expiresAt: null
+        };
+        this.saveUserSubscription(defaultSub);
+        return defaultSub;
+    }
+
+    saveUserSubscription(subscription) {
+        if (!this.currentUser) return;
+        
+        const userKey = this.currentUser.id || this.currentUser.username;
+        localStorage.setItem(`vocaBoxSubscription_${userKey}`, JSON.stringify(subscription));
+        this.userSubscription = subscription;
+    }
+
+    getUserSubscriptionTier() {
+        return this.userSubscription?.tier || (typeof CONFIG !== 'undefined' ? CONFIG.subscription.defaultTier : 'free');
+    }
+
+    getSubscriptionLimits() {
+        const tier = this.getUserSubscriptionTier();
+        if (typeof CONFIG === 'undefined' || !CONFIG.subscription) {
+            return { maxCards: 100, maxFolders: 3 };
+        }
+        
+        const tierConfig = CONFIG.subscription.tiers[tier] || CONFIG.subscription.tiers.free;
+        return {
+            maxCards: tierConfig.maxCards,
+            maxFolders: tierConfig.maxFolders
+        };
+    }
+
+    hasFeature(featureName) {
+        const tier = this.getUserSubscriptionTier();
+        if (typeof CONFIG === 'undefined' || !CONFIG.subscription) {
+            // Default free tier features
+            return ['basicTestModes', 'exportData', 'importData'].includes(featureName);
+        }
+        
+        const tierConfig = CONFIG.subscription.tiers[tier] || CONFIG.subscription.tiers.free;
+        return tierConfig.features[featureName] || false;
+    }
+
+    canAddCard() {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        const limits = this.getSubscriptionLimits();
+        if (limits.maxCards === -1) return true; // Unlimited
+        
+        const currentCardCount = this.cards.length;
+        return currentCardCount < limits.maxCards;
+    }
+
+    canAddFolder() {
+        const limits = this.getSubscriptionLimits();
+        if (limits.maxFolders === -1) return true; // Unlimited
+        
+        // Count only parent folders (not child lists)
+        const parentFolders = this.folders.filter(f => !f.parentFolderId);
+        const currentFolderCount = parentFolders.length;
+        return currentFolderCount < limits.maxFolders;
+    }
+
+    getRemainingCards() {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        const limits = this.getSubscriptionLimits();
+        if (limits.maxCards === -1) return 'Unlimited';
+        
+        const currentCardCount = this.cards.length;
+        const remaining = limits.maxCards - currentCardCount;
+        return Math.max(0, remaining);
+    }
+
+    getRemainingFolders() {
+        const limits = this.getSubscriptionLimits();
+        if (limits.maxFolders === -1) return 'Unlimited';
+        
+        const parentFolders = this.folders.filter(f => !f.parentFolderId);
+        const currentFolderCount = parentFolders.length;
+        const remaining = limits.maxFolders - currentFolderCount;
+        return Math.max(0, remaining);
+    }
+
+    // Supabase Authentication Methods
+    async signInWithSupabase(email, password) {
+        if (!this.supabase) {
+            throw new Error('Supabase not configured');
+        }
+
+        const { data, error } = await this.supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+            this.currentUser = {
+                id: data.user.id,
+                username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || 'user',
+                email: data.user.email
+            };
+            this.saveCurrentUser(this.currentUser);
+            return this.currentUser;
+        }
+
+        return null;
+    }
+
+    async signUpWithSupabase(username, email, password) {
+        if (!this.supabase) {
+            throw new Error('Supabase not configured');
+        }
+
+        const { data, error } = await this.supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    username: username
+                }
+            }
+        });
+
+        if (error) throw error;
+
+        if (data.user) {
+            this.currentUser = {
+                id: data.user.id,
+                username: username,
+                email: email
+            };
+            this.saveCurrentUser(this.currentUser);
+            return this.currentUser;
+        }
+
+        return null;
+    }
+
+    async signOutFromSupabase() {
+        if (this.supabase) {
+            await this.supabase.auth.signOut();
+        }
+        this.currentUser = null;
+        this.saveCurrentUser(null);
     }
 
     updateAuthUI() {
@@ -1267,6 +1643,7 @@ class VocaBox {
             this.authButtons.style.display = 'none';
             this.userInfo.style.display = 'flex';
             this.usernameDisplay.textContent = this.currentUser.username;
+            this.updateSubscriptionBadge();
         } else {
             this.authButtons.style.display = 'flex';
             this.userInfo.style.display = 'none';
@@ -1297,7 +1674,7 @@ class VocaBox {
         this.signUpError.style.display = 'none';
     }
 
-    handleSignIn(e) {
+    async handleSignIn(e) {
         e.preventDefault();
         const contact = this.signInContact.value.trim();
         const password = this.signInPassword.value;
@@ -1307,13 +1684,33 @@ class VocaBox {
             return;
         }
 
-        // Validate contact format
+        // Validate contact format (must be email for Supabase)
         if (!this.validateContact(contact)) {
             this.showError(this.signInError, 'Please enter a valid email or phone number');
             return;
         }
 
-        // Get users from localStorage
+        // Try Supabase authentication first if configured
+        if (this.supabase && CONFIG.features.useSupabase && this.validateEmail(contact)) {
+            try {
+                await this.signInWithSupabase(contact, password);
+                this.updateAuthUI();
+                this.closeSignInModal();
+                this.showNotification(`Welcome back, ${this.currentUser.username}!`, 'success');
+                
+                // Reload cards for this user
+                const loadedCards = await this.loadCards();
+                this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+                this.renderCards();
+                this.updateCardCount();
+                return;
+            } catch (error) {
+                this.showError(this.signInError, error.message || 'Sign in failed. Please try again.');
+                return;
+            }
+        }
+
+        // Fall back to localStorage authentication
         const users = this.getUsers();
         const user = users.find(u => u.contact === contact);
 
@@ -1335,12 +1732,13 @@ class VocaBox {
         this.showNotification(`Welcome back, ${user.username}!`, 'success');
         
         // Reload cards for this user
-        this.cards = this.loadCards();
+        const loadedCards = await this.loadCards();
+        this.cards = Array.isArray(loadedCards) ? loadedCards : [];
         this.renderCards();
         this.updateCardCount();
     }
 
-    handleSignUp(e) {
+    async handleSignUp(e) {
         e.preventDefault();
         const username = this.signUpUsername.value.trim();
         const contact = this.signUpContact.value.trim();
@@ -1375,7 +1773,27 @@ class VocaBox {
             return;
         }
 
-        // Get users from localStorage
+        // Try Supabase authentication first if configured and contact is email
+        if (this.supabase && CONFIG.features.useSupabase && this.validateEmail(contact)) {
+            try {
+                await this.signUpWithSupabase(username, contact, password);
+                this.updateAuthUI();
+                this.closeSignUpModal();
+                
+                // Initialize empty cards for new user
+                this.cards = [];
+                this.saveCards();
+                this.renderCards();
+                this.updateCardCount();
+                this.showNotification(`Account created successfully! Welcome, ${username}! 🎉`, 'success');
+                return;
+            } catch (error) {
+                this.showError(this.signUpError, error.message || 'Sign up failed. Please try again.');
+                return;
+            }
+        }
+
+        // Fall back to localStorage authentication
         const users = this.getUsers();
         
         // Check if username already exists
@@ -1427,6 +1845,11 @@ class VocaBox {
         const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/;
         
         return emailRegex.test(contact) || phoneRegex.test(contact);
+    }
+
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     }
 
     maskContact(contact) {
@@ -1608,7 +2031,13 @@ class VocaBox {
         }
     }
 
-    signOut() {
+    async signOut() {
+        // Sign out from Supabase if configured
+        if (this.supabase) {
+            await this.signOutFromSupabase();
+        }
+        
+        // Clear localStorage user
         if (confirm('Are you sure you want to sign out?')) {
             this.currentUser = null;
             this.saveCurrentUser(null);
@@ -2171,11 +2600,54 @@ class VocaBox {
     }
 
     // Card Management
-    loadCards() {
+    // Helper method to ensure this.cards is always an array
+    ensureCardsIsArray() {
+        if (!Array.isArray(this.cards)) {
+            console.warn('[ensureCardsIsArray] this.cards is not an array, initializing to empty array');
+            this.cards = [];
+        }
+        return this.cards;
+    }
+
+    async loadCards() {
+        // Try Supabase first if configured (async)
+        if (this.supabase && this.currentUser && typeof CONFIG !== 'undefined' && CONFIG.features.enableCloudSync) {
+            try {
+                const supabaseCards = await this.loadCardsFromSupabase();
+                if (supabaseCards !== null && supabaseCards.length > 0) {
+                    // Transform Supabase format to app format
+                    const cards = supabaseCards.map(item => item.card_data);
+                    // Ensure it's an array
+                    if (!Array.isArray(cards)) {
+                        console.warn('[loadCards] Supabase returned non-array, using empty array');
+                        return [];
+                    }
+                    // Also save to localStorage as backup
+                    const userKey = this.currentUser ? `vocaBoxCards_${this.currentUser.username}` : 'vocaBoxCards_guest';
+                    localStorage.setItem(userKey, JSON.stringify(cards));
+                    return cards;
+                }
+            } catch (e) {
+                console.warn('[Supabase] Error loading from cloud, falling back to localStorage:', e);
+            }
+        }
+
+        // Fall back to localStorage (synchronous)
         const userKey = this.currentUser ? `vocaBoxCards_${this.currentUser.username}` : 'vocaBoxCards_guest';
         const savedCards = localStorage.getItem(userKey);
         if (savedCards) {
-            return JSON.parse(savedCards);
+            try {
+                const parsed = JSON.parse(savedCards);
+                // Ensure it's an array
+                if (!Array.isArray(parsed)) {
+                    console.warn('[loadCards] localStorage data is not an array, using empty array');
+                    return [];
+                }
+                return parsed;
+            } catch (e) {
+                console.error('[loadCards] Error parsing localStorage data:', e);
+                return [];
+            }
         } else {
             // Return empty array for new users - they can add cards or import from Collections
             const emptyCards = [];
@@ -2277,11 +2749,68 @@ class VocaBox {
     }
 
     saveCards() {
+        // Always save to localStorage first (synchronous, immediate)
+        try {
         const userKey = this.currentUser ? `vocaBoxCards_${this.currentUser.username}` : 'vocaBoxCards_guest';
-        localStorage.setItem(userKey, JSON.stringify(this.cards));
+            const dataToSave = JSON.stringify(this.cards);
+            localStorage.setItem(userKey, dataToSave);
+        } catch (e) {
+            if (e.name === 'QuotaExceededError' || e.code === 22) {
+                this.showNotification('Storage quota exceeded! Please export some data or clear space.', 'error');
+                console.error('Storage quota exceeded');
+                return; // Don't throw, just log and show notification
+            } else {
+                console.error('Error saving cards:', e);
+                this.showNotification('Error saving cards. Please try again.', 'error');
+                return;
+            }
+        }
+
+        // Try Supabase sync in background (async, fire-and-forget)
+        if (this.supabase && this.currentUser && typeof CONFIG !== 'undefined' && CONFIG.features.enableCloudSync) {
+            this.saveCardsToSupabase().catch(err => {
+                console.warn('[Supabase] Background sync failed, data saved to localStorage:', err);
+            });
+        }
+    }
+
+    // Get localStorage quota information
+    getLocalStorageQuota() {
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            return navigator.storage.estimate().then(estimate => ({
+                quota: estimate.quota || 0,
+                usage: estimate.usage || 0
+            }));
+        }
+        // Fallback for browsers that don't support StorageManager
+        return Promise.resolve({
+            quota: 5 * 1024 * 1024, // Assume 5MB
+            usage: this.estimateLocalStorageUsage()
+        });
+    }
+
+    // Estimate localStorage usage
+    estimateLocalStorageUsage() {
+        let total = 0;
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                    total += localStorage[key].length + key.length;
+            }
+        }
+        return total;
     }
 
     addCard(front, back, category = 'card', audioId = null, folderId = 'default') {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        // Check subscription limits
+        if (!this.canAddCard()) {
+            const limits = this.getSubscriptionLimits();
+            this.showUpgradeModal('cards', limits.maxCards);
+            return false;
+        }
+
         const card = {
             id: Date.now(),
             front: front,
@@ -2296,10 +2825,17 @@ class VocaBox {
         this.renderCards();
         this.updateCardCount();
         this.renderFolders(); // Update folder counts
+        return true;
     }
 
     // Optimized bulk add without save/render; call saveCards/render manually after batch
     addCardSilent(front, back, category = 'card', audioId = null, folderId = 'default') {
+        // Ensure cards is an array
+        if (!Array.isArray(this.cards)) {
+            console.warn('[addCardSilent] this.cards is not an array, initializing...');
+            this.cards = [];
+        }
+        
         this.cards.unshift({
             id: Date.now() + Math.random(),
             front: front,
@@ -2317,6 +2853,9 @@ class VocaBox {
     }
 
     changeCardFolder(cardId, newFolderId) {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
         // Find the card and update its folder
         const cardIndex = this.cards.findIndex(card => card.id === cardId);
         if (cardIndex !== -1) {
@@ -2453,6 +2992,9 @@ class VocaBox {
     }
 
     async confirmDelete() {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
         if (this.pendingDeleteId) {
             const card = this.cards.find(c => c.id === this.pendingDeleteId);
             
@@ -2482,6 +3024,9 @@ class VocaBox {
     }
 
     renderCards() {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
         console.log('[renderCards] Starting render...');
         this.cardsContainer.innerHTML = '';
 
@@ -2781,6 +3326,9 @@ class VocaBox {
             return;
         }
         
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
         // Find the current folder
         const folder = this.folders.find(f => f.id === this.currentFolder);
         if (!folder) {
@@ -2882,7 +3430,8 @@ class VocaBox {
         }
 
         if (front || back) {
-            await this.addCard(front, back, 'card', this.pendingAddAudioId, folderId);
+            const success = this.addCard(front, back, 'card', this.pendingAddAudioId, folderId);
+            if (!success) return; // Limit reached, upgrade modal shown
             this.pendingAddAudioId = null;
             this.closeAddCardModal();
         } else {
@@ -2895,7 +3444,11 @@ class VocaBox {
         const back = this.addBackText.innerHTML.trim();
 
         if (front || back) {
-            await this.addCard(front, back, 'card', this.pendingAddAudioId);
+            const success = this.addCard(front, back, 'card', this.pendingAddAudioId);
+            if (!success) {
+                this.pendingAddAudioId = null;
+                return; // Limit reached, upgrade modal shown
+            }
             this.pendingAddAudioId = null;
             this.clearAddCardForm();
             this.showNotification('Card added! Ready for next card.', 'success');
@@ -3069,7 +3622,8 @@ class VocaBox {
         const back = this.testBackText.innerHTML.trim();
 
         if (front || back) {
-            await this.addCard(front, back, 'test', this.pendingTestAudioId); // Mark as 'test' category with audio
+            const success = this.addCard(front, back, 'test', this.pendingTestAudioId);
+            if (!success) return; // Limit reached, upgrade modal shown
             this.pendingTestAudioId = null;
             this.closeCreateTestModal();
         } else {
@@ -3202,8 +3756,11 @@ class VocaBox {
             // Use default prefix since input field was removed
             const prefix = (this.ieltsPrefixInput?.value || 'IELTS 8000 - List').trim();
             
-            // One-click apply: always use the built-in dataset
-            const text = this.getEmbeddedIELTSData();
+            // One-click apply: always use the built-in dataset from IELTS_8000_exact.txt
+            const text = await this.getEmbeddedIELTSData();
+            if (!text) {
+                throw new Error('Failed to load IELTS 8000 data. Please check that data/IELTS_8000_exact.txt exists.');
+            }
             const parentFolderId = await this.importIELTSText(text, prefix);
             // Auto-select parent folder so users can see the dropdown with all lists
             if (parentFolderId) {
@@ -3269,8 +3826,23 @@ class VocaBox {
     }
 
     async importIELTSText(text, prefix) {
+        // CRITICAL: Ensure cards is always an array before any operations
+        // If it's not an array, load it or initialize to empty array
+        if (!Array.isArray(this.cards)) {
+            try {
+                this.cards = await this.loadCards();
+            } catch (e) {
+                console.error('[importIELTSText] Error loading cards, using empty array:', e);
+                this.cards = [];
+            }
+        }
+        // Double-check after async operation
+        this.ensureCardsIsArray();
+        
         // Parse raw rows from source text
         let items = this.parseIELTSFormat(text);
+        console.log(`[importIELTSText] Parsed ${items.length} items from IELTS file`);
+        
         // Deduplicate by word (front) case-insensitively and normalize whitespace
         // Also normalize the key to catch duplicates with different spacing
         const seenFront = new Set();
@@ -3283,12 +3855,26 @@ class VocaBox {
             seenFront.add(normalizedKey);
             deduped.push(row);
         }
+        console.log(`[importIELTSText] After deduplication: ${deduped.length} unique items`);
+        
         const TARGET_WORDS = 8000;
         items = deduped.slice(0, TARGET_WORDS);
+        console.log(`[importIELTSText] Final item count: ${items.length} (target: ${TARGET_WORDS})`);
+        
         if (items.length === 0) {
             this.showCollectionsError('No items parsed from IELTS collection.');
             return;
         }
+        
+        if (items.length !== TARGET_WORDS) {
+            console.warn(`[importIELTSText] Warning: Expected ${TARGET_WORDS} items, but got ${items.length}. Check parsing logic.`);
+        }
+        
+        // DEBUG: Confirm IELTS_8000_exact.txt is being used
+        console.log("DEBUG: Loaded IELTS_8000_exact.txt", {
+            totalCards: items.length,
+            sample: items.slice(0, 5).map(c => ({ front: c.front, back: c.back }))
+        });
         
         // Extract parent name from prefix (e.g., "IELTS 8000 - List" -> "IELTS 8000")
         const parentName = prefix.replace(/\s*-\s*List\s*$/, '').trim() || prefix.split(' - ')[0] || 'IELTS 8000';
@@ -3323,6 +3909,8 @@ class VocaBox {
         });
         if (childFoldersExisting.length > 0) {
             const childIds = new Set(childFoldersExisting.map(f => f.id));
+            // CRITICAL: Ensure cards is always an array before filtering
+            this.ensureCardsIsArray();
             // Remove cards in those child folders
             this.cards = this.cards.filter(c => !childIds.has(c.folderId));
             // Remove child folders
@@ -3404,13 +3992,18 @@ class VocaBox {
 
     // Remove any cards under a given parent folder that are not present in the embedded IELTS dataset,
     // and de-duplicate by exact front+back pair (keep first occurrence)
-    cleanIELTSCollection(parentName = 'IELTS 8000') {
+    async cleanIELTSCollection(parentName = 'IELTS 8000') {
         const parent = this.folders.find(f => !f.parentFolderId && f.name === parentName);
         if (!parent) return { removed: 0, kept: 0 };
         const legacyPrefix = `${parent.name} - List `;
         const childFolders = this.folders.filter(f => f.parentFolderId === parent.id || f.name.startsWith(legacyPrefix));
         const childIds = new Set(childFolders.map(f => f.id));
-        const allowedRows = this.parseIELTSFormat(this.getEmbeddedIELTSData());
+        const text = await this.getEmbeddedIELTSData();
+        if (!text) {
+            console.error('[cleanIELTSCollection] Failed to load IELTS data');
+            return { removed: 0, kept: this.cards.length };
+        }
+        const allowedRows = this.parseIELTSFormat(text);
         const allowedSet = new Set(allowedRows.map(r => `${r.front}\u0001${r.back}`));
         const seen = new Set();
         const before = this.cards.length;
@@ -12099,15 +12692,26 @@ class VocaBox {
     /* OLD IMPLEMENTATION ABOVE - REPLACED WITH NEW ONE BELOW */
     
     // New implementation: Use embedded data from ielts-8000-data.js
-    getEmbeddedIELTSData() {
-        // Use the built-in IELTS 8000 data loaded from ielts-8000-data.js
-        if (typeof window.IELTS_8000_DATA !== 'undefined') {
-            return window.IELTS_8000_DATA;
+    async getEmbeddedIELTSData() {
+        // Fetch IELTS 8000 data from data/IELTS_8000_exact.txt
+        try {
+            const response = await fetch('data/IELTS_8000_exact.txt', { cache: 'no-cache' });
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const text = await response.text();
+            console.log('[getEmbeddedIELTSData] Successfully loaded IELTS_8000_exact.txt');
+            return text;
+        } catch (error) {
+            console.error('[getEmbeddedIELTSData] Error fetching IELTS_8000_exact.txt:', error);
+            // Fallback: try old embedded data if available
+            if (typeof window.IELTS_8000_DATA !== 'undefined') {
+                console.warn('[getEmbeddedIELTSData] Using fallback: window.IELTS_8000_DATA');
+                return window.IELTS_8000_DATA;
+            }
+            console.error('[getEmbeddedIELTSData] No fallback data available');
+            return '';
         }
-        
-        // Fallback: return empty string if data not loaded
-        console.warn('[getEmbeddedIELTSData] window.IELTS_8000_DATA not found!');
-        return '';
     }
     
     /* KEEP OLD IMPLEMENTATION COMMENTED AS BACKUP
@@ -13956,9 +14560,33 @@ class VocaBox {
         this.testModeSelectModal.classList.remove('active');
     }
 
-    // Side Selection Methods
-    openFlipSideSelection() {
+    // Shared Folder/List Selection Methods
+    openSharedFolderSelection(mode) {
+        this.sharedFolderSelectMode = mode;
         this.testModeSelectModal.classList.remove('active');
+        this.sharedFolderSelectModal.classList.add('active');
+        
+        // Set title based on mode
+        if (mode === 'typing') {
+            this.sharedFolderSelectTitle.innerHTML = '<img src="keyboard.png" alt="Keyboard" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Folder';
+        } else if (mode === 'flip') {
+            this.sharedFolderSelectTitle.innerHTML = '<img src="cards.png" alt="Cards" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Folder';
+        } else if (mode === 'multipleChoice') {
+            this.sharedFolderSelectTitle.innerHTML = '<img src="writing.png" alt="Multiple Choice" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Folder';
+        }
+        
+        this.renderSharedFolderSelection();
+    }
+
+    closeSharedFolderSelection() {
+        this.sharedFolderSelectModal.classList.remove('active');
+        this.sharedFolderSelectCallback = null;
+        this.sharedFolderSelectMode = null;
+    }
+
+    // Side Selection Methods (for Card Flipping - after folder selection)
+    openFlipSideSelection() {
+        this.sharedFolderSelectModal.classList.remove('active');
         this.flipSideSelectModal.classList.add('active');
     }
 
@@ -13966,24 +14594,22 @@ class VocaBox {
         this.flipSideSelectModal.classList.remove('active');
     }
 
-    // Typing Folder Selection Methods
+    // Typing Folder Selection Methods (now redirects to shared)
     openTypingFolderSelection() {
-        this.testModeSelectModal.classList.remove('active');
-        this.typingFolderSelectModal.classList.add('active');
-        this.renderTypingFolderSelection();
+        this.openSharedFolderSelection('typing');
     }
 
     closeTypingFolderSelection() {
-        this.typingFolderSelectModal.classList.remove('active');
+        this.closeSharedFolderSelection();
     }
 
     backToTypingFolderSelection() {
         this.typingSideSelectModal.classList.remove('active');
-        this.typingFolderSelectModal.classList.add('active');
+        this.sharedFolderSelectModal.classList.add('active');
     }
 
     openTypingSideSelection() {
-        this.typingFolderSelectModal.classList.remove('active');
+        this.sharedFolderSelectModal.classList.remove('active');
         this.typingSideSelectModal.classList.add('active');
     }
 
@@ -13993,6 +14619,7 @@ class VocaBox {
 
     backToTestModeSelection() {
         this.flipSideSelectModal.classList.remove('active');
+        this.sharedFolderSelectModal.classList.remove('active');
         this.typingFolderSelectModal.classList.remove('active');
         this.typingSideSelectModal.classList.remove('active');
         this.testModeSelectModal.classList.add('active');
@@ -14025,19 +14652,31 @@ class VocaBox {
 
     // Flip Mode Functions
     startFlipMode(category, startingSide = 'front') {
-        // Filter cards based on selected category and folder
-        // If a card has no category property, default it to 'card'
-        this.flipTestCards = this.cards.filter(card => {
-            const cardCategory = card.category || 'card';
-            const categoryMatch = cardCategory === category;
-            
-            // Filter by folder if a specific folder is selected
-            if (this.selectedFolderId && this.selectedFolderId !== 'all') {
-                const cardFolder = card.folder || 'default';
-                return categoryMatch && cardFolder === this.selectedFolderId;
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        // Parse folderId and listId from selectedFolderId
+        let folderId = this.selectedFolderId || 'all';
+        let listId = null;
+        
+        if (folderId !== 'all') {
+            // Check if the selected ID is a child folder (list)
+            const selectedFolder = this.folders.find(f => f.id === folderId);
+            if (selectedFolder && selectedFolder.parentFolderId) {
+                // It's a list - extract parent and list IDs
+                listId = folderId;
+                folderId = selectedFolder.parentFolderId;
             }
-            
-            return categoryMatch;
+        }
+        
+        // Build deck using shared function
+        const deckCards = this.buildTestDeckFromSelection(folderId, listId);
+        
+        // Filter cards based on selected category
+        // If a card has no category property, default it to 'card'
+        this.flipTestCards = deckCards.filter(card => {
+            const cardCategory = card.category || 'card';
+            return cardCategory === category;
         });
         
         if (this.flipTestCards.length === 0) {
@@ -14064,15 +14703,26 @@ class VocaBox {
 
     // Typing Mode Functions
     startTypingMode(seeSide = 'front', typeSide = 'back') {
-        // Filter cards by selected folder
-        if (this.typingSelectedFolderId === 'all') {
-        this.typingTestCards = this.cards;
-        } else {
-            this.typingTestCards = this.cards.filter(card => {
-                const cardFolderId = card.folderId || 'default';
-                return cardFolderId === this.typingSelectedFolderId;
-            });
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        // Use shared deck building function
+        // Parse folderId and listId from typingSelectedFolderId
+        // If it's a list ID, we need to find its parent folder
+        let folderId = this.typingSelectedFolderId;
+        let listId = null;
+        
+        if (folderId !== 'all') {
+            // Check if the selected ID is a child folder (list)
+            const selectedFolder = this.folders.find(f => f.id === folderId);
+            if (selectedFolder && selectedFolder.parentFolderId) {
+                // It's a list - extract parent and list IDs
+                listId = folderId;
+                folderId = selectedFolder.parentFolderId;
+            }
         }
+        
+        this.typingTestCards = this.buildTestDeckFromSelection(folderId, listId);
         
         if (this.typingTestCards.length === 0) {
             const folderName = this.typingSelectedFolderId === 'all' ? 'all folders' : 
@@ -14538,6 +15188,355 @@ class VocaBox {
         return div.innerHTML;
     }
 
+    // ========== MULTIPLE CHOICE MODE FUNCTIONS ==========
+    
+    openMultipleChoiceFolderSelection() {
+        // Redirect to shared folder selection
+        this.openSharedFolderSelection('multipleChoice');
+    }
+
+    closeMultipleChoiceFolderSelection() {
+        // Redirect to shared folder selection
+        this.closeSharedFolderSelection();
+    }
+
+    startMultipleChoiceMode() {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        // Parse folderId and listId from mcSelectedFolderId
+        let folderId = this.mcSelectedFolderId;
+        let listId = null;
+        
+        if (folderId !== 'all') {
+            // Check if the selected ID is a child folder (list)
+            const selectedFolder = this.folders.find(f => f.id === folderId);
+            if (selectedFolder && selectedFolder.parentFolderId) {
+                // It's a list - extract parent and list IDs
+                listId = folderId;
+                folderId = selectedFolder.parentFolderId;
+            }
+        }
+        
+        // Use shared deck building function
+        this.mcTestCards = this.buildTestDeckFromSelection(folderId, listId);
+        
+        if (this.mcTestCards.length === 0) {
+            const folderName = this.mcSelectedFolderId === 'all' ? 'all folders' : 
+                this.folders.find(f => f.id === this.mcSelectedFolderId)?.name || 'selected folder';
+            alert(`No cards available in ${folderName}! Please add some cards first.`);
+            this.closeMultipleChoiceFolderSelection();
+            return;
+        }
+        
+        // Reset test results
+        this.testResults = {
+            answers: [],
+            correctCount: 0,
+            incorrectCount: 0
+        };
+
+        this.closeMultipleChoiceFolderSelection();
+        this.currentMcIndex = 0;
+        this.multipleChoiceModeScreen.classList.add('active');
+        this.mcTotalCards.textContent = this.mcTestCards.length;
+        this.loadMcCard();
+    }
+
+    exitMultipleChoiceMode() {
+        this.multipleChoiceModeScreen.classList.remove('active');
+        if (this.mcAutoAdvanceTimeout) {
+            clearTimeout(this.mcAutoAdvanceTimeout);
+            this.mcAutoAdvanceTimeout = null;
+        }
+    }
+
+    async loadMcCard() {
+        const card = this.mcTestCards[this.currentMcIndex];
+        
+        // Show question (front side)
+        this.mcQuestion.innerHTML = card.front;
+        
+        // Update progress
+        this.mcCardNum.textContent = this.currentMcIndex + 1;
+        this.updateMcProgress();
+        
+        // Generate and display options
+        const options = this.generateMcOptions(card);
+        this.renderMcOptions(options, card);
+        
+        // Enable/disable navigation buttons
+        this.mcPrevBtn.disabled = this.currentMcIndex === 0;
+        this.mcNextBtn.disabled = this.currentMcIndex === this.mcTestCards.length - 1;
+        
+        // Store current audio ID and show/hide replay button
+        this.currentMcAudioId = card.audioId || null;
+        if (this.currentMcAudioId) {
+            this.mcAudioReplay.style.display = 'flex';
+            // Auto-play audio
+            await this.playCardAudio(card.audioId);
+        } else {
+            this.mcAudioReplay.style.display = 'none';
+        }
+        
+        // Reapply font size
+        setTimeout(() => this.applyFontSize(), 50);
+    }
+
+    generateMcOptions(correctCard) {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        const correctAnswer = correctCard.back;
+        
+        // Collect all BACK-side answers from current test set
+        const allAnswers = this.mcTestCards
+            .map(c => c.back)
+            .filter(answer => answer !== correctAnswer); // Remove correct answer
+        
+        // Remove duplicates
+        const uniqueAnswers = [...new Set(allAnswers.map(a => this.stripHTML(a).trim()))];
+        
+        // Determine number of options (2-4)
+        const numOptions = Math.min(4, Math.max(2, uniqueAnswers.length + 1));
+        const numDistractors = numOptions - 1;
+        
+        // Randomly select distractors
+        const shuffled = uniqueAnswers.sort(() => Math.random() - 0.5);
+        const distractors = shuffled.slice(0, numDistractors);
+        
+        // Combine correct answer with distractors
+        const allOptions = [correctAnswer, ...distractors];
+        
+        // Shuffle all options
+        return allOptions.sort(() => Math.random() - 0.5);
+    }
+
+    renderMcOptions(options, correctCard) {
+        this.multipleChoiceOptions.innerHTML = '';
+        
+        options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.className = 'mc-option-btn';
+            button.textContent = this.stripHTML(option);
+            button.dataset.optionIndex = index;
+            button.dataset.isCorrect = (option === correctCard.back) ? 'true' : 'false';
+            
+            button.addEventListener('click', () => {
+                this.selectMcAnswer(button, correctCard);
+            });
+            
+            this.multipleChoiceOptions.appendChild(button);
+        });
+    }
+
+    selectMcAnswer(selectedButton, correctCard) {
+        // Disable all buttons
+        const allButtons = this.multipleChoiceOptions.querySelectorAll('.mc-option-btn');
+        allButtons.forEach(btn => {
+            btn.classList.add('mc-option-disabled');
+        });
+        
+        const isCorrect = selectedButton.dataset.isCorrect === 'true';
+        
+        // Highlight correct/incorrect
+        if (isCorrect) {
+            selectedButton.classList.add('mc-correct');
+        } else {
+            selectedButton.classList.add('mc-incorrect');
+            // Also highlight the correct answer
+            allButtons.forEach(btn => {
+                if (btn.dataset.isCorrect === 'true') {
+                    btn.classList.add('mc-correct');
+                }
+            });
+        }
+        
+        // Record answer
+        const card = this.mcTestCards[this.currentMcIndex];
+        const userAnswer = this.stripHTML(selectedButton.textContent);
+        const correctAnswer = this.stripHTML(correctCard.back);
+        
+        this.testResults.answers.push({
+            cardId: card.id,
+            questionIndex: this.currentMcIndex,
+            isCorrect: isCorrect,
+            userAnswer: userAnswer,
+            correctAnswer: correctAnswer
+        });
+        
+        if (isCorrect) {
+            this.testResults.correctCount++;
+        } else {
+            this.testResults.incorrectCount++;
+        }
+        
+        // Auto-advance after 1 second
+        if (this.mcAutoAdvanceTimeout) {
+            clearTimeout(this.mcAutoAdvanceTimeout);
+        }
+        
+        this.mcAutoAdvanceTimeout = setTimeout(() => {
+            if (this.currentMcIndex < this.mcTestCards.length - 1) {
+                this.currentMcIndex++;
+                this.loadMcCard();
+            } else {
+                // Last question - show results
+                this.showMcTestResults();
+            }
+        }, 1000);
+    }
+
+    prevMcCard() {
+        if (this.currentMcIndex > 0) {
+            if (this.mcAutoAdvanceTimeout) {
+                clearTimeout(this.mcAutoAdvanceTimeout);
+                this.mcAutoAdvanceTimeout = null;
+            }
+            this.currentMcIndex--;
+            this.loadMcCard();
+        }
+    }
+
+    nextMcCard() {
+        if (this.currentMcIndex < this.mcTestCards.length - 1) {
+            if (this.mcAutoAdvanceTimeout) {
+                clearTimeout(this.mcAutoAdvanceTimeout);
+                this.mcAutoAdvanceTimeout = null;
+            }
+            this.currentMcIndex++;
+            this.loadMcCard();
+        } else {
+            // Last question - show results
+            this.showMcTestResults();
+        }
+    }
+
+    updateMcProgress() {
+        const progress = ((this.currentMcIndex + 1) / this.mcTestCards.length) * 100;
+        this.mcProgressFill.style.width = progress + '%';
+    }
+
+    async replayMcAudio() {
+        if (this.currentMcAudioId) {
+            await this.playCardAudio(this.currentMcAudioId);
+        }
+    }
+
+    finishMcTest() {
+        if (this.mcAutoAdvanceTimeout) {
+            clearTimeout(this.mcAutoAdvanceTimeout);
+            this.mcAutoAdvanceTimeout = null;
+        }
+        this.showMcTestResults();
+    }
+
+    showMcTestResults() {
+        // Calculate percentage
+        const totalQuestions = this.mcTestCards.length;
+        const percentage = totalQuestions > 0 
+            ? Math.round((this.testResults.correctCount / totalQuestions) * 100) 
+            : 0;
+        
+        // Update modal content
+        this.gradePercentage.textContent = percentage + '%';
+        this.totalQuestions.textContent = totalQuestions;
+        this.correctAnswers.textContent = this.testResults.correctCount;
+        this.incorrectAnswers.textContent = this.testResults.incorrectCount;
+        
+        // Set performance message
+        let message = '';
+        if (percentage >= 90) {
+            message = 'Outstanding! You have mastered this material!';
+        } else if (percentage >= 80) {
+            message = 'Excellent work! You\'re doing great!';
+        } else if (percentage >= 70) {
+            message = 'Good job! Keep practicing to improve further.';
+        } else if (percentage >= 60) {
+            message = 'Not bad! Review the material and try again.';
+        } else {
+            message = 'Keep practicing! You\'ll get better with more practice.';
+        }
+        
+        this.performanceMessage.querySelector('p').innerHTML = message;
+        
+        // Update grade circle color
+        const gradeCircle = document.querySelector('.grade-circle');
+        if (percentage >= 80) {
+            gradeCircle.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45A049 100%)';
+        } else if (percentage >= 60) {
+            gradeCircle.style.background = 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)';
+        } else {
+            gradeCircle.style.background = 'linear-gradient(135deg, #C85A6E 0%, #A94759 100%)';
+        }
+        
+        // Populate incorrect answers (reuse typing mode function)
+        this.populateMcAnswersReview();
+        
+        // Show modal
+        if (this.testResultsModal) {
+            this.testResultsModal.classList.add('active');
+        }
+        
+        // Exit multiple choice mode
+        this.exitMultipleChoiceMode();
+    }
+
+    populateMcAnswersReview() {
+        const answersReviewSection = document.getElementById('answersReviewSection');
+        const incorrectAnswersSection = document.getElementById('incorrectAnswersSection');
+        const incorrectAnswersList = document.getElementById('incorrectAnswersList');
+        
+        // Clear previous content
+        incorrectAnswersList.innerHTML = '';
+        
+        // Collect incorrect answers
+        const incorrectAnswers = [];
+        
+        this.mcTestCards.forEach((card, index) => {
+            const answer = this.testResults.answers.find(a => a.cardId === card.id);
+            
+            if (answer && !answer.isCorrect) {
+                incorrectAnswers.push({
+                    card: card,
+                    answer: answer,
+                    index: index + 1
+                });
+            }
+        });
+        
+        if (incorrectAnswers.length > 0) {
+            answersReviewSection.style.display = 'block';
+            incorrectAnswersSection.style.display = 'block';
+            
+            incorrectAnswers.forEach(item => {
+                const answerItem = document.createElement('div');
+                answerItem.className = 'review-answer-item';
+                const question = this.stripHTML(item.card.front);
+                const userAnswer = item.answer.userAnswer;
+                const correctAnswer = item.answer.correctAnswer;
+                
+                answerItem.innerHTML = `
+                    <div class="review-answer-question">Question ${item.index}: ${this.escapeHtml(question)}</div>
+                    <div class="review-answer-details">
+                        <div class="review-answer-row">
+                            <span class="review-answer-label">Your Answer:</span>
+                            <span class="review-answer-value incorrect">${this.escapeHtml(userAnswer)}</span>
+                        </div>
+                        <div class="review-answer-row">
+                            <span class="review-answer-label">Correct Answer:</span>
+                            <span class="review-answer-value correct">${this.escapeHtml(correctAnswer)}</span>
+                        </div>
+                    </div>
+                `;
+                incorrectAnswersList.appendChild(answerItem);
+            });
+        } else {
+            answersReviewSection.style.display = 'none';
+            incorrectAnswersSection.style.display = 'none';
+        }
+    }
+
     closeTestResults() {
         this.testResultsModal.classList.remove('active');
     }
@@ -14712,6 +15711,13 @@ class VocaBox {
     }
 
     createFolder(name, description = '', parentFolderId = null) {
+        // Only check limits for parent folders (not child lists)
+        if (!parentFolderId && !this.canAddFolder()) {
+            const limits = this.getSubscriptionLimits();
+            this.showUpgradeModal('folders', limits.maxFolders);
+            return false;
+        }
+
         const folder = {
             id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             name: name,
@@ -14723,6 +15729,7 @@ class VocaBox {
         this.saveFolders(this.folders);
         this.renderFolders();
         this.updateFolderSelectors();
+        return true;
     }
 
     renderFolders() {
@@ -14740,15 +15747,14 @@ class VocaBox {
     }
 
     createFolderElement(folder) {
+        // CRITICAL: Ensure cards is always an array (don't reload, just ensure it's valid)
+        this.ensureCardsIsArray();
+        
         const folderDiv = document.createElement('div');
         folderDiv.className = 'folder-item';
         folderDiv.dataset.folderId = folder.id;
         
         // Count cards: if parent, include all child folders (new + legacy naming)
-        // Reload cards and folders to ensure we have latest data
-        this.cards = this.loadCards();
-        this.folders = this.loadFolders();
-        
         let cardCount = 0;
         if (folder.parentFolderId) {
             // Child folder: own cards only
@@ -14814,12 +15820,12 @@ class VocaBox {
                 <span class="folder-name">${folder.name}</span>
                 <span class="folder-count">${cardCount}</span>
             </div>
-            <div class="folder-actions" style="display: flex; gap: 4px; margin-left: auto;">
-                <button class="folder-rename-btn" data-folder-id="${folder.id}" title="Rename folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
-                    <img src="pencil.png" alt="Rename" style="width: 14px; height: 14px;">
+            <div class="folder-item-actions" style="display: flex; gap: 4px; margin-left: auto;">
+                <button class="folder-rename-btn" data-folder-id="${folder.id}" title="Rename folder">
+                    <img src="pencil.png" alt="Rename">
                 </button>
-                    <button class="folder-delete-btn" data-folder-id="${folder.id}" title="Delete folder" style="background: none; border: none; cursor: pointer; padding: 2px 4px; opacity: 0.6; transition: opacity 0.2s;">
-                        <img src="trashbin.png" alt="Delete" style="width: 14px; height: 14px;">
+                <button class="folder-delete-btn" data-folder-id="${folder.id}" title="Delete folder">
+                    <img src="trashbin.png" alt="Delete">
                     </button>
             </div>
         `;
@@ -14827,7 +15833,7 @@ class VocaBox {
         // Main click handler for selecting folder
         folderDiv.addEventListener('click', (e) => {
             // Don't select if clicking on action buttons
-            if (e.target.closest('.folder-actions')) {
+            if (e.target.closest('.folder-item-actions')) {
                 e.stopPropagation();
                 return;
             }
@@ -14841,13 +15847,6 @@ class VocaBox {
                 e.stopPropagation();
                 this.renameFolder(folder.id);
             });
-            // Show buttons on hover
-            renameBtn.addEventListener('mouseenter', () => {
-                renameBtn.style.opacity = '1';
-            });
-            renameBtn.addEventListener('mouseleave', () => {
-                renameBtn.style.opacity = '0.6';
-            });
         }
         
         // Delete button handler
@@ -14857,32 +15856,7 @@ class VocaBox {
                 e.stopPropagation();
                 this.deleteFolderFromSidebar(folder.id);
             });
-            // Show buttons on hover
-            deleteBtn.addEventListener('mouseenter', () => {
-                deleteBtn.style.opacity = '1';
-            });
-            deleteBtn.addEventListener('mouseleave', () => {
-                deleteBtn.style.opacity = '0.6';
-            });
         }
-        
-        // Show action buttons when hovering over folder
-        folderDiv.addEventListener('mouseenter', () => {
-            const actions = folderDiv.querySelector('.folder-actions');
-            if (actions) {
-                actions.querySelectorAll('button').forEach(btn => {
-                    btn.style.opacity = '1';
-                });
-            }
-        });
-        folderDiv.addEventListener('mouseleave', () => {
-            const actions = folderDiv.querySelector('.folder-actions');
-            if (actions) {
-                actions.querySelectorAll('button').forEach(btn => {
-                    btn.style.opacity = '0.6';
-                });
-            }
-        });
         
         return folderDiv;
     }
@@ -14911,8 +15885,10 @@ class VocaBox {
         }
     }
 
-    renderTypingFolderSelection() {
-        this.typingFolderSelectionContainer.innerHTML = '';
+    // Shared folder/list selection render function
+    renderSharedFolderSelection() {
+        if (!this.sharedFolderSelectionContainer) return;
+        this.sharedFolderSelectionContainer.innerHTML = '';
         
         // Define folder colors (same as in getFolderColorClass)
         const folderColors = [
@@ -14971,11 +15947,10 @@ class VocaBox {
         `;
         allFoldersDiv.querySelector('.folder-select-btn').addEventListener('click', () => {
             if (allCardsCount > 0) {
-                this.typingSelectedFolderId = 'all';
-                this.openTypingSideSelection();
+                this.handleSharedFolderSelection('all', null);
             }
         });
-        this.typingFolderSelectionContainer.appendChild(allFoldersDiv);
+        this.sharedFolderSelectionContainer.appendChild(allFoldersDiv);
         
         // Process parent folders and their children
         parentFolders.forEach(parentFolderData => {
@@ -15038,15 +16013,14 @@ class VocaBox {
             const parentBtn = parentDiv.querySelector('.folder-select-btn');
             if (parentCardCount > 0) {
                 parentBtn.addEventListener('click', () => {
-                    this.typingSelectedFolderId = parentFolder.id;
-                    this.openTypingSideSelection();
+                    this.handleSharedFolderSelection(parentFolder.id, null);
                 });
             } else {
                 parentBtn.style.opacity = '0.5';
                 parentBtn.style.cursor = 'not-allowed';
             }
             
-            this.typingFolderSelectionContainer.appendChild(parentDiv);
+            this.sharedFolderSelectionContainer.appendChild(parentDiv);
             
             // Add child folders if they exist
             if (childFolders.length > 0) {
@@ -15079,8 +16053,7 @@ class VocaBox {
                     const childBtn = childDiv.querySelector('.folder-select-btn');
                     if (childCardCount > 0) {
                         childBtn.addEventListener('click', () => {
-                            this.typingSelectedFolderId = childFolder.id;
-                            this.openTypingSideSelection();
+                            this.handleSharedFolderSelection(parentFolder.id, childFolder.id);
                         });
                     } else {
                         childBtn.style.opacity = '0.5';
@@ -15117,9 +16090,67 @@ class VocaBox {
                     });
                 }
                 
-                this.typingFolderSelectionContainer.appendChild(childrenContainer);
+                this.sharedFolderSelectionContainer.appendChild(childrenContainer);
             }
         });
+    }
+
+    // Handle folder/list selection from shared modal
+    handleSharedFolderSelection(folderId, listId) {
+        const mode = this.sharedFolderSelectMode;
+        
+        if (mode === 'typing') {
+            // For typing mode, store selection and go to side selection
+            this.typingSelectedFolderId = listId || folderId;
+            this.closeSharedFolderSelection();
+            this.openTypingSideSelection();
+        } else if (mode === 'flip') {
+            // For flip mode, store selection and go to side selection
+            this.selectedFolderId = listId || folderId;
+            this.closeSharedFolderSelection();
+            this.openFlipSideSelection();
+        } else if (mode === 'multipleChoice') {
+            // For multiple choice, store selection and start directly
+            this.mcSelectedFolderId = listId || folderId;
+            this.closeSharedFolderSelection();
+            this.startMultipleChoiceMode();
+        }
+    }
+
+    // Shared function to build test deck from folder/list selection
+    buildTestDeckFromSelection(folderId, listId = null) {
+        // CRITICAL: Ensure cards is always an array
+        this.ensureCardsIsArray();
+        
+        if (folderId === 'all') {
+            return this.cards;
+        }
+        
+        if (listId) {
+            // Specific list selected - return only cards in that list
+            return this.cards.filter(card => {
+                const cardFolderId = card.folderId || 'default';
+                return cardFolderId === listId;
+            });
+        } else {
+            // Folder selected (not a specific list) - return all cards in folder and its children
+            const childIds = this.getChildFolderIdsForParent(folderId);
+            const relevantIds = new Set([folderId, ...Array.from(childIds)]);
+            
+            return this.cards.filter(card => {
+                const cardFolderId = card.folderId || 'default';
+                return relevantIds.has(cardFolderId);
+            });
+        }
+    }
+
+    renderTypingFolderSelection() {
+        // Redirect to shared function
+        this.renderSharedFolderSelection();
+        // Also update the old container for backward compatibility
+        if (this.typingFolderSelectionContainer) {
+            this.typingFolderSelectionContainer.innerHTML = this.sharedFolderSelectionContainer.innerHTML;
+        }
     }
 
     updateFolderSelectors() {
@@ -15646,16 +16677,22 @@ class VocaBox {
     }
 
     getCardsForCurrentFolder() {
+        // CRITICAL: Ensure cards is always an array (don't reload, just ensure it's valid)
+        this.ensureCardsIsArray();
+        
         console.log('[getCardsForCurrentFolder] currentFolder:', this.currentFolder);
-        
-        // Reload folders and cards to ensure we have latest data
-        this.folders = this.loadFolders();
-        this.cards = this.loadCards();
-        
         console.log('[getCardsForCurrentFolder] total cards:', this.cards.length);
         
+        // If 'all', return all cards
         if (this.currentFolder === 'all') {
-            return this.cards;
+            console.log('[getCardsForCurrentFolder] Returning all cards, count:', this.cards.length);
+            console.log('[getCardsForCurrentFolder] All card folderIds:', this.cards.map(c => c.folderId));
+            const filtered = this.cards.filter(card => {
+                // Only include cards that have a valid folderId
+                return card.folderId !== undefined && card.folderId !== null;
+            });
+            console.log('[getCardsForCurrentFolder] Filtered cards count:', filtered.length);
+            return filtered;
         }
         
         // Try to find folder with strict equality first, then try string comparison
@@ -15674,7 +16711,10 @@ class VocaBox {
             // Fallback to 'all' if folder doesn't exist
             console.log('[getCardsForCurrentFolder] Falling back to "all" folders');
             this.currentFolder = 'all';
-            return this.cards;
+            const filtered = this.cards.filter(card => {
+                return card.folderId !== undefined && card.folderId !== null;
+            });
+            return filtered;
         }
         
         // If parent folder selected, show cards from parent folder AND all child folders
@@ -16465,45 +17505,460 @@ class VocaBox {
             return;
         }
         
-        console.log('[autoImportIELTS] IELTS 8000 not found, loading from built-in data...');
+        console.log('[autoImportIELTS] IELTS 8000 not found, loading from data/IELTS_8000_exact.txt...');
         
         // Show loading message
         this.showNotification('📚 Loading IELTS 8000 word collection... Please wait.', 'info');
         
         try {
-            // Use the embedded IELTS 8000 data
-            if (typeof window.IELTS_8000_DATA === 'undefined') {
-                throw new Error('Built-in IELTS 8000 data not found');
+            // Fetch from data/IELTS_8000_exact.txt
+            const text = await this.getEmbeddedIELTSData();
+            
+            if (!text) {
+                throw new Error('Failed to load IELTS 8000 data from data/IELTS_8000_exact.txt');
             }
             
-            const text = window.IELTS_8000_DATA;
-            
-            // Import the built-in data
+            // Import the data
             await this.importIELTSText(text, 'IELTS 8000');
             
-            console.log('[autoImportIELTS] IELTS 8000 imported successfully from built-in data');
+            console.log('[autoImportIELTS] IELTS 8000 imported successfully from data/IELTS_8000_exact.txt');
             
             // Show success notification
             this.showNotification('✅ IELTS 8000 loaded! (8000 words, 40 lists). Check sidebar!', 'success');
             
         } catch (error) {
             console.error('[autoImportIELTS] Error auto-importing IELTS 8000:', error);
-            
-            // Fallback: try to fetch from file
-            try {
-                console.log('[autoImportIELTS] Attempting fallback: fetch from file...');
-                const response = await fetch('IELTS 8000.txt');
-                if (response.ok) {
-                    const text = await response.text();
-                    await this.importIELTSText(text, 'IELTS 8000');
-                    this.showNotification('✅ IELTS 8000 loaded from file!', 'success');
-                } else {
-                    throw new Error('Fallback fetch failed');
-                }
-            } catch (fallbackError) {
-                console.error('[autoImportIELTS] Fallback also failed:', fallbackError);
-                this.showNotification('⚠️ Could not load IELTS 8000. Click "Word Books" → "Reload/Re-import"', 'warning');
+            this.showNotification('⚠️ Could not load IELTS 8000. Click "Word Books" → "Reload/Re-import"', 'warning');
+        }
+    }
+
+    // ==================== Supabase Integration Functions ====================
+
+    // Load cards from Supabase or localStorage
+    async loadCardsFromSupabase() {
+        if (!this.supabase || !this.currentUser) {
+            return null; // Fall back to localStorage
+        }
+
+        try {
+            const { data, error } = await this.supabase
+                .from('cards')
+                .select('*')
+                .eq('user_id', this.currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (e) {
+            console.error('[Supabase] Error loading cards:', e);
+            return null; // Fall back to localStorage
+        }
+    }
+
+    // Save cards to Supabase
+    async saveCardsToSupabase() {
+        if (!this.supabase || !this.currentUser) {
+            return false; // Fall back to localStorage
+        }
+
+        try {
+            // Delete existing cards for this user
+            await this.supabase
+                .from('cards')
+                .delete()
+                .eq('user_id', this.currentUser.id);
+
+            // Insert all cards
+            if (this.cards.length > 0) {
+                const cardsToInsert = this.cards.map(card => ({
+                    user_id: this.currentUser.id,
+                    card_data: card,
+                    created_at: card.createdAt || new Date().toISOString()
+                }));
+
+                const { error } = await this.supabase
+                    .from('cards')
+                    .insert(cardsToInsert);
+
+                if (error) throw error;
             }
+
+            return true;
+        } catch (e) {
+            console.error('[Supabase] Error saving cards:', e);
+            return false; // Fall back to localStorage
+        }
+    }
+
+    // Migrate data from localStorage to Supabase
+    async migrateToSupabase() {
+        if (!this.supabase || !this.currentUser) {
+            throw new Error('Supabase not configured or user not logged in');
+        }
+
+        try {
+            // Export current localStorage data
+            const exportData = {
+                cards: this.cards,
+                folders: this.folders,
+                settings: {
+                    customColors: this.customColors,
+                    fontSize: this.currentFontSize || 100
+                }
+            };
+
+            // Save to Supabase
+            await this.saveCardsToSupabase();
+            await this.saveFoldersToSupabase();
+
+            // Mark migration as complete
+            localStorage.setItem('vocaBox_migrated_to_supabase', 'true');
+            
+            this.showNotification('Data migrated to cloud successfully!', 'success');
+            return true;
+        } catch (e) {
+            console.error('[Migration] Error:', e);
+            this.showNotification('Migration failed. Data remains in localStorage.', 'error');
+            return false;
+        }
+    }
+
+    // Save folders to Supabase
+    async saveFoldersToSupabase() {
+        if (!this.supabase || !this.currentUser) {
+            return false;
+        }
+
+        try {
+            // Delete existing folders
+            await this.supabase
+                .from('folders')
+                .delete()
+                .eq('user_id', this.currentUser.id);
+
+            // Insert all folders
+            if (this.folders.length > 0) {
+                const foldersToInsert = this.folders.map(folder => ({
+                    user_id: this.currentUser.id,
+                    folder_data: folder,
+                    created_at: folder.createdAt || new Date().toISOString()
+                }));
+
+                const { error } = await this.supabase
+                    .from('folders')
+                    .insert(foldersToInsert);
+
+                if (error) throw error;
+            }
+
+            return true;
+        } catch (e) {
+            console.error('[Supabase] Error saving folders:', e);
+            return false;
+        }
+    }
+
+    // ==================== Export/Import Data Functions ====================
+
+    openExportModal() {
+        if (!this.exportImportModal) return;
+        
+        this.exportImportModalTitle.textContent = 'Export Data';
+        this.exportSection.style.display = 'block';
+        this.importSection.style.display = 'none';
+        
+        // Update card and folder counts in the UI
+        const cardCountLabel = document.getElementById('exportCardsLabel');
+        if (cardCountLabel) {
+            cardCountLabel.textContent = `Cards (${this.cards.length} cards)`;
+        }
+        const folderCountLabel = document.getElementById('exportFoldersLabel');
+        if (folderCountLabel) {
+            folderCountLabel.textContent = `Folders (${this.folders.length} folders)`;
+        }
+        
+        this.exportImportModal.classList.add('active');
+    }
+
+    openImportDataModal() {
+        if (!this.exportImportModal) return;
+        
+        this.exportImportModalTitle.textContent = 'Import Data';
+        this.exportSection.style.display = 'none';
+        this.importSection.style.display = 'block';
+        
+        // Reset file input
+        if (this.importFileInput) {
+            this.importFileInput.value = '';
+        }
+        if (this.selectedDataFileName) {
+            this.selectedDataFileName.style.display = 'none';
+        }
+        if (this.confirmImportDataBtn) {
+            this.confirmImportDataBtn.disabled = true;
+        }
+        if (this.importDataError) {
+            this.importDataError.style.display = 'none';
+        }
+        
+        this.exportImportModal.classList.add('active');
+    }
+
+    closeExportImportModal() {
+        if (this.exportImportModal) {
+            this.exportImportModal.classList.remove('active');
+        }
+    }
+
+    exportData() {
+        try {
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                appName: 'VocaBox',
+                user: this.currentUser ? this.currentUser.username : 'guest'
+            };
+
+            // Export cards if selected
+            if (this.exportCards && this.exportCards.checked) {
+                exportData.cards = this.cards;
+            }
+
+            // Export folders if selected
+            if (this.exportFolders && this.exportFolders.checked) {
+                exportData.folders = this.folders;
+            }
+
+            // Export settings if selected
+            if (this.exportSettings && this.exportSettings.checked) {
+                exportData.settings = {
+                    customColors: this.customColors,
+                    fontSize: this.currentFontSize || 100
+                };
+            }
+
+            // Create JSON blob
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            // Create download link
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            const username = this.currentUser ? this.currentUser.username : 'guest';
+            a.href = url;
+            a.download = `vocabox-export-${username}-${timestamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            this.closeExportImportModal();
+            this.showNotification('Data exported successfully!', 'success');
+        } catch (e) {
+            console.error('Export error:', e);
+            this.showNotification('Error exporting data. Please try again.', 'error');
+        }
+    }
+
+    handleImportFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            if (this.importDataError) {
+                this.importDataError.textContent = 'Please select a valid JSON file.';
+                this.importDataError.style.display = 'block';
+            }
+            return;
+        }
+
+        if (this.fileNameDisplay) {
+            this.fileNameDisplay.textContent = file.name;
+        }
+        if (this.selectedDataFileName) {
+            this.selectedDataFileName.style.display = 'block';
+        }
+        if (this.confirmImportDataBtn) {
+            this.confirmImportDataBtn.disabled = false;
+        }
+        if (this.importDataError) {
+            this.importDataError.style.display = 'none';
+        }
+    }
+
+    async importData() {
+        const file = this.importFileInput?.files[0];
+        if (!file) {
+            if (this.importDataError) {
+                this.importDataError.textContent = 'Please select a file first.';
+                this.importDataError.style.display = 'block';
+            }
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const importData = JSON.parse(text);
+
+            // Validate import data structure
+            if (!importData.appName || importData.appName !== 'VocaBox') {
+                throw new Error('Invalid export file. This file was not exported from VocaBox.');
+            }
+
+            const importMode = document.querySelector('input[name="importMode"]:checked')?.value || 'replace';
+
+            // Import cards
+            if (importData.cards && Array.isArray(importData.cards)) {
+                if (importMode === 'replace') {
+                    this.cards = importData.cards;
+                } else {
+                    // Merge mode - add new cards, update existing ones
+                    const existingIds = new Set(this.cards.map(c => c.id));
+                    importData.cards.forEach(card => {
+                        if (!existingIds.has(card.id)) {
+                            this.cards.push(card);
+                        }
+                    });
+                }
+                this.saveCards(); // Save synchronously to localStorage, sync to Supabase in background
+            }
+
+            // Import folders
+            if (importData.folders && Array.isArray(importData.folders)) {
+                if (importMode === 'replace') {
+                    this.folders = importData.folders;
+                } else {
+                    // Merge mode
+                    const existingIds = new Set(this.folders.map(f => f.id));
+                    importData.folders.forEach(folder => {
+                        if (!existingIds.has(folder.id)) {
+                            this.folders.push(folder);
+                        }
+                    });
+                }
+                this.saveFolders(this.folders);
+            }
+
+            // Import settings
+            if (importData.settings) {
+                if (importData.settings.customColors) {
+                    this.customColors = { ...this.customColors, ...importData.settings.customColors };
+                    this.saveCustomColors();
+                    this.applyCustomColors();
+                }
+                if (importData.settings.fontSize) {
+                    this.currentFontSize = importData.settings.fontSize;
+                    this.saveFontSize();
+                    this.applyFontSize();
+                }
+            }
+
+            // Refresh UI
+            this.renderCards();
+            this.renderFolders();
+            this.updateCardCount();
+            this.updateFolderSelectors();
+            this.updateCurrentFolderInfo();
+
+            this.closeExportImportModal();
+            this.showNotification('Data imported successfully!', 'success');
+        } catch (e) {
+            console.error('Import error:', e);
+            if (this.importDataError) {
+                this.importDataError.textContent = e.message || 'Error importing data. Please check the file format.';
+                this.importDataError.style.display = 'block';
+            }
+        }
+    }
+
+    // ==================== Upgrade/Subscription Modal Functions ====================
+
+    showUpgradeModal(limitType = 'cards', currentLimit = 100) {
+        if (!this.upgradeModal) return;
+
+        // Update limit message
+        const limitText = document.getElementById('upgradeLimitText');
+        if (limitText) {
+            if (limitType === 'cards') {
+                limitText.textContent = `You've reached the free tier limit of ${currentLimit} cards. Upgrade to Premium for unlimited cards and folders!`;
+            } else if (limitType === 'folders') {
+                limitText.textContent = `You've reached the free tier limit of ${currentLimit} folders. Upgrade to Premium for unlimited cards and folders!`;
+            }
+        }
+
+        // Update prices from config
+        if (typeof CONFIG !== 'undefined' && CONFIG.subscription) {
+            const premiumPrice = CONFIG.subscription.tiers.premium?.price;
+            const proPrice = CONFIG.subscription.tiers.pro?.price;
+            
+            if (premiumPrice) {
+                const premiumMonthly = document.getElementById('premiumMonthlyPrice');
+                const premiumYearly = document.getElementById('premiumYearlyPrice');
+                if (premiumMonthly) premiumMonthly.textContent = premiumPrice.monthly.toFixed(2);
+                if (premiumYearly) premiumYearly.textContent = premiumPrice.yearly.toFixed(2);
+            }
+            
+            if (proPrice) {
+                const proMonthly = document.getElementById('proMonthlyPrice');
+                const proYearly = document.getElementById('proYearlyPrice');
+                if (proMonthly) proMonthly.textContent = proPrice.monthly.toFixed(2);
+                if (proYearly) proYearly.textContent = proPrice.yearly.toFixed(2);
+            }
+        }
+
+        this.upgradeModal.classList.add('active');
+    }
+
+    closeUpgradeModal() {
+        if (this.upgradeModal) {
+            this.upgradeModal.classList.remove('active');
+        }
+    }
+
+    openSubscriptionManagement() {
+        // For now, just show upgrade modal
+        // In Phase 2.2, this will show current subscription and allow cancellation
+        this.showUpgradeModal();
+    }
+
+    updateSubscriptionBadge() {
+        const badge = document.getElementById('subscriptionBadge');
+        if (!badge) return;
+
+        const tier = this.getUserSubscriptionTier();
+        if (tier === 'free') {
+            badge.textContent = 'Free';
+            badge.style.background = '#e0e0e0';
+            badge.style.color = '#666';
+        } else if (tier === 'premium') {
+            badge.textContent = '⭐ Premium';
+            badge.style.background = '#4CAF50';
+            badge.style.color = 'white';
+        } else if (tier === 'pro') {
+            badge.textContent = '💎 Pro';
+            badge.style.background = '#9C27B0';
+            badge.style.color = 'white';
+        }
+    }
+
+    handleUpgrade(tier) {
+        // TODO: In Phase 2.2, integrate with Stripe
+        // For now, simulate upgrade (for testing)
+        this.showNotification(`Upgrade to ${tier} will be available soon with Stripe integration!`, 'info');
+        
+        // Simulate upgrade for testing (remove in production)
+        if (confirm(`For testing: Upgrade to ${tier}? (This will be replaced with Stripe checkout in Phase 2.2)`)) {
+            this.saveUserSubscription({
+                tier: tier,
+                status: 'active',
+                expiresAt: null
+            });
+            this.updateSubscriptionBadge();
+            this.closeUpgradeModal();
+            this.showNotification(`Successfully upgraded to ${tier}!`, 'success');
+            this.renderCards(); // Refresh to show unlimited
+            this.renderFolders();
         }
     }
 }

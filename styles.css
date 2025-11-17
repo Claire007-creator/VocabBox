@@ -1543,9 +1543,15 @@ body {
 /* Test Mode Selection */
 .test-mode-options {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     padding: 10px 0;
+}
+
+@media (max-width: 768px) {
+    .test-mode-options {
+        grid-template-columns: 1fr;
+    }
 }
 
 .test-mode-card {
@@ -2051,7 +2057,7 @@ body {
 }
 
 .question-content {
-    font-size: 1.6rem;
+    font-size: 17px;
     line-height: 1.6;
     color: #333;
     padding: 15px;
@@ -2067,12 +2073,13 @@ body {
 .typing-textarea {
     width: 100%;
     min-height: 120px;
-    padding: 12px;
+    padding: 20px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: 1.3rem;
+    font-size: 26px;
+    font-weight: 500;
     font-family: inherit;
-    line-height: 1.5;
+    line-height: 1.6;
     resize: vertical;
     margin-bottom: 12px;
     transition: border-color 0.3s ease;
@@ -2081,6 +2088,71 @@ body {
 .typing-textarea:focus {
     outline: none;
     border-color: #5FB3A7;
+}
+
+/* Multiple Choice Options */
+.multiple-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.mc-option-btn {
+    width: 100%;
+    padding: 18px 24px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    background: white;
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.mc-option-btn:hover:not(.mc-option-disabled) {
+    border-color: #5FB3A7;
+    background: rgba(95, 179, 167, 0.05);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mc-option-btn.mc-option-disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.mc-option-btn.mc-correct {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+    font-weight: 600;
+}
+
+.mc-option-btn.mc-incorrect {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+    font-weight: 600;
+}
+
+.mc-option-btn.mc-correct::before {
+    content: "✓ ";
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.mc-option-btn.mc-incorrect::before {
+    content: "✗ ";
+    font-weight: bold;
+    margin-right: 8px;
 }
 
 /* Typing Mode Buttons */
@@ -2436,10 +2508,7 @@ body {
         font-size: 0.95rem;
     }
     
-    /* Test Mode Options */
-    .test-mode-options {
-        grid-template-columns: 1fr;
-    }
+    /* Test Mode Options - already handled in main CSS with media query */
     
     .side-selection-options {
         grid-template-columns: 1fr;
@@ -2466,7 +2535,7 @@ body {
     }
     
     .question-content {
-        font-size: 1.4rem;
+        font-size: 16px;
         padding: 12px;
     }
     
@@ -2476,8 +2545,11 @@ body {
     
     .typing-textarea {
         min-height: 100px;
-        padding: 10px;
+        padding: 18px;
         margin-bottom: 10px;
+        font-size: 24px;
+        font-weight: 500;
+        line-height: 1.6;
     }
     
     #checkAnswerBtn {
@@ -2718,6 +2790,22 @@ body {
     .folder-item {
         min-width: 100px;
         padding: 8px 10px;
+    }
+    
+    /* Compact Export/Import buttons on mobile */
+    .folder-actions {
+        gap: 6px;
+        margin-top: 6px;
+    }
+    
+    .btn-folder-compact {
+        padding: 8px 10px;
+        font-size: 0.7rem;
+        min-height: 36px;
+    }
+    
+    .btn-folder-compact .btn-text {
+        font-size: 0.7rem;
     }
     
     /* Modals */
@@ -3626,6 +3714,48 @@ body {
     transform: translateY(-1px);
 }
 
+/* Compact Export/Import buttons in Folders panel */
+.folder-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+}
+
+.btn-folder-compact {
+    background: #e9ecef;
+    color: #495057;
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    min-height: 32px;
+}
+
+.btn-folder-compact:hover {
+    background: #dee2e6;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+.btn-folder-compact .btn-icon {
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.btn-folder-compact .btn-text {
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
 .folder-list {
     display: flex;
     flex-direction: column;
@@ -3678,6 +3808,53 @@ body {
     white-space: nowrap;
     overflow: visible;
     line-height: 1.2;
+}
+
+/* Folder item action buttons (edit/delete) */
+.folder-item-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    align-items: center;
+}
+
+.folder-rename-btn,
+.folder-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.folder-rename-btn:hover,
+.folder-delete-btn:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+.folder-rename-btn img,
+.folder-delete-btn img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(30%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0.5);
+}
+
+.folder-rename-btn:hover img {
+    filter: brightness(0) saturate(100%) invert(50%) sepia(100%) saturate(2000%) hue-rotate(180deg) brightness(0.9);
+}
+
+.folder-delete-btn:hover img {
+    filter: brightness(0) saturate(100%) invert(20%) sepia(90%) saturate(5000%) hue-rotate(340deg) brightness(0.9);
 }
 
 .folder-count {
