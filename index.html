@@ -1596,8 +1596,8 @@
     <!-- Supabase Client (loaded only if configured) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- IELTS 8000 Built-in Data -->
-    <script src="ielts-8000-data.js"></script>
+    <!-- IELTS 8000 Built-in Data (optional fallback) -->
+    <script src="ielts-8000-data.js" onerror="console.warn('IELTS data file not found, will use fetch fallback');"></script>
     
     <!-- Main Application Script -->
     <script src="script.js"></script>

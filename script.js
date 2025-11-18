@@ -125,136 +125,180 @@ window.confirm = (msg) => {
 
 class VocaBox {
     constructor() {
-        this.currentUser = this.loadCurrentUser();
-        this.cards = []; // Will be loaded asynchronously
-        this.currentTestIndex = 0;
-        this.isFlipped = false;
-        this.currentEditingCardId = null;
-        this.isImportingIELTS = false; // Prevent multiple simultaneous imports
-        this.currentTypingIndex = 0;
-        this.typingTestCards = [];
-        this.flipTestCards = [];
-        this.mcTestCards = [];
-        this.currentMcIndex = 0;
-        this.mcSelectedFolderId = 'all';
-        this.mcAutoAdvanceTimeout = null;
-        this.customColors = this.loadCustomColors();
-        this.pendingDeleteId = null;
-        this.audioDB = null;
-        
-        // Folder system
-        this.folders = this.loadFolders();
-        this.currentFolder = 'all';
-        this.typingSelectedFolderId = 'all'; // Track selected folder for typing mode
-        this.selectedFolderId = 'all'; // Track selected folder for Card Flipping mode
-        
-        // Card navigation
-        this.currentCardIndex = 0; // Index of currently displayed card
-        
-        // Test results tracking
-        this.testResults = {
-            answers: [], // Array to store {questionIndex, isCorrect, userAnswer, correctAnswer}
-            correctCount: 0,
-            incorrectCount: 0
-        };
-        this.currentAudioId = null;
-        this.currentPlayingAudio = null; // Track currently playing audio
-        
-        // Supabase client (initialized if configured)
-        this.supabase = null;
-        this.initSupabase();
-        
-        // Subscription management
-        this.userSubscription = this.loadUserSubscription();
-        
-        this.init();
+        try {
+            console.log("INIT: VocaBox constructor starting");
+            this.currentUser = this.loadCurrentUser();
+            this.cards = []; // Will be loaded asynchronously
+            this.currentTestIndex = 0;
+            this.isFlipped = false;
+            this.currentEditingCardId = null;
+            this.isImportingIELTS = false; // Prevent multiple simultaneous imports
+            this.currentTypingIndex = 0;
+            this.typingTestCards = [];
+            this.flipTestCards = [];
+            this.mcTestCards = [];
+            this.currentMcIndex = 0;
+            this.mcSelectedFolderId = 'all';
+            this.mcAutoAdvanceTimeout = null;
+            this.customColors = this.loadCustomColors();
+            this.pendingDeleteId = null;
+            this.audioDB = null;
+            
+            // Folder system
+            this.folders = this.loadFolders();
+            this.currentFolder = 'all';
+            this.typingSelectedFolderId = 'all'; // Track selected folder for typing mode
+            this.selectedFolderId = 'all'; // Track selected folder for Card Flipping mode
+            
+            // Card navigation
+            this.currentCardIndex = 0; // Index of currently displayed card
+            
+            // Test results tracking
+            this.testResults = {
+                answers: [], // Array to store {questionIndex, isCorrect, userAnswer, correctAnswer}
+                correctCount: 0,
+                incorrectCount: 0
+            };
+            this.currentAudioId = null;
+            this.currentPlayingAudio = null; // Track currently playing audio
+            
+            // Supabase client (initialized if configured)
+            this.supabase = null;
+            this.initSupabase();
+            
+            // Subscription management
+            this.userSubscription = this.loadUserSubscription();
+            
+            console.log("INIT: VocaBox constructor complete, calling init()");
+            this.init();
+        } catch (error) {
+            console.error("INIT ERROR in constructor", error);
+            console.error("INIT ERROR stack:", error.stack);
+            throw error;
+        }
     }
 
     // Initialize Supabase client if configured
     initSupabase() {
-        if (typeof CONFIG !== 'undefined' && CONFIG.features.useSupabase && CONFIG.supabase.url && CONFIG.supabase.anonKey) {
-            try {
+        try {
+            if (typeof CONFIG === 'undefined') {
+                console.log('[Supabase] CONFIG not defined. Using localStorage only.');
+                return;
+            }
+            if (CONFIG.features && CONFIG.features.useSupabase && CONFIG.supabase && CONFIG.supabase.url && CONFIG.supabase.anonKey) {
                 if (typeof supabase !== 'undefined') {
                     this.supabase = supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
                     console.log('[Supabase] Client initialized successfully');
                 } else {
                     console.warn('[Supabase] Supabase library not loaded. Make sure the CDN script is included.');
                 }
-            } catch (e) {
-                console.error('[Supabase] Error initializing client:', e);
+            } else {
+                console.log('[Supabase] Not configured. Using localStorage only.');
             }
-        } else {
-            console.log('[Supabase] Not configured. Using localStorage only.');
+        } catch (e) {
+            console.error('[Supabase] Error initializing client:', e);
+            // Don't throw - app should work without Supabase
         }
     }
 
     async init() {
-        // Load cards asynchronously (supports Supabase)
-        // CRITICAL: Ensure result is always an array
-        const loadedCards = await this.loadCards();
-        this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+        console.log("INIT: starting app init");
+        try {
+            // Load cards asynchronously (supports Supabase)
+            // CRITICAL: Ensure result is always an array
+            console.log("INIT: loading cards...");
+            const loadedCards = await this.loadCards();
+            this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+            console.log(`INIT: loaded ${this.cards.length} cards`);
+            
+            // Clean up orphaned legacy folders on app load
+            this.cleanupOrphanedLegacyFolders();
+            // Clean up orphaned cards (cards with invalid folderIds)
+            this.cleanupOrphanedCards();
+            // Force cleanup orphaned cards again and analyze what's left
+            this.analyzeAndCleanupOrphanedCards();
+            // Delete specific orphaned cards by content (DISABLED - was too aggressive)
+            // this.deleteSpecificOrphanedCards();
+            // Migrate folder-level cards to List 01 (one-time migration)
+            this.migrateFolderLevelCardsToList1();
+            
+            // Analyze current state after all cleanup
+            this.logCurrentCardState();
+            
+            // Delete the specific orphaned card (try with and without trailing space)
+            const cardText = "How has China moved so fast? In autonomous driving, as in so many spheres (n. domains) of technology, hyper-competition and strong supply chains enable the \"China speed' foreign firms covet (v. to want sth very much, especially sth that belongs to sb else).";
+            this.deleteSingleCardByContent(cardText);
+            // Also try with trailing space in case the stored version has it
+            this.deleteSingleCardByContent(cardText + " ");
+            
+            console.log("INIT: caching DOM elements...");
+            this.cacheDOMElements();
+            
+            console.log("INIT: initializing audio DB...");
+            await this.initAudioDB();
+            
+            console.log("INIT: attaching event listeners...");
+            this.attachEventListeners();
+            
+            console.log("INIT: updating UI...");
+            this.updateAuthUI();
+            this.renderFolders();
+            this.updateFolderSelectors();
+            this.updateListDropdownForHeader();
+            this.renderCards();
+            this.updateCardCount();
+            this.updateCurrentFolderInfo(); // Explicitly update the button on page load
+            this.loadFontSize();
+            this.applyCustomColors();
+            
+            console.log("INIT: initialization complete");
+            
+            // Auto-import IELTS 8000 if not present (fail-safe, don't block app if it fails)
+            console.log("INIT: attempting auto-import IELTS (non-blocking)...");
+            this.autoImportIELTS().catch(error => {
+                console.error("INIT: IELTS auto-import failed (non-critical):", error);
+                // Don't show error to user, app should work without IELTS deck
+            });
         
-        // Clean up orphaned legacy folders on app load
-        this.cleanupOrphanedLegacyFolders();
-        // Clean up orphaned cards (cards with invalid folderIds)
-        this.cleanupOrphanedCards();
-        // Force cleanup orphaned cards again and analyze what's left
-        this.analyzeAndCleanupOrphanedCards();
-        // Delete specific orphaned cards by content (DISABLED - was too aggressive)
-        // this.deleteSpecificOrphanedCards();
-        // Migrate folder-level cards to List 01 (one-time migration)
-        this.migrateFolderLevelCardsToList1();
-        
-        // Analyze current state after all cleanup
-        this.logCurrentCardState();
-        
-        // Delete the specific orphaned card (try with and without trailing space)
-        const cardText = "How has China moved so fast? In autonomous driving, as in so many spheres (n. domains) of technology, hyper-competition and strong supply chains enable the \"China speed' foreign firms covet (v. to want sth very much, especially sth that belongs to sb else).";
-        this.deleteSingleCardByContent(cardText);
-        // Also try with trailing space in case the stored version has it
-        this.deleteSingleCardByContent(cardText + " ");
-        
-        this.cacheDOMElements();
-        await this.initAudioDB();
-        this.attachEventListeners();
-        this.updateAuthUI();
-        this.renderFolders();
-        this.updateFolderSelectors();
-        this.updateListDropdownForHeader();
-        this.renderCards();
-        this.updateCardCount();
-        this.updateCurrentFolderInfo(); // Explicitly update the button on page load
-        this.loadFontSize();
-        this.applyCustomColors();
-        
-        // Auto-import IELTS 8000 if not present
-        this.autoImportIELTS();
-        
-        // Close folder dropdowns when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.folder-dropdown-container')) {
-                this.closeAllFolderDropdowns();
+            // Close folder dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.folder-dropdown-container')) {
+                    this.closeAllFolderDropdowns();
+                }
+            });
+            
+            // Global event delegation for folder options
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('folder-option')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const folderId = e.target.dataset.folderId;
+                    const cardId = e.target.closest('.folder-dropdown-menu').dataset.cardId;
+                    this.changeCardFolder(cardId, folderId);
+                    this.closeAllFolderDropdowns();
+                }
+            });
+        } catch (error) {
+            console.error("INIT ERROR", error);
+            console.error("INIT ERROR stack:", error.stack);
+            // Try to show a user-friendly error message
+            try {
+                alert("Failed to initialize app. Please refresh the page. Error: " + error.message);
+            } catch (e) {
+                // If alert fails, at least log it
+                console.error("Could not show error alert:", e);
             }
-        });
-        
-        // Global event delegation for folder options
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('folder-option')) {
-                e.preventDefault();
-                e.stopPropagation();
-                const folderId = e.target.dataset.folderId;
-                const cardId = e.target.closest('.folder-dropdown-menu').dataset.cardId;
-                this.changeCardFolder(cardId, folderId);
-                this.closeAllFolderDropdowns();
-            }
-        });
+            // Re-throw to prevent silent failures
+            throw error;
+        }
     }
 
     cacheDOMElements() {
-        // Auth elements
-        this.signInBtn = document.querySelector('.sign-in-btn');
-        this.signUpBtn = document.querySelector('.sign-up-btn');
-        this.signOutBtn = document.querySelector('.sign-out-btn');
+        try {
+            // Auth elements
+            this.signInBtn = document.querySelector('.sign-in-btn');
+            this.signUpBtn = document.querySelector('.sign-up-btn');
+            this.signOutBtn = document.querySelector('.sign-out-btn');
         this.authButtons = document.getElementById('authButtons');
         this.userInfo = document.getElementById('userInfo');
         this.usernameDisplay = document.getElementById('usernameDisplay');
@@ -616,6 +660,10 @@ class VocaBox {
         this.testAudioUploadSection = document.getElementById('testAudioUploadSection');
         this.testAudioPlayer = document.getElementById('testAudioPlayer');
         this.pendingTestAudioId = null;
+        } catch (error) {
+            console.error("INIT ERROR in cacheDOMElements:", error);
+            throw error;
+        }
     }
 
     // Helper function to preserve and restore text selection
@@ -649,10 +697,23 @@ class VocaBox {
     }
 
     attachEventListeners() {
-        // Auth buttons
-        this.signInBtn.addEventListener('click', () => this.openSignInModal());
-        this.signUpBtn.addEventListener('click', () => this.openSignUpModal());
-        this.signOutBtn.addEventListener('click', () => this.signOut());
+        try {
+            // Auth buttons
+            if (this.signInBtn) {
+                this.signInBtn.addEventListener('click', () => this.openSignInModal());
+            } else {
+                console.warn("INIT: signInBtn not found");
+            }
+            if (this.signUpBtn) {
+                this.signUpBtn.addEventListener('click', () => this.openSignUpModal());
+            } else {
+                console.warn("INIT: signUpBtn not found");
+            }
+            if (this.signOutBtn) {
+                this.signOutBtn.addEventListener('click', () => this.signOut());
+            } else {
+                console.warn("INIT: signOutBtn not found");
+            }
         this.closeSignInBtn.addEventListener('click', () => this.closeSignInModal());
         this.closeSignUpBtn.addEventListener('click', () => this.closeSignUpModal());
         this.cancelSignInBtn.addEventListener('click', () => this.closeSignInModal());
@@ -794,26 +855,40 @@ class VocaBox {
         });
 
         // Add card button
-        this.addCardBtn.addEventListener('click', () => this.openAddCardModal());
+            // Main action buttons - critical for app functionality
+            if (this.addCardBtn) {
+                this.addCardBtn.addEventListener('click', () => this.openAddCardModal());
+                console.log("INIT: addCardBtn event listener attached");
+            } else {
+                console.error("INIT ERROR: addCardBtn not found!");
+            }
 
-        // Test mode button - opens selection modal
-        this.testModeBtn.addEventListener('click', () => this.openTestModeSelection());
+            // Test mode button - opens selection modal
+            if (this.testModeBtn) {
+                this.testModeBtn.addEventListener('click', () => this.openTestModeSelection());
+                console.log("INIT: testModeBtn event listener attached");
+            } else {
+                console.error("INIT ERROR: testModeBtn not found!");
+            }
 
-        // Add Test button (removed from UI)
-        // this.createTestBtn.addEventListener('click', () => this.openCreateTestModal());
+            // Import Word List button
+            if (this.importWordListBtn) {
+                this.importWordListBtn.addEventListener('click', () => {
+                    console.log('[Event] Import button clicked');
+                    this.openImportModal();
+                });
+                console.log("INIT: importWordListBtn event listener attached");
+            } else {
+                console.error("INIT ERROR: importWordListBtn not found!");
+            }
 
-        // Import Word List button
-        if (this.importWordListBtn) {
-            this.importWordListBtn.addEventListener('click', () => {
-                console.log('[Event] Import button clicked');
-                this.openImportModal();
-            });
-        } else {
-            console.error('[attachEventListeners] importWordListBtn not found!');
-        }
-
-        // Collections button
-        this.collectionsBtn.addEventListener('click', () => this.openCollectionsModal());
+            // Collections button (Word Books)
+            if (this.collectionsBtn) {
+                this.collectionsBtn.addEventListener('click', () => this.openCollectionsModal());
+                console.log("INIT: collectionsBtn event listener attached");
+            } else {
+                console.error("INIT ERROR: collectionsBtn not found!");
+            }
 
         // Export/Import Data buttons
         if (this.exportDataBtn) {
@@ -1438,6 +1513,12 @@ class VocaBox {
         
         // Setup paste handlers to strip formatting
         this.setupPasteHandlers();
+        } catch (error) {
+            console.error("INIT ERROR in attachEventListeners:", error);
+            console.error("INIT ERROR stack:", error.stack);
+            // Don't throw - log and continue, but log which buttons failed
+            console.error("INIT: Some event listeners may not have been attached. Check console for missing elements.");
+        }
     }
 
     // Authentication Methods
@@ -16624,7 +16705,15 @@ class VocaBox {
 
         console.log('[migrateFolderLevelCardsToList1] Starting migration...');
         this.folders = this.loadFolders();
-        this.cards = this.loadCards();
+        
+        // CRITICAL: Ensure cards is loaded and is an array
+        this.ensureCardsIsArray();
+        if (!Array.isArray(this.cards) || this.cards.length === 0) {
+            // If cards is not loaded yet, load it
+            const loadedCards = await this.loadCards();
+            this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+        }
+        this.ensureCardsIsArray(); // Double-check after loading
 
         let migratedCount = 0;
 
@@ -16633,6 +16722,7 @@ class VocaBox {
 
         for (const folder of parentFolders) {
             // Find cards directly in this folder (not in any child list)
+            this.ensureCardsIsArray(); // Ensure before each filter
             const folderCards = this.cards.filter(card => {
                 const cardFolderId = card.folderId;
                 return (cardFolderId === folder.id || String(cardFolderId) === String(folder.id));
@@ -17965,7 +18055,21 @@ class VocaBox {
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new VocaBox();
+    console.log("INIT: DOMContentLoaded fired");
+    try {
+        console.log("INIT: Creating VocaBox instance...");
+        window.vocabox = new VocaBox();
+        console.log("INIT: VocaBox instance created successfully");
+    } catch (error) {
+        console.error("INIT ERROR: Failed to create VocaBox instance", error);
+        console.error("INIT ERROR stack:", error.stack);
+        // Try to show error to user
+        try {
+            document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>App Initialization Failed</h1><p>Please refresh the page. If the problem persists, check the browser console for details.</p><p style="color: red;">Error: ' + error.message + '</p></div>';
+        } catch (e) {
+            console.error("Could not display error message:", e);
+        }
+    }
 });
 
 
