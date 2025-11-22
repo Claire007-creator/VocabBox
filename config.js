@@ -15,6 +15,12 @@ const CONFIG = {
         useSupabase: false, // Set to true after configuring Supabase
         enableCloudSync: false, // Enable cloud sync when Supabase is configured
         enableOfflineMode: true, // Always keep localStorage as fallback
+        enableAudioPronunciation: true, // Enable Web Speech API for word pronunciation
+    },
+    
+    // Audio Configuration
+    audio: {
+        language: 'en-US', // Language for speech synthesis
     },
     
     // Storage Configuration
@@ -88,6 +94,15 @@ const CONFIG = {
         },
         // Default tier for new users
         defaultTier: 'free'
+    },
+    
+    // Access Code / Whitelist System
+    whitelist: {
+        accessCodes: [
+            // Founder and test codes – I will edit these later if I want
+            { code: "FOUNDER-UNLIMITED", tier: "premium", label: "Founder unlimited access" },
+            { code: "STUDENT-2025-A", tier: "premium", label: "Student cohort A" }
+        ]
     },
     
     // App Version

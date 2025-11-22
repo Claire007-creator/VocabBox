@@ -5,12 +5,34 @@
     box-sizing: border-box;
 }
 
+/* CSS Variables */
+:root {
+    --bg-color: #5FB3A7;
+    --surface-color: #ffffff;
+    --text-color: #333333;
+    --text-color-light: #666666;
+    --text-color-inverse: #ffffff;
+    --primary-color: #5FB3A7;
+    --primary-color-hover: #4FA397;
+    --secondary-color: #7ECCC4;
+    --success-color: #4CAF50;
+    --danger-color: #C85A6E;
+    --warning-color: #FFC107;
+    --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --card-bg: #ffffff;
+    --input-bg: #ffffff;
+    --input-border: #ddd;
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
-    background: #5FB3A7;
+    background: var(--bg-color);
     min-height: 100vh;
     padding: 20px;
-    color: #333;
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @media (max-width: 768px) {
@@ -33,7 +55,7 @@ body {
 /* Header Styles */
 .header {
     text-align: center;
-    color: white;
+    color: var(--text-color-inverse);
     margin-bottom: 50px;
     animation: fadeInDown 0.6s ease;
     padding: 20px 0;
@@ -161,6 +183,34 @@ body {
     border-color: #B54A5E;
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.subscription-btn {
+    background: #F8D790;
+    color: #333;
+    border: 2px solid #F8D790;
+    font-weight: 600;
+}
+
+.subscription-btn:hover {
+    background: #F4D58D;
+    border-color: #F4D58D;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(248, 215, 144, 0.4);
+}
+
+.special-access-btn-modal {
+    background: #7ECCC4 !important;
+    color: white !important;
+    border: 2px solid #7ECCC4 !important;
+    font-weight: 600;
+}
+
+.special-access-btn-modal:hover {
+    background: #6EBCB4 !important;
+    border-color: #6EBCB4 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(126, 204, 196, 0.4);
 }
 
 #authButtons {
@@ -555,13 +605,14 @@ body {
 }
 
 .card-item {
-    background: white;
+    background: var(--card-bg);
     border-radius: 15px;
     padding: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px var(--shadow-color);
     transition: all 0.3s ease;
     animation: fadeIn 0.5s ease;
     position: relative;
+    color: var(--text-color);
 }
 
 .card-folder-info-btn {
@@ -582,12 +633,12 @@ body {
 
 /* Folder-based card colors - same background with colorful left borders */
 .card-item.folder-default {
-    background: white;
+    background: var(--card-bg);
     border-left: 4px solid #CD7D88;
 }
 
 .card-item.folder-ielts {
-    background: white;
+    background: var(--card-bg);
     border-left: 4px solid #BFDCDB;
 }
 
@@ -1478,6 +1529,54 @@ body {
 }
 
 /* Play Audio Button */
+/* Speaker button for audio pronunciation */
+.speaker-btn {
+    background: rgba(95, 179, 167, 0.1);
+    border: 2px solid #5FB3A7;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    margin: 10px;
+    flex-shrink: 0;
+}
+
+.speaker-btn:hover {
+    background: rgba(95, 179, 167, 0.2);
+    transform: scale(1.1);
+}
+
+.speaker-btn:active {
+    transform: scale(0.95);
+}
+
+.card-header-with-speaker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.speaker-btn-inline {
+    transition: all 0.2s ease;
+}
+
+.speaker-btn-inline:hover {
+    transform: scale(1.2);
+    opacity: 0.8;
+}
+
+.speaker-btn-inline:active {
+    transform: scale(0.9);
+}
+
 .play-audio-btn {
     background: #7ECCC4;
     color: white;
@@ -1928,14 +2027,15 @@ body {
 }
 
 .flashcard-front {
-    background: white;
+    background: var(--card-bg);
+    color: var(--text-color);
     opacity: 1;
     transform: scale(1);
 }
 
 .flashcard-back {
-    background: white;
-    color: #333;
+    background: var(--card-bg);
+    color: var(--text-color);
     opacity: 0;
     transform: scale(0.95);
 }
@@ -2036,6 +2136,61 @@ body {
 }
 
 /* Typing Mode */
+/* Card Navigation Arrows */
+.card-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(95, 179, 167, 0.3);
+    color: #5FB3A7;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.card-arrow:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: #5FB3A7;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card-arrow:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.card-arrow-left {
+    left: -25px;
+}
+
+.card-arrow-right {
+    right: -25px;
+}
+
+/* Position arrows for different card containers */
+.cards-container {
+    position: relative;
+}
+
+.flashcard {
+    position: relative;
+}
+
+.typing-card {
+    position: relative;
+}
+
 .typing-card {
     background: white;
     border-radius: 20px;
@@ -2571,6 +2726,21 @@ body {
         font-size: 1rem !important;
         min-width: 160px !important;
         min-height: 44px !important;
+    }
+    
+    /* Adjust arrow buttons for mobile */
+    .card-arrow {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+    
+    .card-arrow-left {
+        left: -20px;
+    }
+    
+    .card-arrow-right {
+        right: -20px;
     }
     
     .answer-result {

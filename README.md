@@ -1,39 +1,44 @@
-# 📚 VocaBox
+# VocaBox  
+A lightweight flashcard app for vocabulary learning, optimized for IELTS, TOEFL, and custom study lists.
 
-A beautiful and modern flashcard app to help you memorize English words and sentences.
+## ✨ Key Features
+- Add/edit/delete flashcards
+- Import JSON flashcard decks
+- Built-in IELTS 8000 (corrected, cleaned, 8000 exact words)
+- Test modes:  
+  - Card flipping  
+  - Typing practice  
+  - Multiple choice  
+- Audio pronunciation (one-tap speaker icon)
+- Spaced repetition (future)
+- Special access / whitelist users (unlimited mode)
 
-## Features
+## 📁 Project Structure
 
-✨ **Card Listing** - View all your flashcards on the front page  
-➕ **Add Cards** - Easily create new flashcards with word/definition pairs  
-🎯 **Learn/Test Mode** - Practice with an interactive flip-card interface  
-💾 **Local Storage** - Your cards are automatically saved in your browser  
-🎨 **Modern UI** - Beautiful gradient design with smooth animations
+├── data/  
+│   ├── IELTS_8000_exact.txt ← Corrected 8000-word official deck  
+│   └── ielts-8000-data.js ← Converted JS version used by the app  
+├── index.html  
+├── script.js  
+├── styles.css  
+├── config.js ← User subscription / whitelist settings  
+└── CHANGELOG.md ← Version history  
 
-## How to Use
 
-1. **Open the App**: Simply open `index.html` in your web browser
-2. **Add Cards**: Click the "Add Card" button to create new flashcards
-3. **View Cards**: All your cards are displayed on the main page
-4. **Test Yourself**: Click "Learn/Test" to start practicing
-5. **Navigate**: Use Previous/Next buttons or flip cards to see answers
+## 🚀 Development Setup
+Just open `index.html` in your browser.  
+No server required — the whole app runs locally.
 
-## Getting Started
+## 🔧 Build / Deploy
+To deploy the app:
 
-Just double-click on `index.html` or open it with your favorite browser!
+1. Upload the *entire project folder* to Netlify (or drag-and-drop into Netlify UI).  
+2. Netlify will automatically serve `index.html` as the entry point.  
+3. No build steps — pure static hosting.
 
-## File Structure
+## 📝 Contributing
+This is a personal project. Changes should be made using Cursor AI for consistency.
 
-- `index.html` - Main HTML structure
-- `styles.css` - All styling and animations
-- `script.js` - Application logic and functionality
-
-## Technologies Used
-
-- HTML5
-- CSS3 (with gradients and animations)
-- Vanilla JavaScript (ES6+)
-- LocalStorage API
-
-Enjoy learning with VocaBox! 🚀
-
+## 📄 License
+This is a **private project** — all rights reserved.  
+Redistribution is not permitted.

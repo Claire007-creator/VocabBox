@@ -19,6 +19,7 @@
                 </div>
                 <div class="header-right">
                     <div id="authButtons">
+                    <button class="auth-btn subscription-btn" id="subscriptionBtn">Subscription</button>
                     <button class="auth-btn sign-in-btn">Sign In</button>
                     <button class="auth-btn sign-up-btn">Sign Up</button>
                     </div>
@@ -83,7 +84,7 @@
                             <button class="btn btn-folder-compact" id="importDataBtn" title="Import your data">
                                 <span class="btn-icon">📥</span>
                                 <span class="btn-text">Import</span>
-                            </button>
+                        </button>
                         </div>
                     </div>
                     <div class="folder-list" id="folderList">
@@ -107,6 +108,8 @@
                     </div>
                     <div class="cards-container" id="cardsContainer">
                         <!-- Cards will be dynamically inserted here -->
+                        <button class="card-arrow card-arrow-left" id="mainCardArrowLeft" aria-label="Previous card">←</button>
+                        <button class="card-arrow card-arrow-right" id="mainCardArrowRight" aria-label="Next card">→</button>
                     </div>
                     <!-- Navigation Controls -->
                     <div class="cards-navigation" id="cardsNavigation" style="display: none;">
@@ -850,6 +853,7 @@
                 </div>
             </div>
             <div class="flashcard" id="flashcard">
+                <button class="card-arrow card-arrow-left" id="flipCardArrowLeft" aria-label="Previous card">←</button>
                 <div class="flashcard-inner" id="flashcardInner">
                     <div class="flashcard-front">
                         <p id="cardFront"></p>
@@ -858,6 +862,7 @@
                         <p id="cardBack"></p>
                     </div>
                 </div>
+                <button class="card-arrow card-arrow-right" id="flipCardArrowRight" aria-label="Next card">→</button>
             </div>
             <div class="test-actions">
                 <button class="btn btn-secondary" id="prevCardBtn">← Previous</button>
@@ -866,7 +871,7 @@
             </div>
             <div class="audio-replay-section" id="flipAudioReplay" style="display: none;">
                 <button class="btn btn-audio-replay" id="replayFlipAudioBtn">
-                    🔊 Replay Audio
+                    <img src="music.png" alt="Replay Audio" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> Replay Audio
                 </button>
             </div>
         </div>
@@ -1010,6 +1015,30 @@
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="cancelVerifyCodeBtn">Cancel</button>
                         <button type="submit" class="btn btn-primary">Update Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Special Access Activation Modal -->
+    <div class="modal" id="specialAccessModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Special Access Activation</h2>
+                <button class="close-btn" id="closeSpecialAccessBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="specialAccessForm">
+                    <div class="form-group">
+                        <label for="activationCode">Activation Code</label>
+                        <input type="text" id="activationCode" placeholder="Enter activation code" required>
+                        <small class="input-hint">Whitelisted users enjoy unlimited cards and unlimited folders.</small>
+                    </div>
+                    <div id="specialAccessError" class="error-message" style="display: none;"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelSpecialAccessBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Activate</button>
                     </div>
                 </form>
             </div>
@@ -1247,6 +1276,7 @@
                 </div>
             </div>
             <div class="typing-card">
+                <button class="card-arrow card-arrow-left" id="typingCardArrowLeft" aria-label="Previous card">←</button>
                 <div class="typing-question">
                     <h3>Question:</h3>
                     <div class="question-content" id="typingQuestion"></div>
@@ -1261,6 +1291,7 @@
                     </div>
                     <div id="correctAnswerContent"></div>
                 </div>
+                <button class="card-arrow card-arrow-right" id="typingCardArrowRight" aria-label="Next card">→</button>
             </div>
             <div class="test-actions">
                 <button class="btn btn-secondary" id="typingPrevBtn">← Previous</button>
@@ -1268,7 +1299,7 @@
             </div>
             <div class="audio-replay-section" id="typingAudioReplay" style="display: none;">
                 <button class="btn btn-audio-replay" id="replayTypingAudioBtn">
-                    🔊 Replay Audio
+                    <img src="music.png" alt="Replay Audio" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> Replay Audio
                 </button>
             </div>
             <div class="finish-test-section" style="text-align: center; margin-top: 20px;">
@@ -1293,6 +1324,7 @@
                 </div>
             </div>
             <div class="typing-card">
+                <button class="card-arrow card-arrow-left" id="mcCardArrowLeft" aria-label="Previous card">←</button>
                 <div class="typing-question">
                     <h3>Question:</h3>
                     <div class="question-content" id="mcQuestion"></div>
@@ -1300,6 +1332,7 @@
                 <div class="multiple-choice-options" id="multipleChoiceOptions">
                     <!-- Options will be dynamically inserted here -->
                 </div>
+                <button class="card-arrow card-arrow-right" id="mcCardArrowRight" aria-label="Next card">→</button>
             </div>
             <div class="test-actions">
                 <button class="btn btn-secondary" id="mcPrevBtn">← Previous</button>
@@ -1307,7 +1340,7 @@
             </div>
             <div class="audio-replay-section" id="mcAudioReplay" style="display: none;">
                 <button class="btn btn-audio-replay" id="replayMcAudioBtn">
-                    🔊 Replay Audio
+                    <img src="music.png" alt="Replay Audio" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> Replay Audio
                 </button>
             </div>
             <div class="finish-test-section" style="text-align: center; margin-top: 20px;">
@@ -1349,6 +1382,12 @@
                             <div class="stat-info">
                                 <div class="stat-number" id="incorrectAnswers">0</div>
                                 <div class="stat-label">Incorrect Answers</div>
+                            </div>
+                        </div>
+                        <div class="stat-item stat-unanswered">
+                            <div class="stat-info">
+                                <div class="stat-number" id="unansweredAnswers">0</div>
+                                <div class="stat-label">Unanswered</div>
                             </div>
                         </div>
                     </div>
@@ -1515,6 +1554,17 @@
                         💳 Secure payment via Stripe • Cancel anytime • 30-day money-back guarantee
                     </p>
                 </div>
+
+                <!-- Special Access Section -->
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee;">
+                    <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.1rem;">Special Access</h3>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">
+                        Have an activation code? Enter it below to unlock unlimited access.
+                    </p>
+                    <button class="btn special-access-btn-modal" id="specialAccessBtn" style="width: 100%; padding: 12px; font-size: 1rem;">
+                        Activate Special Access
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1595,9 +1645,6 @@
     
     <!-- Supabase Client (loaded only if configured) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- IELTS 8000 Built-in Data (optional fallback) -->
-    <script src="ielts-8000-data.js" onerror="console.warn('IELTS data file not found, will use fetch fallback');"></script>
     
     <!-- Main Application Script -->
     <script src="script.js"></script>
