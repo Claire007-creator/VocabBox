@@ -99,10 +99,28 @@ const CONFIG = {
     // Access Code / Whitelist System
     whitelist: {
         accessCodes: [
-            // Founder and test codes – I will edit these later if I want
-            { code: "FOUNDER-UNLIMITED", tier: "premium", label: "Founder unlimited access" },
-            { code: "STUDENT-2025-A", tier: "premium", label: "Student cohort A" }
-        ]
+            { code: 'FOUNDER-UNLIMITED', label: 'Founder unlimited', tier: 'premium', perDeviceMaxUses: null },
+            { code: 'STUDENT-2025-A-001', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-002', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-003', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-004', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-005', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-006', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-007', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-008', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-009', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-010', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-011', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-012', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-013', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-014', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-015', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-016', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-017', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-018', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-019', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 },
+            { code: 'STUDENT-2025-A-020', label: 'Student 2025 A', tier: 'premium', perDeviceMaxUses: 1 }
+          ]
     },
     
     // App Version

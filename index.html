@@ -18,6 +18,10 @@
                     <img src="title.png" alt="VocaBox" class="app-title-image">
                 </div>
                 <div class="header-right">
+                    <div class="premium-chip">
+                        <button class="premium-btn" id="premiumAccessBtn" type="button">Premium</button>
+                        <span class="premium-status-badge" id="premiumStatusBadge" hidden>Unlocked</span>
+                    </div>
                     <div id="authButtons">
                     <button class="auth-btn subscription-btn" id="subscriptionBtn">Subscription</button>
                     <button class="auth-btn sign-in-btn">Sign In</button>
@@ -34,103 +38,344 @@
             <p class="app-subtitle">Memorize in a Fl!p.</p>
         </header>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="addCardBtn">
-                    <span class="btn-icon">
-                        <img src="cards.png" alt="Add" class="btn-icon-image">
-                    </span>
-                    Add Card
+        <!-- Home Screen -->
+        <main class="home-screen" id="homeScreen" data-screen="home">
+            <div class="home-hero">
+                <div class="home-hero-text">
+                    <p class="home-eyebrow">Choose your focus</p>
+                    <h1 class="home-title">What do you want to practice today?</h1>
+                    <p class="home-subtitle"></p>
+                </div>
+                <div class="home-hero-art" aria-hidden="true">
+                    <img src="cards.png" alt="" />
+                </div>
+            </div>
+            <div class="category-grid">
+                <button class="category-card" type="button" data-screen-target="words">
+                    <div class="category-icon">
+                        <img src="card.png" alt="" />
+                    </div>
+                    <div class="category-label">Words</div>
+                    <p class="category-copy"></p>
                 </button>
-                <button class="btn btn-success" id="testModeBtn">
-                    <span class="btn-icon">
-                        <img src="test.png" alt="Test" class="btn-icon-image">
-                    </span>
-                    Learn/Test
+                <button class="category-card" type="button" data-screen-target="sentences">
+                    <div class="category-icon">
+                        <img src="writing.png" alt="" />
+                    </div>
+                    <div class="category-label">Sentences</div>
+                    <p class="category-copy"></p>
                 </button>
-                <button class="btn btn-import" id="importWordListBtn">
-                    <span class="btn-icon">
-                        <img src="plus.png" alt="Import" class="btn-icon-image">
-                    </span>
-                    +Import
+                <button class="category-card" type="button" data-screen-target="grammar">
+                    <div class="category-icon">
+                        <img src="pencil.png" alt="" />
+                    </div>
+                    <div class="category-label">Grammar</div>
+                    <p class="category-copy"></p>
                 </button>
-                <button class="btn btn-wordbooks" id="collectionsBtn">
-                    <span class="btn-icon">
-                        <img src="books.png" alt="Word Books" class="btn-icon-image">
-                    </span>
-                    Word Books
+                <button class="category-card" type="button" data-screen-target="listening">
+                    <div class="category-icon">
+                        <img src="music.png" alt="" />
+                    </div>
+                    <div class="category-label">Listening</div>
+                    <p class="category-copy"></p>
+                </button>
+                <button class="category-card" type="button" data-screen-target="reading">
+                    <div class="category-icon">
+                        <img src="books.png" alt="" />
+                    </div>
+                    <div class="category-label">Reading</div>
+                    <p class="category-copy"></p>
                 </button>
             </div>
+        </main>
 
-            <!-- Single Column Layout -->
-            <div class="single-column-layout">
-                <!-- Folder Management -->
-                <div class="folder-section">
-                    <div class="folder-header">
-                        <h3 class="folder-title">Folders</h3>
-                        <button class="btn btn-folder" id="createFolderBtn">
-                            <span class="btn-icon">
-                                <img src="plus.png" alt="Add" class="btn-icon-image">
-                            </span>
-                            New Folder
-                        </button>
-                        <div class="folder-actions">
-                            <button class="btn btn-folder-compact" id="exportDataBtn" title="Export your data">
-                                <span class="btn-icon">💾</span>
-                                <span class="btn-text">Export</span>
-                            </button>
-                            <button class="btn btn-folder-compact" id="importDataBtn" title="Import your data">
-                                <span class="btn-icon">📥</span>
-                                <span class="btn-text">Import</span>
-                        </button>
-                        </div>
-                    </div>
-                    <div class="folder-list" id="folderList">
-                        <!-- Folders will be dynamically inserted here -->
-                    </div>
+        <!-- Words Category Screen -->
+        <main class="main-content category-screen" id="WordsScreen" data-screen="words" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <p class="category-screen-eyebrow">Learning category</p>
+                    <h2 class="category-screen-title">Words</h2>
+                    <p class="category-screen-subtitle"></p>
+                </div>
+                <button class="btn btn-secondary btn-small back-to-home-btn" type="button" data-screen-target="home">
+                    ← Back to Home Page
+                </button>
+            </div>
+            <section class="pack-section" data-pack-section="words">
+                <div class="pack-section-header">
+                    <h3 class="pack-section-title">Word packs</h3>
+                    <p class="pack-section-subtitle">Choose a collection to review vocabulary lists by exam or theme.</p>
+                </div>
+                <div class="pack-grid"></div>
+            </section>
+
+            <!-- Shared Deck Workspace (Words + Sentences) -->
+            <div id="deckWorkspaceRoot">
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="addCardBtn">
+                        <span class="btn-icon">
+                            <img src="cards.png" alt="Add" class="btn-icon-image">
+                        </span>
+                        Add Card
+                    </button>
+                    <button class="btn btn-import" id="importWordListBtn">
+                        <span class="btn-icon">
+                            <img src="plus.png" alt="Import" class="btn-icon-image">
+                        </span>
+                        +Import
+                    </button>
                 </div>
 
-                <!-- Cards Column -->
-                <div class="column">
-                    <div class="cards-header">
-                        <div class="cards-header-left">
-                            <div class="current-folder-info" id="currentFolderInfo">
-                                <span class="folder-info-content" id="currentFolderContent">All Folders-0 cards</span>
+                <!-- Single Column Layout -->
+                <div class="single-column-layout">
+                    <!-- Folder Management -->
+                    <div class="folder-section">
+                        <div class="folder-header">
+                            <h3 class="folder-title">Folders</h3>
+                            <button class="btn btn-folder" id="createFolderBtn">
+                                <span class="btn-icon">
+                                    <img src="plus.png" alt="Add" class="btn-icon-image">
+                                </span>
+                                New Folder
+                            </button>
+                        </div>
+                        <div class="folder-list" id="folderList">
+                            <!-- Folders will be dynamically inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Cards Column -->
+                    <div class="column">
+                        <div class="cards-header">
+                            <div class="cards-header-left">
+                                <div class="current-folder-info" id="currentFolderInfo">
+                                    <span class="folder-info-content" id="currentFolderContent">All Folders-0 cards</span>
+                                </div>
+                            </div>
+                            <div class="folder-selector">
+                                <select id="listDropdown" class="folder-dropdown" style="display: none;">
+                                    <option value="">All Lists</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="folder-selector">
-                            <select id="listDropdown" class="folder-dropdown" style="display: none;">
-                                <option value="">All Lists</option>
-                            </select>
+                        <div class="cards-container" id="cardsContainer">
+                            <!-- Cards will be dynamically inserted here -->
+                            <button class="card-arrow card-arrow-left" id="mainCardArrowLeft" aria-label="Previous card">←</button>
+                            <button class="card-arrow card-arrow-right" id="mainCardArrowRight" aria-label="Next card">→</button>
                         </div>
-                    </div>
-                    <div class="cards-container" id="cardsContainer">
-                        <!-- Cards will be dynamically inserted here -->
-                        <button class="card-arrow card-arrow-left" id="mainCardArrowLeft" aria-label="Previous card">←</button>
-                        <button class="card-arrow card-arrow-right" id="mainCardArrowRight" aria-label="Next card">→</button>
-                    </div>
-                    <!-- Navigation Controls -->
-                    <div class="cards-navigation" id="cardsNavigation" style="display: none;">
-                        <button class="btn btn-secondary" id="prevCardViewBtn">← Previous</button>
-                        <span class="card-position" id="cardPosition">1 / 0</span>
-                        <button class="btn btn-secondary" id="nextCardViewBtn">Next →</button>
-                    </div>
-                    <div class="empty-state" id="cardsEmptyState">
-                        <div class="empty-icon">
-                            <img src="books.png" alt="Books" class="empty-state-image">
+                        <!-- Navigation Controls -->
+                        <div class="cards-navigation" id="cardsNavigation" style="display: none;">
+                            <span class="card-position" id="cardPosition">1 / 0</span>
+                            <div class="card-practice-row" id="wordPracticeLauncher" hidden>
+                                <div class="practice-scope-selector" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; justify-content: center;">
+                                    <label for="practiceScopeSelect" style="font-size: 0.9rem; color: #666; font-weight: 500;">Scope:</label>
+                                    <select id="practiceScopeSelect" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; background: white; cursor: pointer;">
+                                        <option value="list">Current list only</option>
+                                        <option value="folder">Whole folder</option>
+                                    </select>
+                                </div>
+                                <button class="practice-launch-btn" type="button" id="typingPracticeBtn" aria-label="Start typing practice">
+                                    Typing
+                                </button>
+                                <button class="practice-launch-btn" type="button" id="multipleChoicePracticeBtn" aria-label="Start multiple choice practice">
+                                    Multiple Choice
+                                </button>
+                            </div>
                         </div>
-                        <h4>No cards yet!</h4>
-                        <p>Click "Add Card" to create flashcards</p>
-                    </div>
-                    <!-- Cat image that shows even when cards exist -->
-                    <div class="cat-decoration">
-                        <img src="books.png" alt="Books" class="cat-decoration-image">
+                        <div class="empty-state" id="cardsEmptyState">
+                            <div class="empty-icon">
+                                <img src="books.png" alt="Books" class="empty-state-image">
+                            </div>
+                            <h4>No cards yet!</h4>
+                            <p>Click "Add Card" to create flashcards</p>
+                        </div>
+                        <!-- Cat image that shows even when cards exist -->
+                        <div class="cat-decoration">
+                            <img src="books.png" alt="Books" class="cat-decoration-image">
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
+        <!-- Sentences Screen -->
+        <section class="category-screen" id="SentencesScreen" data-screen="sentences" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <h2 class="category-screen-title">Sentences</h2>
+                    <!-- Subtitle removed per UX request -->
+                </div>
+                <button class="btn btn-secondary btn-small back-to-home-btn" type="button" data-screen-target="home">
+                    ← Back to Home Page
+                </button>
+            </div>
+            <section class="pack-section" data-pack-section="sentences">
+                <div class="pack-section-header">
+                    <h3 class="pack-section-title">Sentence packs</h3>
+                </div>
+                <div class="pack-grid"></div>
+            </section>
+        </section>
+
+        <!-- Grammar Screen -->
+        <section class="category-screen" id="GrammarScreen" data-screen="grammar" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <p class="category-screen-eyebrow">Learning category</p>
+                    <h2 class="category-screen-title">Grammar</h2>
+                    <p class="category-screen-subtitle">Understand structure with focused grammar packs.</p>
+                </div>
+                <button class="btn btn-secondary btn-small back-to-home-btn" type="button" data-screen-target="home">
+                    ← Back to Home Page
+                </button>
+            </div>
+            <section class="pack-section" data-pack-section="grammar">
+                <div class="pack-section-header">
+                    <h3 class="pack-section-title">Grammar packs</h3>
+                    <p class="pack-section-subtitle">Select a topic to prepare exercises and explanations.</p>
+                </div>
+                <div class="pack-grid"></div>
+            </section>
+        </section>
+
+        <!-- Listening Screen -->
+        <section class="category-screen" id="ListeningScreen" data-screen="listening" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <p class="category-screen-eyebrow">Learning category</p>
+                    <h2 class="category-screen-title">Listening</h2>
+                    <p class="category-screen-subtitle">Train your ear with guided audio packs.</p>
+                </div>
+                <button class="btn btn-secondary btn-small back-to-home-btn" type="button" data-screen-target="home">
+                    ← Back to Home Page
+                </button>
+            </div>
+            <section class="pack-section" data-pack-section="listening">
+                <div class="pack-section-header">
+                    <h3 class="pack-section-title">Listening packs</h3>
+                    <p class="pack-section-subtitle">Pick an audio set to warm up comprehension.</p>
+                </div>
+                <div class="pack-grid"></div>
+            </section>
+        </section>
+
+        <!-- Reading Screen -->
+        <section class="category-screen" id="ReadingScreen" data-screen="reading" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <p class="category-screen-eyebrow">Learning category</p>
+                    <h2 class="category-screen-title">Reading</h2>
+                    <p class="category-screen-subtitle">Dive into passages, notes, and guided reading plans.</p>
+                </div>
+                <button class="btn btn-secondary btn-small back-to-home-btn" type="button" data-screen-target="home">
+                    ← Back to Home Page
+                </button>
+            </div>
+            <section class="pack-section" data-pack-section="reading">
+                <div class="pack-section-header">
+                    <h3 class="pack-section-title">Reading packs</h3>
+                    <p class="pack-section-subtitle">Choose curated reading materials to improve comprehension.</p>
+                </div>
+                <div class="pack-grid"></div>
+            </section>
+        </section>
+
+        <!-- Pack Detail Screen -->
+        <section class="category-screen pack-detail-screen" id="PackDetailScreen" data-screen="pack-detail" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <p class="category-screen-eyebrow">Pack detail</p>
+                    <h2 class="category-screen-title" id="packDetailTitle">Pack Title</h2>
+                    <p class="category-screen-subtitle" id="packDetailCategory">Category · Pack</p>
+                </div>
+                <button class="btn btn-secondary btn-small back-to-home-btn" type="button" data-pack-back-btn data-screen-target="home">
+                    ← Back to Home Page
+                </button>
+            </div>
+            <div class="pack-detail-content">
+                <div class="pack-detail-card">
+                    <p class="pack-detail-description" id="packDetailDescription">Select a pack to view more information.</p>
+                    <div class="pack-detail-behavior">
+                        <p class="pack-detail-behavior-label">Behavior</p>
+                        <p class="pack-detail-behavior-value" id="packDetailBehavior">Choose a pack to see how this category behaves.</p>
+                    </div>
+                    <div class="pack-detail-study-modes">
+                        <div class="pack-detail-study-modes-header">
+                            <h3>Available study modes</h3>
+                            <p>Pick a mode to jump into learning. Ready modes are live, Soon modes are on the way.</p>
+                        </div>
+                        <div class="study-mode-legend">
+                            <div>
+                                <span class="study-mode-ready">Ready</span>
+                                <span class="study-mode-legend-text">Available now</span>
+                            </div>
+                            <div>
+                                <span class="study-mode-coming">Soon</span>
+                                <span class="study-mode-legend-text">In development</span>
+                            </div>
+                        </div>
+                        <div class="study-mode-grid" id="packDetailStudyModes"></div>
+                    </div>
+                    <div class="pack-detail-placeholder">
+                        <p class="pack-detail-note" id="packDetailPlaceholder">This is the placeholder view for the selected pack. Study modes will be added later.</p>
+                        <p class="pack-detail-todo" id="packDetailTodo">// TODO: Add Flash, Typing, Listening, and Reading modes for this pack.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Study Mode Screen -->
+        <section class="category-screen study-mode-screen" id="StudyModeScreen" data-screen="study-mode" hidden>
+            <div class="category-screen-header">
+                <div>
+                    <p class="category-screen-eyebrow">Study mode</p>
+                    <h2 class="category-screen-title" id="studyModeTitle">Flash Mode</h2>
+                    <p class="category-screen-subtitle" id="studyModeSubtitle">Words · CET-4 Word Book</p>
+                </div>
+                <div class="study-mode-header-actions">
+                    <button class="btn btn-secondary btn-small" type="button" id="studyModeBackBtn" data-study-back-btn data-screen-target="pack-detail">
+                        ← Back to Pack
+                    </button>
+                </div>
+            </div>
+            <div class="study-mode-content">
+                <div class="study-mode-card">
+                    <div id="studyModePlaceholder">
+                        <p id="studyModeDescription">This is a placeholder study mode view. We will plug in the real experience soon.</p>
+                        <div class="study-mode-meta">
+                            <p><strong>Behavior:</strong> <span id="studyModeBehavior">Auto-spaced repetition</span></p>
+                            <p><strong>Card Type:</strong> <span id="studyModeCardType">WordCard</span></p>
+                        </div>
+                    </div>
+                    <div class="reading-highlight-session" id="readingHighlightSession" hidden>
+                        <div class="reading-highlight-header">
+                            <div>
+                                <p class="reading-highlight-eyebrow">Reading passage</p>
+                                <h3 class="reading-highlight-title" id="readingHighlightTitle">Passage title</h3>
+                                <p class="reading-highlight-summary" id="readingHighlightSummary"></p>
+                            </div>
+                            <div class="reading-highlight-controls">
+                                <span class="reading-highlight-counter" id="readingHighlightCounter">Passage 1 of 1</span>
+                                <div class="reading-highlight-nav">
+                                    <button class="btn btn-secondary btn-small" id="readingHighlightPrev">← Previous</button>
+                                    <button class="btn btn-secondary btn-small" id="readingHighlightNext">Next →</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reading-highlight-text" id="readingHighlightText"></div>
+                        <div class="reading-highlight-selected">
+                            <div>
+                                <p class="reading-highlight-selected-title">
+                                    Selected words <span id="readingHighlightSelectionCount">(0)</span>
+                                </p>
+                                <ul class="reading-highlight-selection-list" id="readingHighlightSelections"></ul>
+                            </div>
+                            <button class="btn btn-primary btn-small" id="readingHighlightSave">Save Highlights</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
     <!-- Collections Modal -->
     <div class="modal" id="collectionsModal">
@@ -656,37 +901,6 @@
         </div>
     </div>
 
-    <!-- Learn/Test Mode Selection Modal -->
-    <div class="modal" id="testModeSelectModal">
-        <div class="modal-content modal-medium">
-            <div class="modal-header">
-                <h2><img src="writing.png" alt="Test" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 8px;"> Choose Learn/Test Mode</h2>
-                <button class="close-btn" id="closeTestSelectBtn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="test-mode-options">
-                    <div class="test-mode-card" id="selectFlipMode">
-                        <div class="mode-icon"><img src="cards.png" alt="Cards" style="width: 60px; height: 60px;"></div>
-                        <h3>Card Flipping</h3>
-                        <p>Flip cards to reveal answers. Choose from Cards or Tests.</p>
-                        <button class="btn btn-primary mode-select-btn">Select</button>
-                    </div>
-                    <div class="test-mode-card" id="selectTypingMode">
-                        <div class="mode-icon"><img src="keyboard.png" alt="Keyboard" style="width: 60px; height: 60px;"></div>
-                        <h3>Typing Practice</h3>
-                        <p>Type answers for test cards. Tests your recall ability.</p>
-                        <button class="btn btn-create mode-select-btn">Select</button>
-                    </div>
-                    <div class="test-mode-card" id="selectMultipleChoiceMode">
-                        <div class="mode-icon"><img src="writing.png" alt="Multiple Choice" style="width: 60px; height: 60px;"></div>
-                        <h3>Multiple Choice</h3>
-                        <p>Choose the correct answer from several options.</p>
-                        <button class="btn btn-primary mode-select-btn">Select</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Side Selection Modal for Card Flipping -->
     <div class="modal" id="flipSideSelectModal">
@@ -836,46 +1050,6 @@
         </div>
     </div>
 
-    <!-- Learn/Test Mode Screen - Flipping -->
-    <div class="test-mode-screen" id="testModeScreen">
-        <div class="test-container">
-            <div class="test-header">
-                <h2>🔄 Card Flipping Mode</h2>
-                <button class="btn btn-secondary" id="exitTestBtn">Exit Test</button>
-            </div>
-            <div class="test-progress">
-                <p>Card <span id="currentCardNum">1</span> of <span id="totalCards">0</span></p>
-                <div class="card-side-indicator">
-                    <span class="side-label" id="currentSideLabel">Front</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-            </div>
-            <div class="flashcard" id="flashcard">
-                <button class="card-arrow card-arrow-left" id="flipCardArrowLeft" aria-label="Previous card">←</button>
-                <div class="flashcard-inner" id="flashcardInner">
-                    <div class="flashcard-front">
-                        <p id="cardFront"></p>
-                    </div>
-                    <div class="flashcard-back">
-                        <p id="cardBack"></p>
-                    </div>
-                </div>
-                <button class="card-arrow card-arrow-right" id="flipCardArrowRight" aria-label="Next card">→</button>
-            </div>
-            <div class="test-actions">
-                <button class="btn btn-secondary" id="prevCardBtn">← Previous</button>
-                <button class="btn btn-primary flip-btn" id="flipCardBtn">Flip Card</button>
-                <button class="btn btn-secondary" id="nextCardBtn">Next →</button>
-            </div>
-            <div class="audio-replay-section" id="flipAudioReplay" style="display: none;">
-                <button class="btn btn-audio-replay" id="replayFlipAudioBtn">
-                    <img src="music.png" alt="Replay Audio" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> Replay Audio
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Sign In Modal -->
     <div class="modal" id="signInModal">
@@ -1039,6 +1213,32 @@
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="cancelSpecialAccessBtn">Cancel</button>
                         <button type="submit" class="btn btn-primary">Activate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Activation Modal -->
+    <div class="modal" id="premiumModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Unlock Premium</h2>
+                <button class="close-btn" id="closePremiumModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-lede">
+                    Enter your activation code to enable unlimited cards & folders, Multiple Choice practice, exports, and every Premium tool.
+                </p>
+                <form id="premiumCodeForm">
+                    <div class="form-group">
+                        <label for="premiumCodeInput">Activation Code</label>
+                        <input type="text" id="premiumCodeInput" placeholder="VBX-PREM-12345" autocomplete="off" required>
+                        <small class="input-hint">Codes are single-use. Already used codes cannot be redeemed again.</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelPremiumModalBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Activate Premium</button>
                     </div>
                 </form>
             </div>
@@ -1266,7 +1466,7 @@
     <div class="test-mode-screen" id="typingModeScreen">
         <div class="test-container">
             <div class="test-header">
-                <h2><img src="keyboard.png" alt="Keyboard" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Typing Practice Mode</h2>
+                <h2><img src="keyboard.png" alt="Keyboard" class="session-mode-icon" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Typing Practice Mode</h2>
                 <button class="btn btn-secondary" id="exitTypingBtn">Exit Test</button>
             </div>
             <div class="test-progress">
@@ -1283,6 +1483,11 @@
                 </div>
                 <div class="typing-answer-section">
                     <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
+                    <div class="typing-mode-toggle-container" style="text-align: center; margin: 12px 0;">
+                        <button class="btn btn-secondary btn-small" id="typingModeToggleBtn" type="button" style="font-size: 0.9rem; padding: 8px 16px;">
+                            Type Front Side
+                        </button>
+                    </div>
                     <button class="btn btn-primary" id="checkAnswerBtn">Check Answer</button>
                 </div>
                 <div class="answer-result" id="answerResult" style="display: none;">
@@ -1292,10 +1497,6 @@
                     <div id="correctAnswerContent"></div>
                 </div>
                 <button class="card-arrow card-arrow-right" id="typingCardArrowRight" aria-label="Next card">→</button>
-            </div>
-            <div class="test-actions">
-                <button class="btn btn-secondary" id="typingPrevBtn">← Previous</button>
-                <button class="btn btn-secondary" id="typingNextBtn">Next →</button>
             </div>
             <div class="audio-replay-section" id="typingAudioReplay" style="display: none;">
                 <button class="btn btn-audio-replay" id="replayTypingAudioBtn">
@@ -1314,7 +1515,7 @@
     <div class="test-mode-screen" id="multipleChoiceModeScreen">
         <div class="test-container">
             <div class="test-header">
-                <h2><img src="writing.png" alt="Multiple Choice" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Multiple Choice Mode</h2>
+                <h2><img src="writing.png" alt="Multiple Choice" class="session-mode-icon" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Multiple Choice Mode</h2>
                 <button class="btn btn-secondary" id="exitMultipleChoiceBtn">Exit Test</button>
             </div>
             <div class="test-progress">
@@ -1329,14 +1530,15 @@
                     <h3>Question:</h3>
                     <div class="question-content" id="mcQuestion"></div>
                 </div>
+                <div class="mc-mode-toggle-container" style="text-align: center; margin: 12px 0;">
+                    <button class="btn btn-secondary btn-small" id="mcModeToggleBtn" type="button" style="font-size: 0.9rem; padding: 8px 16px;">
+                        Answer Front Side
+                    </button>
+                </div>
                 <div class="multiple-choice-options" id="multipleChoiceOptions">
                     <!-- Options will be dynamically inserted here -->
                 </div>
                 <button class="card-arrow card-arrow-right" id="mcCardArrowRight" aria-label="Next card">→</button>
-            </div>
-            <div class="test-actions">
-                <button class="btn btn-secondary" id="mcPrevBtn">← Previous</button>
-                <button class="btn btn-secondary" id="mcNextBtn">Next →</button>
             </div>
             <div class="audio-replay-section" id="mcAudioReplay" style="display: none;">
                 <button class="btn btn-audio-replay" id="replayMcAudioBtn">
@@ -1642,7 +1844,20 @@
 
     <!-- Configuration -->
     <script src="config.js"></script>
+    <script src="category-config.js"></script>
+    <script src="data/premium-codes.js"></script>
+    <script src="word-pack-map.js"></script>
+    <script src="sentence-pack-map.js"></script>
+    <script src="grammar-pack-map.js"></script>
+    <script src="listening-pack-map.js"></script>
+    <script src="reading-pack-map.js"></script>
     
+    <!-- Add new pack maps -->
+    <script src="word-pack-map.js"></script>
+    <script src="sentence-pack-map.js"></script>
+    <script src="grammar-pack-map.js"></script>
+    <script src="listening-pack-map.js"></script>
+
     <!-- Supabase Client (loaded only if configured) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     

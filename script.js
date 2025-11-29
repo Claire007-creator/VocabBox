@@ -1,6 +1,25 @@
 // VocaBox - Flashcard App
 // Main Application Logic
 
+// --- Premium localStorage keys (must be defined before use) ---
+const PREMIUM_UNLOCK_LOCAL_KEY = 'premiumUnlocked';
+const PREMIUM_USED_CODES_LOCAL_KEY = 'usedPremiumCodes';
+const COMMON_FOLDER_ID = 'common';
+const COMMON_FOLDER_NAME = 'Common Folder';
+
+// --- Premium code registry ---
+const PREMIUM_CODE_LIST = (typeof window !== 'undefined' && Array.isArray(window.PREMIUM_CODES))
+    ? window.PREMIUM_CODES
+    : (typeof PREMIUM_CODES !== 'undefined' && Array.isArray(PREMIUM_CODES) ? PREMIUM_CODES : []);
+const PREMIUM_CODE_SET = new Set(PREMIUM_CODE_LIST.map(code => (code || '').trim().toUpperCase()));
+
+const normalizePremiumCodeValue = (code) => (code || '').trim().toUpperCase();
+
+const CARD_FONT_BASE_REM = 3.4;
+if (typeof document !== 'undefined' && document.documentElement) {
+    document.documentElement.style.setProperty('--card-font-base', `${CARD_FONT_BASE_REM}rem`);
+}
+
 // --- Toast Notification Utility ---
 function showToast({ title = 'Success', description = '', icon = '✅', timeout = 2500 } = {}) {
     const wrap = document.getElementById('appToastContainer');
@@ -203,18 +222,25 @@ class VocaBox {
         this.isImportingIELTS = false; // Prevent multiple simultaneous imports
         this.currentTypingIndex = 0;
         this.typingTestCards = [];
+        this.typingModeReverse = false; // false = type back (default), true = type front
         this.flipTestCards = [];
             this.mcTestCards = [];
             this.currentMcIndex = 0;
             this.mcSelectedFolderId = 'all';
+            this.mcModeReverse = false; // false = prompt front, answer back (default), true = prompt back, answer front
             this.mcAutoAdvanceTimeout = null;
         this.customColors = this.loadCustomColors();
+        this.premiumState = this.loadPremiumState();
         this.pendingDeleteId = null;
         this.audioDB = null;
         
         // Folder system
         this.folders = this.loadFolders();
         this.currentFolder = 'all';
+        this.isCurrentWordDeck = false;
+        this.canUseWorkspacePractice = false;
+        this.workspacePracticeFolderId = null;
+        this.currentPracticeScope = 'list'; // 'list' = current list only, 'folder' = whole folder
         this.typingSelectedFolderId = 'all'; // Track selected folder for typing mode
             this.selectedFolderId = 'all'; // Track selected folder for Card Flipping mode
         
@@ -229,6 +255,15 @@ class VocaBox {
         };
         this.currentAudioId = null;
         this.currentPlayingAudio = null; // Track currently playing audio
+        this.readingHighlightItems = [];
+        this.readingHighlightIndex = 0;
+        this.readingHighlightSelections = {};
+        this.readingHighlightCurrentId = null;
+        this.readingHighlightSessionInitialized = false;
+
+        // Track where the shared deck workspace should be attached (Words or Sentences screens)
+        this.workspaceCategory = 'words'; // 'words' | 'sentences'
+        this.currentReadingPackMeta = null;
             
             // Supabase client (initialized if configured)
             this.supabase = null;
@@ -308,6 +343,7 @@ class VocaBox {
             
             console.log("INIT: attaching event listeners...");
         this.attachEventListeners();
+        this.updatePremiumUIState();
             
             console.log("INIT: updating UI...");
         this.updateAuthUI();
@@ -418,6 +454,13 @@ class VocaBox {
         
         // Subscription button
         this.subscriptionBtn = document.getElementById('subscriptionBtn');
+        this.premiumAccessBtn = document.getElementById('premiumAccessBtn');
+        this.premiumStatusBadge = document.getElementById('premiumStatusBadge');
+        this.premiumModal = document.getElementById('premiumModal');
+        this.closePremiumModalBtn = document.getElementById('closePremiumModalBtn');
+        this.cancelPremiumModalBtn = document.getElementById('cancelPremiumModalBtn');
+        this.premiumCodeForm = document.getElementById('premiumCodeForm');
+        this.premiumCodeInput = document.getElementById('premiumCodeInput');
         
         // Special Access elements
         this.specialAccessBtn = document.getElementById('specialAccessBtn');
@@ -455,15 +498,13 @@ class VocaBox {
 
         // Main elements
         this.addCardBtn = document.getElementById('addCardBtn');
-        this.testModeBtn = document.getElementById('testModeBtn');
+        this.deckWorkspaceRoot = document.getElementById('deckWorkspaceRoot');
         this.cardsContainer = document.getElementById('cardsContainer');
         this.cardsEmptyState = document.getElementById('cardsEmptyState');
         this.cardCount = document.getElementById('cardCount');
         this.currentFolderInfo = document.getElementById('currentFolderInfo');
         this.currentFolderContent = document.getElementById('currentFolderContent');
         this.cardsNavigation = document.getElementById('cardsNavigation');
-        this.prevCardViewBtn = document.getElementById('prevCardViewBtn');
-        this.nextCardViewBtn = document.getElementById('nextCardViewBtn');
         this.mainCardArrowLeft = document.getElementById('mainCardArrowLeft');
         this.mainCardArrowRight = document.getElementById('mainCardArrowRight');
         
@@ -473,6 +514,10 @@ class VocaBox {
         this.resetFontBtn = document.getElementById('resetFontBtn');
         this.fontSizeValue = document.getElementById('fontSizeValue');
         this.cardPosition = document.getElementById('cardPosition');
+        this.wordPracticeLauncher = document.getElementById('wordPracticeLauncher');
+        this.practiceScopeSelect = document.getElementById('practiceScopeSelect');
+        this.typingPracticeBtn = document.getElementById('typingPracticeBtn');
+        this.multipleChoicePracticeBtn = document.getElementById('multipleChoicePracticeBtn');
         
         // Folder elements
         this.createFolderBtn = document.getElementById('createFolderBtn');
@@ -611,11 +656,24 @@ class VocaBox {
         this.confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
         // Test mode selection elements
-        this.testModeSelectModal = document.getElementById('testModeSelectModal');
-        this.closeTestSelectBtn = document.getElementById('closeTestSelectBtn');
-        this.selectFlipMode = document.getElementById('selectFlipMode');
-        this.selectTypingMode = document.getElementById('selectTypingMode');
-        this.selectMultipleChoiceMode = document.getElementById('selectMultipleChoiceMode');
+        // Test mode selection elements - REMOVED (Learn/Test feature removed)
+        this.studyModeScreen = document.getElementById('StudyModeScreen');
+        this.studyModePlaceholder = document.getElementById('studyModePlaceholder');
+        this.studyModeTitleEl = document.getElementById('studyModeTitle');
+        this.studyModeSubtitleEl = document.getElementById('studyModeSubtitle');
+        this.studyModeBehaviorEl = document.getElementById('studyModeBehavior');
+        this.studyModeCardTypeEl = document.getElementById('studyModeCardType');
+        this.studyModeBackBtn = document.getElementById('studyModeBackBtn');
+        this.readingHighlightSession = document.getElementById('readingHighlightSession');
+        this.readingHighlightTitle = document.getElementById('readingHighlightTitle');
+        this.readingHighlightSummary = document.getElementById('readingHighlightSummary');
+        this.readingHighlightText = document.getElementById('readingHighlightText');
+        this.readingHighlightCounter = document.getElementById('readingHighlightCounter');
+        this.readingHighlightSelectionsList = document.getElementById('readingHighlightSelections');
+        this.readingHighlightSelectionCount = document.getElementById('readingHighlightSelectionCount');
+        this.readingHighlightPrevBtn = document.getElementById('readingHighlightPrev');
+        this.readingHighlightNextBtn = document.getElementById('readingHighlightNext');
+        this.readingHighlightSaveBtn = document.getElementById('readingHighlightSave');
         
         // Multiple Choice mode elements
         this.multipleChoiceFolderSelectModal = document.getElementById('multipleChoiceFolderSelectModal');
@@ -625,6 +683,7 @@ class VocaBox {
         this.multipleChoiceModeScreen = document.getElementById('multipleChoiceModeScreen');
         this.exitMultipleChoiceBtn = document.getElementById('exitMultipleChoiceBtn');
         this.mcQuestion = document.getElementById('mcQuestion');
+        this.mcModeToggleBtn = document.getElementById('mcModeToggleBtn');
         this.multipleChoiceOptions = document.getElementById('multipleChoiceOptions');
         this.mcCardNum = document.getElementById('mcCardNum');
         this.mcTotalCards = document.getElementById('mcTotalCards');
@@ -675,9 +734,11 @@ class VocaBox {
         // Typing mode elements
         this.typingModeScreen = document.getElementById('typingModeScreen');
         this.exitTypingBtn = document.getElementById('exitTypingBtn');
+        this.typingModeContext = document.getElementById('typingModeContext');
         this.typingQuestion = document.getElementById('typingQuestion');
         this.typingAnswer = document.getElementById('typingAnswer');
         this.checkAnswerBtn = document.getElementById('checkAnswerBtn');
+        this.typingModeToggleBtn = document.getElementById('typingModeToggleBtn');
         this.answerResult = document.getElementById('answerResult');
         this.resultTitle = document.getElementById('resultTitle');
         this.correctAnswerContent = document.getElementById('correctAnswerContent');
@@ -706,20 +767,7 @@ class VocaBox {
         this.retakeTestBtn = document.getElementById('retakeTestBtn');
         this.exitToHomeBtn = document.getElementById('exitToHomeBtn');
 
-        // Test mode elements
-        this.testModeScreen = document.getElementById('testModeScreen');
-        this.exitTestBtn = document.getElementById('exitTestBtn');
-        this.flashcard = document.getElementById('flashcard');
-        this.flashcardInner = document.getElementById('flashcardInner');
-        this.cardFront = document.getElementById('cardFront');
-        this.cardBack = document.getElementById('cardBack');
-        this.flipCardBtn = document.getElementById('flipCardBtn');
-        this.prevCardBtn = document.getElementById('prevCardBtn');
-        this.nextCardBtn = document.getElementById('nextCardBtn');
-        this.flipCardArrowLeft = document.getElementById('flipCardArrowLeft');
-        this.flipCardArrowRight = document.getElementById('flipCardArrowRight');
-        this.currentCardNum = document.getElementById('currentCardNum');
-        this.totalCards = document.getElementById('totalCards');
+        // Test mode elements - REMOVED (Learn/Test feature removed)
         this.progressFill = document.getElementById('progressFill');
         this.flipAudioReplay = document.getElementById('flipAudioReplay');
         this.replayFlipAudioBtn = document.getElementById('replayFlipAudioBtn');
@@ -861,6 +909,33 @@ class VocaBox {
             });
         }
 
+        // Premium activation handlers
+        if (this.premiumAccessBtn) {
+            this.premiumAccessBtn.addEventListener('click', () => {
+                // Only allow clicking when not premium (premium badge is non-clickable)
+                if (this.isPremiumUser()) {
+                    return; // Do nothing - badge is non-clickable when premium
+                }
+                this.openPremiumModal();
+            });
+        }
+        if (this.closePremiumModalBtn) {
+            this.closePremiumModalBtn.addEventListener('click', () => this.closePremiumModal());
+        }
+        if (this.cancelPremiumModalBtn) {
+            this.cancelPremiumModalBtn.addEventListener('click', () => this.closePremiumModal());
+        }
+        if (this.premiumModal) {
+            this.premiumModal.addEventListener('click', (e) => {
+                if (e.target === this.premiumModal) {
+                    this.closePremiumModal();
+                }
+            });
+        }
+        if (this.premiumCodeForm) {
+            this.premiumCodeForm.addEventListener('submit', (e) => this.handlePremiumActivation(e));
+        }
+
         // Close modals on outside click
         this.signInModal.addEventListener('click', (e) => {
             if (e.target === this.signInModal) {
@@ -979,12 +1054,7 @@ class VocaBox {
             }
 
         // Test mode button - opens selection modal
-            if (this.testModeBtn) {
-        this.testModeBtn.addEventListener('click', () => this.openTestModeSelection());
-                console.log("INIT: testModeBtn event listener attached");
-            } else {
-                console.error("INIT ERROR: testModeBtn not found!");
-            }
+            // testModeBtn event listener - REMOVED (Learn/Test feature removed)
 
         // Import Word List button
         if (this.importWordListBtn) {
@@ -997,12 +1067,10 @@ class VocaBox {
                 console.error("INIT ERROR: importWordListBtn not found!");
         }
 
-            // Collections button (Word Books)
+            // Collections button (Word Books) - no longer visible but keep listener if present
             if (this.collectionsBtn) {
         this.collectionsBtn.addEventListener('click', () => this.openCollectionsModal());
                 console.log("INIT: collectionsBtn event listener attached");
-            } else {
-                console.error("INIT ERROR: collectionsBtn not found!");
             }
 
         // Export/Import Data buttons
@@ -1104,16 +1172,31 @@ class VocaBox {
             });
         }
         
-        // Card navigation
-        this.prevCardViewBtn.addEventListener('click', () => this.previousCardView());
-        this.nextCardViewBtn.addEventListener('click', () => this.nextCardView());
-        
         // Arrow buttons for main card view
         if (this.mainCardArrowLeft) {
             this.mainCardArrowLeft.addEventListener('click', () => this.previousCardView());
         }
         if (this.mainCardArrowRight) {
             this.mainCardArrowRight.addEventListener('click', () => this.nextCardView());
+        }
+        if (this.practiceScopeSelect) {
+            this.practiceScopeSelect.addEventListener('change', (e) => {
+                this.currentPracticeScope = e.target.value;
+            });
+            // Initialize scope selector value
+            this.practiceScopeSelect.value = this.currentPracticeScope;
+        }
+        if (this.typingPracticeBtn) {
+            this.typingPracticeBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.startTypingPracticeFromWorkspace();
+            });
+        }
+        if (this.multipleChoicePracticeBtn) {
+            this.multipleChoicePracticeBtn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.startMultipleChoicePracticeFromWorkspace();
+            });
         }
         
         // Font size control (now on each card, not in header)
@@ -1245,17 +1328,8 @@ class VocaBox {
             }
         });
 
-        // Test mode selection modal
-        if (this.closeTestSelectBtn) {
-            this.closeTestSelectBtn.addEventListener('click', () => this.closeTestModeSelection());
-        }
-        this.selectFlipMode.addEventListener('click', () => this.openSharedFolderSelection('flip'));
-        this.selectTypingMode.addEventListener('click', () => this.openSharedFolderSelection('typing'));
-        
-        // Multiple Choice mode selection
-        if (this.selectMultipleChoiceMode) {
-            this.selectMultipleChoiceMode.addEventListener('click', () => this.openSharedFolderSelection('multipleChoice'));
-        }
+        // Test mode selection modal - REMOVED (Learn/Test feature removed)
+        // Typing and Multiple Choice are now accessed directly from workspace practice buttons
         
         // Shared folder selection modal
         if (this.closeSharedFolderBtn) {
@@ -1276,6 +1350,9 @@ class VocaBox {
         // Multiple Choice mode screen
         if (this.exitMultipleChoiceBtn) {
             this.exitMultipleChoiceBtn.addEventListener('click', () => this.exitMultipleChoiceMode());
+        }
+        if (this.mcModeToggleBtn) {
+            this.mcModeToggleBtn.addEventListener('click', () => this.toggleMcMode());
         }
         if (this.mcPrevBtn) {
             this.mcPrevBtn.addEventListener('click', () => this.prevMcCard());
@@ -1338,15 +1415,8 @@ class VocaBox {
         if (this.closeCategorySelectBtn) {
             this.closeCategorySelectBtn.addEventListener('click', () => this.closeCategorySelection());
         }
-        if (this.backToCategoryBtn) {
-            this.backToCategoryBtn.addEventListener('click', () => this.backToTestModeFromCategory());
-        }
-        if (this.selectCardsCategory) {
-            this.selectCardsCategory.addEventListener('click', () => this.startFlipMode('card'));
-        }
-        if (this.selectTestsCategory) {
-            this.selectTestsCategory.addEventListener('click', () => this.startFlipMode('test'));
-        }
+        // backToCategoryBtn event listener - REMOVED (Learn/Test feature removed)
+        // selectCardsCategory and selectTestsCategory event listeners - REMOVED (Learn/Test feature removed)
 
         // Edit modal navigation buttons
         this.editPrevCardBtn.addEventListener('click', () => this.editPreviousCard());
@@ -1357,27 +1427,21 @@ class VocaBox {
         this.editCardForm.addEventListener('submit', (e) => this.handleEditCard(e));
         this.createTestForm.addEventListener('submit', (e) => this.handleCreateTest(e));
 
-        // Flip mode controls
-        this.exitTestBtn.addEventListener('click', () => this.exitTestMode());
-        this.flipCardBtn.addEventListener('click', () => this.flipCard());
-        this.flashcard.addEventListener('click', () => this.flipCard());
-        this.prevCardBtn.addEventListener('click', () => this.previousCard());
-        this.nextCardBtn.addEventListener('click', () => this.nextCard());
-        
-        // Arrow buttons for card flipping mode
-        if (this.flipCardArrowLeft) {
-            this.flipCardArrowLeft.addEventListener('click', () => this.previousCard());
-        }
-        if (this.flipCardArrowRight) {
-            this.flipCardArrowRight.addEventListener('click', () => this.nextCard());
-        }
-        this.replayFlipAudioBtn.addEventListener('click', () => this.replayFlipAudio());
+        // Flip mode controls - REMOVED (Learn/Test feature removed)
+        // All test mode event listeners removed since test mode screen no longer exists
 
         // Typing mode controls
         this.exitTypingBtn.addEventListener('click', () => this.exitTypingMode());
         this.checkAnswerBtn.addEventListener('click', () => this.checkAnswer());
+        if (this.typingModeToggleBtn) {
+            this.typingModeToggleBtn.addEventListener('click', () => this.toggleTypingMode());
+        }
+        if (this.typingPrevBtn) {
         this.typingPrevBtn.addEventListener('click', () => this.previousTypingCard());
+        }
+        if (this.typingNextBtn) {
         this.typingNextBtn.addEventListener('click', () => this.nextTypingCard());
+        }
         
         // Arrow buttons for typing mode
         if (this.typingCardArrowLeft) {
@@ -1486,11 +1550,11 @@ class VocaBox {
         document.addEventListener('keydown', (e) => {
             // Only handle if on main card view (not in test mode, not in modals)
             const isModalOpen = document.querySelector('.modal.active');
-            const isTestModeActive = this.testModeScreen && this.testModeScreen.classList.contains('active');
+            // testModeScreen check removed (Learn/Test feature removed)
             const isTypingModeActive = this.typingModeScreen && this.typingModeScreen.classList.contains('active');
             
-            // Don't handle if any modal is open or in test/typing modes
-            if (isModalOpen || isTestModeActive || isTypingModeActive) {
+            // Don't handle if any modal is open or in typing mode
+            if (isModalOpen || isTypingModeActive) {
                 return;
             }
             
@@ -1524,46 +1588,7 @@ class VocaBox {
             }
         });
 
-        // Global keyboard listener for card flipping mode (Learn/Test)
-        document.addEventListener('keydown', (e) => {
-            // Only handle if card flipping mode is active
-            if (!this.testModeScreen || !this.testModeScreen.classList.contains('active')) {
-                return;
-            }
-            
-            // Check if user is typing in an input field
-            const activeElement = document.activeElement;
-            if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable)) {
-                return;
-            }
-            
-            // Enter/Return - flip the current card only (do not move to next)
-            if (e.key === 'Enter' || e.key === 'Return') {
-                e.preventDefault();
-                this.flipCard();
-                return;
-            }
-            
-            // Right Arrow - move to next card
-            if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                this.nextCard();
-                return;
-            }
-            
-            // Left Arrow - move to previous card
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                this.previousCard();
-                return;
-            }
-            
-            // Space - flip card (keep existing behavior)
-            if (e.key === ' ' || e.key === 'Spacebar') {
-                e.preventDefault();
-                this.flipCard();
-            }
-        });
+        // Global keyboard listener for card flipping mode (Learn/Test) - REMOVED (Learn/Test feature removed)
 
         // Finish Test button
         if (this.finishTestBtn) {
@@ -1642,11 +1667,7 @@ class VocaBox {
             }
         });
 
-        this.testModeSelectModal.addEventListener('click', (e) => {
-            if (e.target === this.testModeSelectModal) {
-                this.closeTestModeSelection();
-            }
-        });
+        // testModeSelectModal click handler - REMOVED (Learn/Test feature removed)
 
         this.categorySelectModal.addEventListener('click', (e) => {
             if (e.target === this.categorySelectModal) {
@@ -1762,6 +1783,74 @@ class VocaBox {
     }
 
     /**
+     * Get the map of used access codes on this device
+     * @returns {Object} - Object mapping code strings to usage counts
+     */
+    getUsedAccessCodesOnThisDevice() {
+        try {
+            const stored = localStorage.getItem('vocabox_usedAccessCodes');
+            if (!stored) {
+                return {};
+            }
+            return JSON.parse(stored);
+        } catch (error) {
+            console.warn('[getUsedAccessCodesOnThisDevice] Failed to parse stored data:', error);
+            return {};
+        }
+    }
+
+    /**
+     * Save the map of used access codes on this device
+     * @param {Object} map - Object mapping code strings to usage counts
+     */
+    saveUsedAccessCodesOnThisDevice(map) {
+        try {
+            localStorage.setItem('vocabox_usedAccessCodes', JSON.stringify(map));
+        } catch (error) {
+            console.error('[saveUsedAccessCodesOnThisDevice] Failed to save data:', error);
+        }
+    }
+
+    /**
+     * Check if an access code can be used on this device
+     * @param {Object} codeConfig - The access code configuration object
+     * @param {string} normalizedCode - The normalized (uppercase) code string
+     * @returns {boolean} - True if the code can be used, false otherwise
+     */
+    canUseAccessCodeOnThisDevice(codeConfig, normalizedCode) {
+        // If perDeviceMaxUses is null or undefined, treat as unlimited
+        const maxUses = codeConfig.perDeviceMaxUses;
+        if (maxUses === null || maxUses === undefined) {
+            return true;
+        }
+
+        // Get current usage count
+        const usedMap = this.getUsedAccessCodesOnThisDevice();
+        const used = usedMap[normalizedCode] || 0;
+
+        // Check if limit has been reached
+        return used < maxUses;
+    }
+
+    /**
+     * Mark an access code as used on this device
+     * @param {Object} codeConfig - The access code configuration object
+     * @param {string} normalizedCode - The normalized (uppercase) code string
+     */
+    markAccessCodeUsedOnThisDevice(codeConfig, normalizedCode) {
+        // If perDeviceMaxUses is null or undefined, do nothing (unlimited)
+        const maxUses = codeConfig.perDeviceMaxUses;
+        if (maxUses === null || maxUses === undefined) {
+            return;
+        }
+
+        // Increment usage count
+        const usedMap = this.getUsedAccessCodesOnThisDevice();
+        usedMap[normalizedCode] = (usedMap[normalizedCode] || 0) + 1;
+        this.saveUsedAccessCodesOnThisDevice(usedMap);
+    }
+
+    /**
      * Apply an access code to unlock a subscription tier
      * @param {string} code - The access code to validate and apply
      * @returns {Object|null} - Returns the matched access code config, or null if invalid
@@ -1771,7 +1860,7 @@ class VocaBox {
             return null;
         }
         
-        const trimmedCode = code.trim().toUpperCase();
+        const normalized = code.trim().toUpperCase();
         
         // Check if CONFIG and whitelist exist
         if (typeof CONFIG === 'undefined' || !CONFIG.whitelist || !CONFIG.whitelist.accessCodes) {
@@ -1781,7 +1870,7 @@ class VocaBox {
         
         // Find matching access code
         const matchedCode = CONFIG.whitelist.accessCodes.find(
-            ac => ac.code.toUpperCase() === trimmedCode
+            ac => ac.code.toUpperCase() === normalized
         );
         
         if (!matchedCode) {
@@ -1794,21 +1883,37 @@ class VocaBox {
             return null;
         }
         
+        // Check per-device usage limit BEFORE applying subscription
+        if (!this.canUseAccessCodeOnThisDevice(matchedCode, normalized)) {
+            // Return a special object to indicate limit reached (not invalid code)
+            return { limitReached: true, codeConfig: matchedCode };
+        }
+        
         // Save subscription with access code metadata
         const subscription = {
             tier: matchedCode.tier,
             status: 'active',
             expiresAt: null, // Access codes are permanent
             viaAccessCode: true,
-            accessCodeLabel: matchedCode.label || null
+            accessCodeLabel: matchedCode.label || null,
+            accessCodeValue: normalized
         };
         
         this.saveUserSubscription(subscription);
+        
+        // Mark code as used on this device
+        this.markAccessCodeUsedOnThisDevice(matchedCode, normalized);
         
         return matchedCode;
     }
 
     getUserSubscriptionTier() {
+        if (this.userSubscription?.tier === 'pro') {
+            return 'pro';
+        }
+        if (this.isPremiumUser()) {
+            return 'premium';
+        }
         // Check for access code subscription first (overrides everything)
         if (this.userSubscription?.viaAccessCode && this.userSubscription?.tier) {
             return this.userSubscription.tier;
@@ -1824,6 +1929,12 @@ class VocaBox {
     }
 
     getSubscriptionLimits() {
+        if (this.isPremiumUser()) {
+            return {
+                maxCards: Infinity,
+                maxFolders: Infinity
+            };
+        }
         const tier = this.getUserSubscriptionTier();
         
         // Whitelist users get unlimited everything
@@ -1846,6 +1957,15 @@ class VocaBox {
     }
 
     hasFeature(featureName) {
+        if (this.isPremiumUser()) {
+            const premiumTier = (typeof CONFIG !== 'undefined' && CONFIG.subscription && CONFIG.subscription.tiers)
+                ? CONFIG.subscription.tiers.premium
+                : null;
+            if (premiumTier && premiumTier.features && Object.prototype.hasOwnProperty.call(premiumTier.features, featureName)) {
+                return premiumTier.features[featureName];
+            }
+            return true;
+        }
         const tier = this.getUserSubscriptionTier();
         if (typeof CONFIG === 'undefined' || !CONFIG.subscription) {
             // Default free tier features
@@ -2038,14 +2158,21 @@ class VocaBox {
         }
         
         // Try to apply the access code
-        const matchedCode = this.applyAccessCode(code);
+        const result = this.applyAccessCode(code);
         
-        if (!matchedCode) {
+        if (!result) {
             this.showError(this.specialAccessError, 'Invalid activation code');
             return;
         }
         
+        // Check if limit was reached
+        if (result.limitReached) {
+            this.showError(this.specialAccessError, 'This activation code has already been used on this device.');
+            return;
+        }
+        
         // Success - access code applied
+        const matchedCode = result;
         const tierName = CONFIG.subscription.tiers[matchedCode.tier]?.name || matchedCode.tier;
         const successMessage = matchedCode.label 
             ? `${tierName} access activated via ${matchedCode.label}!`
@@ -2540,6 +2667,9 @@ class VocaBox {
 
     // Custom Color Picker Modal Methods
     openCustomColorPickerModal(editor, savedSelection) {
+        if (!this.requirePremiumFeature('Custom color editor')) {
+            return;
+        }
         this.pendingCustomColorContext = { editor, savedSelection };
         
         // Set default color to black
@@ -3458,6 +3588,7 @@ class VocaBox {
             // Hide decoration cat when no cards
             const cardsDecoration = document.querySelector('.cat-decoration');
             if (cardsDecoration) cardsDecoration.style.display = 'none';
+            this.updateWorkspacePracticeBar([]);
         } else {
             console.log('[renderCards] Showing cards, currentCardIndex:', this.currentCardIndex);
             this.cardsEmptyState.classList.add('hidden');
@@ -3498,6 +3629,7 @@ class VocaBox {
             
             // Update navigation
             this.updateCardNavigation(cardsToShow.length);
+            this.updateWorkspacePracticeBar(cardsToShow);
         }
         
         // Reapply font size after rendering
@@ -3507,8 +3639,197 @@ class VocaBox {
     updateCardNavigation(totalCards) {
         if (totalCards > 0) {
             this.cardPosition.textContent = `${this.currentCardIndex + 1} / ${totalCards}`;
-            this.prevCardViewBtn.disabled = this.currentCardIndex === 0;
-            this.nextCardViewBtn.disabled = this.currentCardIndex === totalCards - 1;
+        }
+    }
+    
+    updateWorkspacePracticeBar(cardsToShow) {
+        if (!this.cardsNavigation) return;
+        const hasCards = Array.isArray(cardsToShow) && cardsToShow.length > 0;
+        if (!hasCards) {
+            this.canUseWorkspacePractice = false;
+            if (this.wordPracticeLauncher) {
+                this.wordPracticeLauncher.hidden = true;
+            }
+            if (this.cardsNavigation) {
+                this.cardsNavigation.classList.add('cards-navigation--solo');
+            }
+            this.togglePracticeButtonState(this.typingPracticeBtn, false);
+            this.togglePracticeButtonState(this.multipleChoicePracticeBtn, false);
+            // testModeBtn reference removed (Learn/Test feature removed)
+            return;
+        }
+        
+        const isWordDeck = this.isWordDeckCollection(cardsToShow);
+        const hasSpecificFolder = this.currentFolder && this.currentFolder !== 'all';
+        const showPractice = Boolean(isWordDeck && hasSpecificFolder);
+        this.isCurrentWordDeck = isWordDeck;
+        this.canUseWorkspacePractice = showPractice;
+        this.workspacePracticeFolderId = showPractice ? this.currentFolder : null;
+        
+        if (this.wordPracticeLauncher) {
+            this.wordPracticeLauncher.hidden = !showPractice;
+        }
+        if (this.cardsNavigation) {
+            this.cardsNavigation.classList.toggle('cards-navigation--solo', !showPractice);
+        }
+        this.togglePracticeButtonState(this.typingPracticeBtn, showPractice);
+        this.togglePracticeButtonState(this.multipleChoicePracticeBtn, showPractice);
+        // testModeBtn reference removed (Learn/Test feature removed)
+    }
+    
+    togglePracticeButtonState(button, isEnabled) {
+        if (!button) return;
+        button.disabled = !isEnabled;
+        if (!isEnabled) {
+            button.setAttribute('aria-disabled', 'true');
+        } else {
+            button.removeAttribute('aria-disabled');
+        }
+    }
+    
+    isWordDeckCollection(cards = []) {
+        if (!cards.length) return false;
+        return cards.every(card => {
+            const category = (card?.category || 'card').toLowerCase();
+            return category === 'card' || category === 'word' || category === 'imported' || category === '';
+        });
+    }
+    
+    onScreenChanged(screenName) {
+        // Move the shared deck workspace under the active category screen (Words or Sentences)
+        if (!this.deckWorkspaceRoot) return;
+        const wordsScreen = document.getElementById('WordsScreen');
+        const sentencesScreen = document.getElementById('SentencesScreen');
+
+        let targetScreen = null;
+        if (screenName === 'words') {
+            targetScreen = wordsScreen;
+            this.workspaceCategory = 'words';
+        } else if (screenName === 'sentences') {
+            targetScreen = sentencesScreen;
+            this.workspaceCategory = 'sentences';
+        }
+
+        if (!targetScreen) {
+            // Hide workspace for other screens
+            this.deckWorkspaceRoot.style.display = 'none';
+            return;
+        }
+
+        // Ensure workspace is visible
+        this.deckWorkspaceRoot.style.display = '';
+
+        // Attach workspace right after the pack-section for the current category
+        const packSection = targetScreen.querySelector('[data-pack-section]');
+        if (packSection && this.deckWorkspaceRoot.parentElement !== targetScreen) {
+            packSection.insertAdjacentElement('afterend', this.deckWorkspaceRoot);
+        } else if (!packSection && this.deckWorkspaceRoot.parentElement !== targetScreen) {
+            targetScreen.appendChild(this.deckWorkspaceRoot);
+        }
+    }
+    
+    getCurrentPracticeFolderId() {
+        if (!this.currentFolder || this.currentFolder === 'all') {
+            return null;
+        }
+        return this.currentFolder;
+    }
+    
+    getPracticeScopeIds() {
+        // Returns { folderId, listId } based on current scope, folder selection, and list dropdown
+        const currentFolderId = this.getCurrentPracticeFolderId();
+        if (!currentFolderId) {
+            return { folderId: null, listId: null };
+        }
+
+        const scope = this.currentPracticeScope || 'list';
+
+        // Resolve current folder object
+        const selectedFolder = this.folders.find(
+            f => f.id === currentFolderId || String(f.id) === String(currentFolderId)
+        );
+
+        // If folder can't be resolved, fall back to folder-wide practice
+        if (!selectedFolder) {
+            return { folderId: currentFolderId, listId: null };
+        }
+
+        // If scope is "whole folder", always practice over the full folder
+        if (scope === 'folder') {
+            // If current selection is a list, use its parent folder
+            if (selectedFolder.parentFolderId) {
+                return { folderId: selectedFolder.parentFolderId, listId: null };
+            }
+            // Otherwise use the current folder directly
+            return { folderId: currentFolderId, listId: null };
+        }
+
+        // Scope is "current list only" – try to use the explicit list selection if present
+        let listIdFromDropdown = null;
+        if (this.listDropdown && this.listDropdown.value && this.listDropdown.value !== '') {
+            listIdFromDropdown = this.listDropdown.value;
+        }
+
+        if (listIdFromDropdown) {
+            const listFolder = this.folders.find(
+                f => f.id === listIdFromDropdown || String(f.id) === String(listIdFromDropdown)
+            );
+            if (listFolder && listFolder.parentFolderId) {
+                // Explicit list selected via dropdown
+                return { folderId: listFolder.parentFolderId, listId: listIdFromDropdown };
+            }
+        }
+
+        // Fallback: if currentFolder itself is a list, use it
+        if (selectedFolder.parentFolderId) {
+            return { folderId: selectedFolder.parentFolderId, listId: currentFolderId };
+        }
+
+        // If we reach here, we are on a parent folder with no specific list selected – fall back to whole folder
+        return { folderId: currentFolderId, listId: null };
+    }
+    
+    startTypingPracticeFromWorkspace() {
+        if (!this.canUseWorkspacePractice) {
+            this.notifyPracticeUnavailable('Typing');
+            return;
+        }
+        const { folderId, listId } = this.getPracticeScopeIds();
+        if (!folderId) {
+            this.notifyPracticeUnavailable('Typing');
+            return;
+        }
+        // Use listId if available, otherwise use folderId
+        this.typingSelectedFolderId = listId || folderId;
+        this.startTypingMode('front', 'back');
+    }
+    
+    startMultipleChoicePracticeFromWorkspace() {
+        if (!this.canUseWorkspacePractice) {
+            this.notifyPracticeUnavailable('Multiple Choice');
+            return;
+        }
+        const { folderId, listId } = this.getPracticeScopeIds();
+        if (!folderId) {
+            this.notifyPracticeUnavailable('Multiple Choice');
+            return;
+        }
+        this.requirePremiumFeature('Multiple Choice mode', () => {
+            // Use listId if available, otherwise use folderId
+            this.mcSelectedFolderId = listId || folderId;
+            this.startMultipleChoiceMode();
+        });
+    }
+    
+    notifyPracticeUnavailable(modeLabel) {
+        if (typeof showToast === 'function') {
+            showToast({
+                title: `${modeLabel} unavailable`,
+                description: 'Select a Words folder to use this mode.',
+                icon: '📘'
+            });
+        } else {
+            alert(`Select a Words folder to start ${modeLabel}.`);
         }
     }
     
@@ -3766,6 +4087,14 @@ class VocaBox {
             const cardCount = this.cards.length;
             const text = `All Folders-${cardCount} cards`;
             console.log(`[updateCurrentFolderInfo] Setting text to: ${text}`);
+            this.currentFolderContent.textContent = text;
+            this.currentFolderInfo.style.display = 'flex';
+            return;
+        }
+        
+        if (this.currentFolder === COMMON_FOLDER_ID) {
+            const cardCount = this.getUnsortedCards().length;
+            const text = `${COMMON_FOLDER_NAME}-${cardCount} cards`;
             this.currentFolderContent.textContent = text;
             this.currentFolderInfo.style.display = 'flex';
             return;
@@ -6394,23 +6723,12 @@ class VocaBox {
 
     }
 
-    // Learn/Test Mode Selection
-    openTestModeSelection() {
-        if (this.cards.length === 0) {
-            alert('Please add some cards first!');
-            return;
-        }
-        this.testModeSelectModal.classList.add('active');
-    }
-
-    closeTestModeSelection() {
-        this.testModeSelectModal.classList.remove('active');
-    }
+    // Learn/Test Mode Selection - REMOVED (Learn/Test feature removed)
 
     // Shared Folder/List Selection Methods
     openSharedFolderSelection(mode) {
         this.sharedFolderSelectMode = mode;
-        this.testModeSelectModal.classList.remove('active');
+        // testModeSelectModal reference removed (Learn/Test feature removed)
         this.sharedFolderSelectModal.classList.add('active');
         
         // Set title based on mode
@@ -6464,13 +6782,7 @@ class VocaBox {
         this.typingSideSelectModal.classList.remove('active');
     }
 
-    backToTestModeSelection() {
-        this.flipSideSelectModal.classList.remove('active');
-        this.sharedFolderSelectModal.classList.remove('active');
-        this.typingFolderSelectModal.classList.remove('active');
-        this.typingSideSelectModal.classList.remove('active');
-        this.testModeSelectModal.classList.add('active');
-    }
+    // backToTestModeSelection - REMOVED (Learn/Test feature removed)
 
     startFlipModeWithSide(startingSide) {
         this.closeFlipSideSelection();
@@ -6484,20 +6796,7 @@ class VocaBox {
         this.startTypingMode(seeSide, typeSide);
     }
 
-    // Category Selection
-    openCategorySelection() {
-        this.testModeSelectModal.classList.remove('active');
-        this.categorySelectModal.classList.add('active');
-    }
-
-    closeCategorySelection() {
-        this.categorySelectModal.classList.remove('active');
-    }
-
-    backToTestModeFromCategory() {
-        this.categorySelectModal.classList.remove('active');
-        this.testModeSelectModal.classList.add('active');
-    }
+    // Category Selection - REMOVED (Learn/Test feature removed, category selection no longer needed)
 
     // Flip Mode Functions
     startFlipMode(category, startingSide = 'front') {
@@ -6562,15 +6861,774 @@ class VocaBox {
         this.closeFlipSideSelection();
         this.currentTestIndex = 0;
         this.isFlipped = startingSide === 'back';
-        this.testModeScreen.classList.add('active');
-        this.totalCards.textContent = this.flipTestCards.length;
-        this.loadTestCard();
+        // testModeScreen removed (Learn/Test feature removed)
+        // Note: startFlipMode is still used by category/pack flows, but testModeScreen no longer exists
+        // This function may need to be refactored for category/pack flows
+        console.warn('startFlipMode called but testModeScreen is removed. This may be from a category/pack flow.');
+        // this.testModeScreen.classList.add('active');
+        // this.totalCards.textContent = this.flipTestCards.length;
+        // this.loadTestCard();
     }
 
-    exitTestMode() {
-        this.testModeScreen.classList.remove('active');
-        this.flashcardInner.classList.remove('flipped');
+    ensureWordPackDeck(packId) {
+        const packMeta = WORD_PACK_DATA[packId];
+        if (!packMeta) {
+            return null;
+        }
+
+        this.ensureCardsIsArray();
+
+        let folderId = packMeta.folderId || `pack-${packId}`;
+        let folder = this.folders.find(f => String(f.id) === String(folderId));
+
+        if (!folder && folderId === 'default') {
+            folder = this.folders.find(f => f.id === 'default');
+            if (!folder) {
+                folder = {
+                    id: 'default',
+                    name: 'Default Folder',
+                    description: 'Default folder for all cards',
+                    createdAt: new Date().toISOString()
+                };
+                this.folders.push(folder);
+                this.saveFolders(this.folders);
+            }
+        }
+
+        if (!folder) {
+            folder = {
+                id: folderId,
+                name: packMeta.folderName || packMeta.label || 'Word Pack',
+                description: packMeta.description || 'Auto-generated word pack folder',
+                parentFolderId: null,
+                createdAt: new Date().toISOString(),
+                isSystemPack: true
+            };
+            this.folders.push(folder);
+            this.saveFolders(this.folders);
+            this.renderFolders();
+            this.updateFolderSelectors();
+        }
+
+        let hasCards = this.cards.some(card => String(card.folderId) === String(folderId));
+
+        if (!hasCards && Array.isArray(packMeta.cards) && packMeta.cards.length) {
+            packMeta.cards.forEach(card => {
+                this.addCardSilent(card.front, card.back, 'card', null, folderId, true);
+            });
+            this.saveCards();
+            this.renderCards();
+            this.updateCardCount();
+            hasCards = true;
+        }
+
+        return { folderId, hasCards, meta: packMeta };
     }
+
+    launchWordPackFlashSession(packId, packInfo = {}) {
+        if (!packId) {
+            return false;
+        }
+
+        const packMeta = WORD_PACK_DATA[packId];
+        if (!packMeta) {
+            showToast?.({
+                title: 'Pack not ready',
+                description: 'This pack is still being prepared.',
+                icon: '⏳'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Word Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.WORDS, packTitle, FLASH_MODE_KEY);
+
+        const ensured = this.ensureWordPackDeck(packId);
+        if (!ensured) {
+            this.showNotification('Unable to load this pack right now.', 'warning');
+            return false;
+        }
+
+        const { folderId, hasCards } = ensured;
+
+        if (!hasCards) {
+            if (packMeta.requiresUserCards) {
+                this.showNotification('Add cards to your custom lists before studying.', 'warning');
+            } else {
+                this.showNotification('This pack does not have cards yet.', 'warning');
+            }
+            return false;
+        }
+
+        this.selectedFolderId = folderId;
+        this.currentFolder = folderId;
+        if (typeof this.updateCurrentFolderInfo === 'function') {
+            this.updateCurrentFolderInfo();
+        }
+
+        showToast?.({
+            title: 'Flashcards ready',
+            description: `Starting ${packInfo.title || packMeta.folderName || 'Word Pack'}.`,
+            icon: '📚'
+        });
+
+        this.startFlipMode('all', 'front');
+        return true;
+    }
+
+    launchWordPackTypingSession(packId, packInfo = {}) {
+        if (!packId) {
+            return false;
+        }
+
+        const packMeta = WORD_PACK_DATA[packId];
+        if (!packMeta) {
+            showToast?.({
+                title: 'Pack not ready',
+                description: 'This pack is still being prepared.',
+                icon: '⏳'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Word Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.WORDS, packTitle, TYPING_MODE_KEY);
+
+        const ensured = this.ensureWordPackDeck(packId);
+        if (!ensured) {
+            this.showNotification('Unable to load this pack right now.', 'warning');
+            return false;
+        }
+
+        const { folderId, hasCards } = ensured;
+
+        if (!hasCards) {
+            if (packMeta.requiresUserCards) {
+                this.showNotification('Add cards to your custom lists before studying.', 'warning');
+            } else {
+                this.showNotification('This pack does not have cards yet.', 'warning');
+            }
+            return false;
+        }
+
+        this.typingSelectedFolderId = folderId;
+        this.selectedFolderId = folderId;
+        this.currentFolder = folderId;
+        if (typeof this.updateCurrentFolderInfo === 'function') {
+            this.updateCurrentFolderInfo();
+        }
+
+        showToast?.({
+            title: 'Typing ready',
+            description: `Starting ${packInfo.title || packMeta.folderName || 'Word Pack'} typing session.`,
+            icon: '⌨️'
+        });
+
+        this.startTypingMode('front', 'back');
+        return true;
+    }
+
+    ensureSentencePackDeck(packId) {
+        const packMeta = SENTENCE_PACK_DATA[packId];
+        if (!packMeta) {
+            return null;
+        }
+
+        this.ensureCardsIsArray();
+
+        let folderId = packMeta.folderId || `pack-${packId}`;
+        let folder = this.folders.find(f => String(f.id) === String(folderId));
+
+        if (!folder) {
+            folder = {
+                id: folderId,
+                name: packMeta.folderName || packMeta.label || 'Sentence Pack',
+                description: packMeta.description || 'Auto-generated sentence pack folder',
+                parentFolderId: null,
+                createdAt: new Date().toISOString(),
+                isSystemPack: true
+            };
+            this.folders.push(folder);
+            this.saveFolders(this.folders);
+            this.renderFolders();
+            this.updateFolderSelectors();
+        }
+
+        let hasCards = this.cards.some(card => String(card.folderId) === String(folderId));
+
+        if (!hasCards && Array.isArray(packMeta.cards) && packMeta.cards.length) {
+            packMeta.cards.forEach(card => {
+                this.addCardSilent(card.front, card.back, 'sentence', null, folderId, true);
+            });
+            this.saveCards();
+            this.renderCards();
+            this.updateCardCount();
+            hasCards = true;
+        }
+
+        return { folderId, hasCards, meta: packMeta };
+    }
+
+    launchSentencePackFlashSession(packId, packInfo = {}) {
+        if (!packId) {
+            return false;
+        }
+
+        const packMeta = SENTENCE_PACK_DATA[packId];
+        if (!packMeta) {
+            showToast?.({
+                title: 'Pack not ready',
+                description: 'This sentence pack is still being prepared.',
+                icon: '⏳'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Sentence Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.SENTENCES, packTitle, FLASH_MODE_KEY);
+
+        const ensured = this.ensureSentencePackDeck(packId);
+        if (!ensured) {
+            this.showNotification('Unable to load this sentence pack right now.', 'warning');
+            return false;
+        }
+
+        const { folderId, hasCards } = ensured;
+        if (!hasCards) {
+            this.showNotification('This sentence pack does not have cards yet.', 'warning');
+            return false;
+        }
+
+        this.selectedFolderId = folderId;
+        this.currentFolder = folderId;
+        if (typeof this.updateCurrentFolderInfo === 'function') {
+            this.updateCurrentFolderInfo();
+        }
+
+        showToast?.({
+            title: 'Sentence Flashcards',
+            description: `Starting ${packInfo.title || packMeta.folderName || 'Sentence Pack'}.`,
+            icon: '💬'
+        });
+
+        this.startFlipMode('all', 'front');
+        return true;
+    }
+
+    launchSentencePackWorkspace(packId, packInfo = {}) {
+        if (!packId) {
+            return false;
+        }
+
+        const packMeta = SENTENCE_PACK_DATA[packId];
+        if (!packMeta) {
+            showToast?.({
+                title: 'Pack not ready',
+                description: 'This sentence pack is still being prepared.',
+                icon: '⏳'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Sentence Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.SENTENCES, packTitle, FLASH_MODE_KEY);
+
+        const ensured = this.ensureSentencePackDeck(packId);
+        if (!ensured) {
+            this.showNotification('Unable to load this sentence pack right now.', 'warning');
+            return false;
+        }
+
+        const { folderId, hasCards } = ensured;
+        if (!hasCards) {
+            this.showNotification('This sentence pack does not have cards yet.', 'warning');
+            return false;
+        }
+
+        // Select the folder in the shared workspace
+        this.selectedFolderId = folderId;
+        this.currentFolder = folderId;
+        this.typingSelectedFolderId = folderId;
+        this.mcSelectedFolderId = folderId;
+        this.workspaceCategory = 'sentences';
+
+        if (typeof this.updateCurrentFolderInfo === 'function') {
+            this.updateCurrentFolderInfo();
+        }
+
+        this.renderCards();
+        this.updateCardCount();
+        this.updateFolderSelectors();
+
+        // Ensure workspace is attached under Sentences screen
+        this.onScreenChanged('sentences');
+
+        return true;
+    }
+
+    ensureListeningPackDeck(packId) {
+        const packMeta = LISTENING_PACK_DATA[packId];
+        if (!packMeta) {
+            return null;
+        }
+
+        this.ensureCardsIsArray();
+
+        let folderId = packMeta.folderId || `pack-${packId}`;
+        let folder = this.folders.find(f => String(f.id) === String(folderId));
+
+        if (!folder) {
+            folder = {
+                id: folderId,
+                name: packMeta.folderName || packMeta.label || 'Listening Pack',
+                description: packMeta.description || 'Auto-generated listening pack folder',
+                parentFolderId: null,
+                createdAt: new Date().toISOString(),
+                isSystemPack: true
+            };
+            this.folders.push(folder);
+            this.saveFolders(this.folders);
+            this.renderFolders();
+            this.updateFolderSelectors();
+        }
+
+        let hasCards = this.cards.some(card => String(card.folderId) === String(folderId));
+
+        if (!hasCards && Array.isArray(packMeta.cards) && packMeta.cards.length) {
+            packMeta.cards.forEach(card => {
+                this.addCardSilent(card.front, card.back, 'listening', null, folderId, true);
+            });
+            this.saveCards();
+            this.renderCards();
+            this.updateCardCount();
+            hasCards = true;
+        }
+
+        return { folderId, hasCards, meta: packMeta };
+    }
+
+    launchListeningPackAudioSession(packId, packInfo = {}) {
+        if (!packId) {
+            return false;
+        }
+
+        const packMeta = LISTENING_PACK_DATA[packId];
+        if (!packMeta) {
+            showToast?.({
+                title: 'Pack not ready',
+                description: 'This listening pack is still being prepared.',
+                icon: '⏳'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Listening Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.LISTENING, packTitle, AUDIO_MODE_KEY);
+
+        const ensured = this.ensureListeningPackDeck(packId);
+        if (!ensured) {
+            this.showNotification('Unable to load this listening pack right now.', 'warning');
+            return false;
+        }
+
+        const { folderId, hasCards } = ensured;
+        if (!hasCards) {
+            this.showNotification('This listening pack does not have audio yet.', 'warning');
+            return false;
+        }
+
+        this.selectedFolderId = folderId;
+        this.currentFolder = folderId;
+        if (typeof this.updateCurrentFolderInfo === 'function') {
+            this.updateCurrentFolderInfo();
+        }
+
+        showToast?.({
+            title: 'Listening Session',
+            description: `Starting ${packInfo.title || packMeta.folderName || 'Listening Pack'}.`,
+            icon: '🎧'
+        });
+
+        this.startFlipMode('all', 'front');
+        return true;
+    }
+
+    launchReadingHighlightSession(packId, packInfo = {}) {
+        this.initReadingHighlightElements();
+        if (!this.readingHighlightSession) {
+            return false;
+        }
+
+        const packMeta = READING_PACK_DATA[packId];
+        if (!packMeta || !Array.isArray(packMeta.cards) || packMeta.cards.length === 0) {
+            showToast?.({
+                title: 'Content unavailable',
+                description: 'This reading pack is still being prepared.',
+                icon: '📖'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Reading Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.READING, packTitle, HIGHLIGHT_MODE_KEY);
+
+        this.currentReadingPackMeta = packMeta;
+        this.readingHighlightItems = packMeta.cards;
+        this.readingHighlightIndex = 0;
+        this.readingHighlightSelections = {};
+        this.readingHighlightPackTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Reading Pack';
+
+        if (this.studyModeTitleEl) {
+            this.studyModeTitleEl.textContent = 'Highlight Mode';
+        }
+        if (this.studyModeSubtitleEl) {
+            this.studyModeSubtitleEl.textContent = `Reading · ${this.readingHighlightPackTitle}`;
+        }
+        if (this.studyModeBehaviorEl) {
+            this.studyModeBehaviorEl.textContent = BEHAVIOR_MAP.VOCAB_EXTRACTION || 'Vocab extraction';
+        }
+        if (this.studyModeCardTypeEl) {
+            this.studyModeCardTypeEl.textContent = CATEGORY_CONFIG_MAP[CATEGORY_KEY_MAP.READING]?.cardType || 'ParagraphCard';
+        }
+
+        this.showReadingHighlightSession();
+        this.renderReadingHighlightCard();
+        return true;
+    }
+
+    initReadingHighlightElements() {
+        if (this.readingHighlightSessionInitialized) {
+            return;
+        }
+        this.studyModeScreen = this.studyModeScreen || document.getElementById('StudyModeScreen');
+        this.studyModePlaceholder = this.studyModePlaceholder || document.getElementById('studyModePlaceholder');
+        this.studyModeTitleEl = this.studyModeTitleEl || document.getElementById('studyModeTitle');
+        this.studyModeSubtitleEl = this.studyModeSubtitleEl || document.getElementById('studyModeSubtitle');
+        this.studyModeBehaviorEl = this.studyModeBehaviorEl || document.getElementById('studyModeBehavior');
+        this.studyModeCardTypeEl = this.studyModeCardTypeEl || document.getElementById('studyModeCardType');
+        this.studyModeBackBtn = this.studyModeBackBtn || document.getElementById('studyModeBackBtn');
+
+        this.readingHighlightSession = document.getElementById('readingHighlightSession');
+        this.readingHighlightTitle = document.getElementById('readingHighlightTitle');
+        this.readingHighlightSummary = document.getElementById('readingHighlightSummary');
+        this.readingHighlightText = document.getElementById('readingHighlightText');
+        this.readingHighlightCounter = document.getElementById('readingHighlightCounter');
+        this.readingHighlightSelectionsList = document.getElementById('readingHighlightSelections');
+        this.readingHighlightSelectionCount = document.getElementById('readingHighlightSelectionCount');
+        this.readingHighlightPrevBtn = document.getElementById('readingHighlightPrev');
+        this.readingHighlightNextBtn = document.getElementById('readingHighlightNext');
+        this.readingHighlightSaveBtn = document.getElementById('readingHighlightSave');
+
+        if (!this.readingHighlightSession) {
+            return;
+        }
+
+        if (this.readingHighlightText && !this.readingHighlightText.dataset.bound) {
+            this.readingHighlightText.addEventListener('click', (event) => this.handleReadingHighlightWordClick(event));
+            this.readingHighlightText.dataset.bound = 'true';
+        }
+        if (this.readingHighlightPrevBtn && !this.readingHighlightPrevBtn.dataset.bound) {
+            this.readingHighlightPrevBtn.addEventListener('click', () => this.changeReadingHighlightCard(-1));
+            this.readingHighlightPrevBtn.dataset.bound = 'true';
+        }
+        if (this.readingHighlightNextBtn && !this.readingHighlightNextBtn.dataset.bound) {
+            this.readingHighlightNextBtn.addEventListener('click', () => this.changeReadingHighlightCard(1));
+            this.readingHighlightNextBtn.dataset.bound = 'true';
+        }
+        if (this.readingHighlightSaveBtn && !this.readingHighlightSaveBtn.dataset.bound) {
+            this.readingHighlightSaveBtn.addEventListener('click', () => this.saveReadingHighlights());
+            this.readingHighlightSaveBtn.dataset.bound = 'true';
+        }
+        if (this.studyModeBackBtn && !this.studyModeBackBtn.dataset.bound) {
+            this.studyModeBackBtn.addEventListener('click', () => this.hideReadingHighlightSession());
+            this.studyModeBackBtn.dataset.bound = 'true';
+        }
+
+        this.readingHighlightSessionInitialized = true;
+    }
+
+    showReadingHighlightSession() {
+        if (window.vocaboxScreenController?.setActiveScreen) {
+            window.vocaboxScreenController.setActiveScreen('study-mode');
+        }
+        if (this.studyModePlaceholder) {
+            this.studyModePlaceholder.hidden = true;
+        }
+        if (this.readingHighlightSession) {
+            this.readingHighlightSession.hidden = false;
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    hideReadingHighlightSession(options = {}) {
+        const { preserveScreen = false } = options;
+        if (this.readingHighlightSession) {
+            this.readingHighlightSession.hidden = true;
+        }
+        if (this.studyModePlaceholder) {
+            this.studyModePlaceholder.hidden = false;
+        }
+        if (!preserveScreen) {
+            window.vocaboxScreenController?.setActiveScreen?.('pack-detail');
+        }
+    }
+
+    renderReadingHighlightCard() {
+        if (!this.readingHighlightItems.length || !this.readingHighlightSession) {
+            return;
+        }
+
+        const item = this.readingHighlightItems[this.readingHighlightIndex];
+        const itemId = item.id || `reading-${this.readingHighlightIndex}`;
+        this.readingHighlightCurrentId = itemId;
+
+        if (!this.readingHighlightSelections[itemId]) {
+            this.readingHighlightSelections[itemId] = new Map();
+        }
+        const selectionMap = this.readingHighlightSelections[itemId];
+
+        if (this.readingHighlightTitle) {
+            this.readingHighlightTitle.textContent = item.title || this.readingHighlightPackTitle || 'Reading Passage';
+        }
+        if (this.readingHighlightSummary) {
+            if (item.summary) {
+                this.readingHighlightSummary.textContent = item.summary;
+                this.readingHighlightSummary.style.display = '';
+            } else {
+                this.readingHighlightSummary.style.display = 'none';
+            }
+        }
+        if (this.readingHighlightText) {
+            this.readingHighlightText.innerHTML = '';
+            const text = item.text || '';
+            const tokens = text.split(/(\s+)/);
+            tokens.forEach(token => {
+                if (!token) return;
+                if (/^\s+$/.test(token)) {
+                    this.readingHighlightText.appendChild(document.createTextNode(token));
+                    return;
+                }
+                const span = document.createElement('span');
+                const normalized = this.normalizeReadingHighlightWord(token);
+                span.className = 'reading-highlight-word';
+                span.textContent = token;
+                if (normalized) {
+                    span.dataset.word = normalized;
+                }
+                if (normalized && selectionMap.has(normalized)) {
+                    span.classList.add('is-highlighted');
+                }
+                this.readingHighlightText.appendChild(span);
+            });
+        }
+        if (this.readingHighlightCounter) {
+            this.readingHighlightCounter.textContent = `Passage ${this.readingHighlightIndex + 1} of ${this.readingHighlightItems.length}`;
+        }
+        if (this.readingHighlightPrevBtn) {
+            this.readingHighlightPrevBtn.disabled = this.readingHighlightIndex === 0;
+        }
+        if (this.readingHighlightNextBtn) {
+            this.readingHighlightNextBtn.disabled = this.readingHighlightIndex >= this.readingHighlightItems.length - 1;
+        }
+
+        this.renderReadingHighlightSelectionList(itemId);
+    }
+
+    renderReadingHighlightSelectionList(itemId) {
+        if (!this.readingHighlightSelectionsList) {
+            return;
+        }
+        const selectionMap = this.readingHighlightSelections[itemId] || new Map();
+        const entries = Array.from(selectionMap.values());
+
+        this.readingHighlightSelectionsList.innerHTML = '';
+        if (!entries.length) {
+            const li = document.createElement('li');
+            li.textContent = 'No highlights yet.';
+            li.className = 'reading-highlight-empty';
+            this.readingHighlightSelectionsList.appendChild(li);
+        } else {
+            entries.forEach(word => {
+                const li = document.createElement('li');
+                li.textContent = word;
+                this.readingHighlightSelectionsList.appendChild(li);
+            });
+        }
+        if (this.readingHighlightSelectionCount) {
+            this.readingHighlightSelectionCount.textContent = `(${entries.length})`;
+        }
+    }
+
+    handleReadingHighlightWordClick(event) {
+        const target = event.target.closest('.reading-highlight-word');
+        if (!target) {
+            return;
+        }
+        const word = target.dataset.word;
+        if (!word || !this.readingHighlightCurrentId) {
+            return;
+        }
+
+        if (!this.readingHighlightSelections[this.readingHighlightCurrentId]) {
+            this.readingHighlightSelections[this.readingHighlightCurrentId] = new Map();
+        }
+        const selectionMap = this.readingHighlightSelections[this.readingHighlightCurrentId];
+        if (target.classList.contains('is-highlighted')) {
+            target.classList.remove('is-highlighted');
+            selectionMap.delete(word);
+        } else {
+            target.classList.add('is-highlighted');
+            selectionMap.set(word, (target.textContent || word).trim());
+        }
+        this.renderReadingHighlightSelectionList(this.readingHighlightCurrentId);
+    }
+
+    changeReadingHighlightCard(offset) {
+        const newIndex = this.readingHighlightIndex + offset;
+        if (newIndex < 0 || newIndex >= this.readingHighlightItems.length) {
+            return;
+        }
+        this.readingHighlightIndex = newIndex;
+        this.renderReadingHighlightCard();
+    }
+
+    saveReadingHighlights() {
+        const total = Object.values(this.readingHighlightSelections).reduce((sum, map) => sum + (map ? map.size : 0), 0);
+        if (!total) {
+            showToast?.({
+                title: 'No highlights yet',
+                description: 'Tap words in the passage to highlight them first.',
+                icon: '📝'
+            });
+            return;
+        }
+        showToast?.({
+            title: 'Highlights saved',
+            description: `Captured ${total} word${total === 1 ? '' : 's'} from ${this.readingHighlightPackTitle || 'this pack'}.`,
+            icon: '📚'
+        });
+    }
+
+    normalizeReadingHighlightWord(word = '') {
+        return word
+            .replace(/^[^A-Za-zÀ-ÿ0-9']+/, '')
+            .replace(/[^A-Za-zÀ-ÿ0-9']+$/, '')
+            .toLowerCase();
+    }
+
+    setCurrentStudyContext(categoryKey, packTitle = 'Pack', studyMode = FLASH_MODE_KEY) {
+        const categoryLabel = getCategoryLabel(categoryKey);
+        const packLabel = packTitle || 'Pack';
+        const modeLabel = getStudyModeLabel(studyMode);
+        const contextText = `${categoryLabel} · ${packLabel} · ${modeLabel}`;
+
+        // testModeContext reference removed (Learn/Test feature removed)
+        if (this.typingModeContext) {
+            this.typingModeContext.textContent = contextText;
+        }
+        if (this.studyModeTitleEl) {
+            this.studyModeTitleEl.textContent = `${modeLabel} Mode`;
+        }
+        if (this.studyModeSubtitleEl) {
+            this.studyModeSubtitleEl.textContent = `${categoryLabel} · ${packLabel}`;
+        }
+
+        this.currentStudyContext = {
+            categoryKey,
+            categoryLabel,
+            packLabel,
+            modeLabel
+        };
+    }
+
+    ensureGrammarPackDeck(packId) {
+        const packMeta = GRAMMAR_PACK_DATA[packId];
+        if (!packMeta) {
+            return null;
+        }
+
+        this.ensureCardsIsArray();
+
+        let folderId = packMeta.folderId || `pack-${packId}`;
+        let folder = this.folders.find(f => String(f.id) === String(folderId));
+
+        if (!folder) {
+            folder = {
+                id: folderId,
+                name: packMeta.folderName || packMeta.label || 'Grammar Pack',
+                description: packMeta.description || 'Auto-generated grammar pack folder',
+                parentFolderId: null,
+                createdAt: new Date().toISOString(),
+                isSystemPack: true
+            };
+            this.folders.push(folder);
+            this.saveFolders(this.folders);
+            this.renderFolders();
+            this.updateFolderSelectors();
+        }
+
+        let hasCards = this.cards.some(card => String(card.folderId) === String(folderId));
+
+        if (!hasCards && Array.isArray(packMeta.cards) && packMeta.cards.length) {
+            packMeta.cards.forEach(card => {
+                this.addCardSilent(card.front, card.back, 'concept', null, folderId, true);
+            });
+            this.saveCards();
+            this.renderCards();
+            this.updateCardCount();
+            hasCards = true;
+        }
+
+        return { folderId, hasCards, meta: packMeta };
+    }
+
+    launchGrammarPackFlashSession(packId, packInfo = {}) {
+        if (!packId) {
+            return false;
+        }
+
+        const packMeta = GRAMMAR_PACK_DATA[packId];
+        if (!packMeta) {
+            showToast?.({
+                title: 'Pack not ready',
+                description: 'This grammar pack is still being prepared.',
+                icon: '⏳'
+            });
+            return false;
+        }
+
+        const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Grammar Pack';
+        this.setCurrentStudyContext(CATEGORY_KEY_MAP.GRAMMAR, packTitle, FLASH_MODE_KEY);
+
+        const ensured = this.ensureGrammarPackDeck(packId);
+        if (!ensured) {
+            this.showNotification('Unable to load this grammar pack right now.', 'warning');
+            return false;
+        }
+
+        const { folderId, hasCards } = ensured;
+        if (!hasCards) {
+            this.showNotification('This grammar pack does not have cards yet.', 'warning');
+            return false;
+        }
+
+        this.selectedFolderId = folderId;
+        this.currentFolder = folderId;
+        if (typeof this.updateCurrentFolderInfo === 'function') {
+            this.updateCurrentFolderInfo();
+        }
+
+        showToast?.({
+            title: 'Grammar Concepts',
+            description: `Starting ${packInfo.title || packMeta.folderName || 'Grammar Pack'}.`,
+            icon: '📘'
+        });
+
+        this.startFlipMode('all', 'front');
+        return true;
+    }
+
+    // exitTestMode - REMOVED (Learn/Test feature removed)
 
     // Typing Mode Functions
     startTypingMode(seeSide = 'front', typeSide = 'back') {
@@ -6609,6 +7667,9 @@ class VocaBox {
         this.typingSeeSide = seeSide;
         this.typingTypeSide = typeSide;
         
+        // Reset reverse mode to default (type back)
+        this.typingModeReverse = false;
+        
         // Reset test results
         this.testResults = {
             answers: [],
@@ -6620,6 +7681,7 @@ class VocaBox {
         this.currentTypingIndex = 0;
         this.typingModeScreen.classList.add('active');
         this.typingTotalCards.textContent = this.typingTestCards.length;
+        this.updateTypingModeToggleButton();
         this.loadTypingCard();
     }
 
@@ -6627,13 +7689,41 @@ class VocaBox {
         this.typingModeScreen.classList.remove('active');
         this.typingAnswer.value = '';
         this.answerResult.style.display = 'none';
+        this.typingModeReverse = false; // Reset to default on exit
+        // Return to Words workspace
+        if (window.vocaboxScreenController) {
+            window.vocaboxScreenController.setActiveScreen('words');
+        } else {
+            // Fallback: show Words screen directly
+            const wordsScreen = document.getElementById('WordsScreen');
+            if (wordsScreen) {
+                wordsScreen.hidden = false;
+                wordsScreen.setAttribute('aria-hidden', 'false');
+            }
+        }
+    }
+
+    toggleTypingMode() {
+        this.typingModeReverse = !this.typingModeReverse;
+        this.updateTypingModeToggleButton();
+        // Reload current card with new mode
+        this.loadTypingCard();
+    }
+
+    updateTypingModeToggleButton() {
+        if (!this.typingModeToggleBtn) return;
+        this.typingModeToggleBtn.textContent = this.typingModeReverse 
+            ? 'Type Back Side' 
+            : 'Type Front Side';
     }
 
     async loadTypingCard() {
         const card = this.typingTestCards[this.currentTypingIndex];
-        // Use the configured side to display
+        // Use reverse mode to determine what to show and what to type
+        // If reverse is false (default): show front, type back
+        // If reverse is true: show back, type front
         const audioEnabled = typeof CONFIG !== 'undefined' && CONFIG.features && CONFIG.features.enableAudioPronunciation;
-        const questionText = this.typingSeeSide === 'front' ? card.front : card.back;
+        const questionText = this.typingModeReverse ? card.back : card.front;
         const speakerIcon = audioEnabled ? '<button class="speaker-btn-inline" title="Pronounce word" aria-label="Pronounce word" style="background: none; border: none; cursor: pointer; padding: 5px; margin-left: 10px; vertical-align: middle;"><img src="music.png" alt="Pronounce" style="width: 24px; height: 24px;"></button>' : '';
         
         this.typingQuestion.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">${questionText}${speakerIcon}</div>`;
@@ -6676,9 +7766,13 @@ class VocaBox {
         // Reapply font size
         setTimeout(() => this.applyFontSize(), 50);
         
-        // Enable/disable navigation buttons
+        // Enable/disable navigation buttons (if they exist)
+        if (this.typingPrevBtn) {
         this.typingPrevBtn.disabled = this.currentTypingIndex === 0;
+        }
+        if (this.typingNextBtn) {
         this.typingNextBtn.disabled = this.currentTypingIndex === this.typingTestCards.length - 1;
+        }
         
         // Store current audio ID and show/hide replay button
         this.currentTypingAudioId = card.audioId || null;
@@ -6700,8 +7794,10 @@ class VocaBox {
     checkAnswer() {
         const userAnswer = this.typingAnswer.value.trim();
         const card = this.typingTestCards[this.currentTypingIndex];
-        // Use the configured side to check against
-        const correctAnswer = this.typingTypeSide === 'front' ? card.front : card.back;
+        // Use reverse mode to determine correct answer
+        // If reverse is false (default): type back, so correct answer is back
+        // If reverse is true: type front, so correct answer is front
+        const correctAnswer = this.typingModeReverse ? card.front : card.back;
         
         if (!userAnswer) {
             alert('Please type an answer first!');
@@ -7098,6 +8194,10 @@ class VocaBox {
     // ========== MULTIPLE CHOICE MODE FUNCTIONS ==========
     
     openMultipleChoiceFolderSelection() {
+        if (!this.isPremiumUser()) {
+            this.showPremiumRequiredToast('Multiple Choice mode');
+            return;
+        }
         // Redirect to shared folder selection
         this.openSharedFolderSelection('multipleChoice');
     }
@@ -7108,6 +8208,7 @@ class VocaBox {
     }
 
     startMultipleChoiceMode() {
+        // Premium check is handled by requirePremiumFeature() before this is called
         // CRITICAL: Ensure cards is always an array
         this.ensureCardsIsArray();
         
@@ -7145,10 +8246,14 @@ class VocaBox {
             incorrectCount: 0
         };
 
+        // Reset reverse mode to default (front → back)
+        this.mcModeReverse = false;
+
         this.closeMultipleChoiceFolderSelection();
         this.currentMcIndex = 0;
         this.multipleChoiceModeScreen.classList.add('active');
         this.mcTotalCards.textContent = this.mcTestCards.length;
+        this.updateMcModeToggleButton();
         this.loadMcCard();
     }
 
@@ -7158,16 +8263,45 @@ class VocaBox {
             clearTimeout(this.mcAutoAdvanceTimeout);
             this.mcAutoAdvanceTimeout = null;
         }
+        this.mcModeReverse = false; // Reset to default on exit
+        // Return to Words workspace
+        if (window.vocaboxScreenController) {
+            window.vocaboxScreenController.setActiveScreen('words');
+        } else {
+            // Fallback: show Words screen directly
+            const wordsScreen = document.getElementById('WordsScreen');
+            if (wordsScreen) {
+                wordsScreen.hidden = false;
+                wordsScreen.setAttribute('aria-hidden', 'false');
+            }
+        }
+    }
+
+    toggleMcMode() {
+        this.mcModeReverse = !this.mcModeReverse;
+        this.updateMcModeToggleButton();
+        // Reload current card with new mode
+        this.loadMcCard();
+    }
+
+    updateMcModeToggleButton() {
+        if (!this.mcModeToggleBtn) return;
+        this.mcModeToggleBtn.textContent = this.mcModeReverse 
+            ? 'Answer Back Side' 
+            : 'Answer Front Side';
     }
 
     async loadMcCard() {
         const card = this.mcTestCards[this.currentMcIndex];
         
-        // Show question (front side)
+        // Use reverse mode to determine what to show as question
+        // If reverse is false (default): show front, answer back
+        // If reverse is true: show back, answer front
+        const questionText = this.mcModeReverse ? card.back : card.front;
         const audioEnabled = typeof CONFIG !== 'undefined' && CONFIG.features && CONFIG.features.enableAudioPronunciation;
         const speakerIcon = audioEnabled ? '<button class="speaker-btn-inline" title="Pronounce word" aria-label="Pronounce word" style="background: none; border: none; cursor: pointer; padding: 5px; margin-left: 10px; vertical-align: middle;"><img src="music.png" alt="Pronounce" style="width: 24px; height: 24px;"></button>' : '';
         
-        this.mcQuestion.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">${card.front}${speakerIcon}</div>`;
+        this.mcQuestion.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">${questionText}${speakerIcon}</div>`;
         
         // Add speaker button click handler
         if (audioEnabled) {
@@ -7175,7 +8309,7 @@ class VocaBox {
             if (speakerBtn) {
                 speakerBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const wordToSpeak = card.front.split(/[,\n]/)[0].trim();
+                    const wordToSpeak = questionText.split(/[,\n]/)[0].trim();
                     if (wordToSpeak) {
                         speakText(wordToSpeak);
                     }
@@ -7199,9 +8333,13 @@ class VocaBox {
         const options = this.generateMcOptions(card);
         this.renderMcOptions(options, card);
         
-        // Enable/disable navigation buttons
+        // Enable/disable navigation buttons (if they exist)
+        if (this.mcPrevBtn) {
         this.mcPrevBtn.disabled = this.currentMcIndex === 0;
+        }
+        if (this.mcNextBtn) {
         this.mcNextBtn.disabled = this.currentMcIndex === this.mcTestCards.length - 1;
+        }
         
         // Store current audio ID and show/hide replay button
         this.currentMcAudioId = card.audioId || null;
@@ -7221,11 +8359,14 @@ class VocaBox {
         // CRITICAL: Ensure cards is always an array
         this.ensureCardsIsArray();
         
-        const correctAnswer = correctCard.back;
+        // Use reverse mode to determine correct answer
+        // If reverse is false (default): prompt = front, correct answer = back
+        // If reverse is true: prompt = back, correct answer = front
+        const correctAnswer = this.mcModeReverse ? correctCard.front : correctCard.back;
         
-        // Collect all BACK-side answers from current test set
+        // Collect all answers from the opposite side of the prompt
         const allAnswers = this.mcTestCards
-            .map(c => c.back)
+            .map(c => this.mcModeReverse ? c.front : c.back)
             .filter(answer => answer !== correctAnswer); // Remove correct answer
         
         // Remove duplicates
@@ -7249,12 +8390,15 @@ class VocaBox {
     renderMcOptions(options, correctCard) {
         this.multipleChoiceOptions.innerHTML = '';
         
+        // Use reverse mode to determine correct answer
+        const correctAnswer = this.mcModeReverse ? correctCard.front : correctCard.back;
+        
         options.forEach((option, index) => {
             const button = document.createElement('button');
             button.className = 'mc-option-btn';
             button.textContent = this.stripHTML(option);
             button.dataset.optionIndex = index;
-            button.dataset.isCorrect = (option === correctCard.back) ? 'true' : 'false';
+            button.dataset.isCorrect = (option === correctAnswer) ? 'true' : 'false';
             
             button.addEventListener('click', () => {
                 this.selectMcAnswer(button, correctCard);
@@ -7289,7 +8433,9 @@ class VocaBox {
         // Record answer
         const card = this.mcTestCards[this.currentMcIndex];
         const userAnswer = this.stripHTML(selectedButton.textContent);
-        const correctAnswer = this.stripHTML(correctCard.back);
+        // Use reverse mode to determine correct answer
+        const correctAnswerText = this.mcModeReverse ? correctCard.front : correctCard.back;
+        const correctAnswer = this.stripHTML(correctAnswerText);
         
         this.testResults.answers.push({
             cardId: card.id,
@@ -7703,6 +8849,11 @@ class VocaBox {
     renderFolders() {
         this.folderList.innerHTML = '';
         
+        const commonFolderElement = this.createCommonFolderElement();
+        if (commonFolderElement) {
+            this.folderList.appendChild(commonFolderElement);
+        }
+        
         // Only show parent folders (no parentFolderId) and hide legacy child lists named "Prefix - List XX"
         const parentFolders = this.folders.filter(folder => {
             const isLegacyChild = /.+\s-\sList\s\d+$/i.test(folder.name);
@@ -7826,6 +8977,24 @@ class VocaBox {
             });
         }
         
+        return folderDiv;
+    }
+    
+    createCommonFolderElement() {
+        this.ensureCardsIsArray();
+        const unsortedCount = this.getUnsortedCards().length;
+        const folderDiv = document.createElement('div');
+        folderDiv.className = 'folder-item folder-common';
+        folderDiv.dataset.folderId = COMMON_FOLDER_ID;
+        folderDiv.style.borderLeft = '3px solid #9e9e9e';
+        folderDiv.innerHTML = `
+            <img src="books.png" alt="Folder" class="folder-icon" style="width: 16px; height: 16px;">
+            <div class="folder-info">
+                <span class="folder-name">${COMMON_FOLDER_NAME}</span>
+                <span class="folder-count">${unsortedCount}</span>
+            </div>
+        `;
+        folderDiv.addEventListener('click', () => this.selectFolder(COMMON_FOLDER_ID));
         return folderDiv;
     }
 
@@ -8096,6 +9265,12 @@ class VocaBox {
         if (folderId === 'all') {
             console.log('[buildTestDeckFromSelection] Returning all cards:', this.cards.length);
             return this.cards;
+        }
+        
+        if (folderId === COMMON_FOLDER_ID) {
+            const unsorted = this.getUnsortedCards();
+            console.log('[buildTestDeckFromSelection] Returning common folder cards:', unsorted.length);
+            return unsorted;
         }
         
         if (listId) {
@@ -8696,6 +9871,12 @@ class VocaBox {
             return filtered;
         }
         
+        if (this.currentFolder === COMMON_FOLDER_ID) {
+            const unsorted = this.getUnsortedCards();
+            console.log('[getCardsForCurrentFolder] Common folder - filtered cards:', unsorted.length);
+            return unsorted;
+        }
+        
         // Try to find folder with strict equality first, then try string comparison
         let selectedFolder = this.folders.find(f => f.id === this.currentFolder);
         if (!selectedFolder) {
@@ -8748,6 +9929,20 @@ class VocaBox {
         console.log('[getCardsForCurrentFolder] Child folder - filtered cards:', filtered.length);
         console.log('[getCardsForCurrentFolder] Sample card folderIds:', this.cards.slice(0, 3).map(c => c.folderId));
         return filtered;
+    }
+    
+    getUnsortedCards() {
+        this.ensureCardsIsArray();
+        return this.cards.filter(card => {
+            const folderId = card.folderId;
+            if (folderId === null || folderId === undefined) {
+                return true;
+            }
+            if (typeof folderId === 'string') {
+                return folderId.trim() === '';
+            }
+            return false;
+        });
     }
 
     // Folder Modal Methods
@@ -9212,6 +10407,10 @@ class VocaBox {
         const container = this.listDropdown;
         // Clear dropdown completely before repopulating
         container.innerHTML = '';
+        if (this.currentFolder === COMMON_FOLDER_ID) {
+            container.style.display = 'none';
+            return;
+        }
         const currentFolderObj = this.folders.find(f => f.id === this.currentFolder);
         if (!currentFolderObj) {
             container.style.display = 'none';
@@ -9460,7 +10659,7 @@ class VocaBox {
         // Apply directly to card content elements
         const cardContents = document.querySelectorAll('.card-content, .flashcard-front p, .flashcard-back p, .question-content');
         cardContents.forEach(content => {
-            content.style.fontSize = `calc(1.6rem * ${percentage / 100})`;
+            content.style.fontSize = `calc(${CARD_FONT_BASE_REM}rem * ${percentage / 100})`;
         });
     }
 
@@ -9999,6 +11198,798 @@ class VocaBox {
             this.renderFolders();
         }
     }
+
+    // ==================== Premium Activation (Front-end Only) ====================
+
+    loadPremiumState() {
+        const unlocked = localStorage.getItem(PREMIUM_UNLOCK_LOCAL_KEY) === 'true';
+        let usedCodes = [];
+        try {
+            const stored = localStorage.getItem(PREMIUM_USED_CODES_LOCAL_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) {
+                    usedCodes = parsed.map(code => normalizePremiumCodeValue(code));
+                }
+            }
+        } catch (e) {
+            console.warn('[Premium] Could not parse used code list:', e);
+        }
+        return {
+            premiumUnlocked: unlocked,
+            usedCodes
+        };
+    }
+
+    savePremiumState() {
+        if (!this.premiumState) {
+            this.premiumState = { premiumUnlocked: false, usedCodes: [] };
+        }
+        localStorage.setItem(PREMIUM_UNLOCK_LOCAL_KEY, this.premiumState.premiumUnlocked ? 'true' : 'false');
+        localStorage.setItem(PREMIUM_USED_CODES_LOCAL_KEY, JSON.stringify(this.premiumState.usedCodes || []));
+    }
+
+    isPremiumUser() {
+        // Check premiumState first (in-memory)
+        if (this.premiumState?.premiumUnlocked === true) {
+            return true;
+        }
+        // Fallback: check localStorage directly to ensure we have the latest state
+        // This handles cases where premiumState might not be initialized or is stale
+        const stored = localStorage.getItem(PREMIUM_UNLOCK_LOCAL_KEY);
+        if (stored === 'true') {
+            // If localStorage says premium but premiumState doesn't, reload state
+            if (!this.premiumState || this.premiumState.premiumUnlocked !== true) {
+                this.premiumState = this.loadPremiumState();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    updatePremiumUIState() {
+        const unlocked = this.isPremiumUser();
+        if (this.premiumAccessBtn) {
+            if (unlocked) {
+                // When premium: show non-clickable "Premium" badge
+                this.premiumAccessBtn.textContent = 'Premium';
+                this.premiumAccessBtn.classList.add('is-active');
+                this.premiumAccessBtn.style.cursor = 'default';
+                this.premiumAccessBtn.setAttribute('aria-disabled', 'true');
+            } else {
+                // When not premium: show clickable "Premium" CTA
+                this.premiumAccessBtn.textContent = 'Premium';
+                this.premiumAccessBtn.classList.remove('is-active');
+                this.premiumAccessBtn.style.cursor = 'pointer';
+                this.premiumAccessBtn.removeAttribute('aria-disabled');
+            }
+        }
+        // Hide the duplicate status badge - we only use premiumAccessBtn
+        if (this.premiumStatusBadge) {
+            this.premiumStatusBadge.hidden = true;
+        }
+    }
+
+    openPremiumModal() {
+        if (this.isPremiumUser()) {
+            this.showNotification('Premium is already unlocked on this device. 🎉', 'info');
+            return;
+        }
+        if (!this.premiumModal) return;
+        this.premiumModal.classList.add('active');
+        if (this.premiumCodeInput) {
+            this.premiumCodeInput.value = '';
+            setTimeout(() => this.premiumCodeInput.focus(), 50);
+        }
+    }
+
+    closePremiumModal() {
+        if (!this.premiumModal) return;
+        this.premiumModal.classList.remove('active');
+    }
+
+    handlePremiumActivation(event) {
+        event.preventDefault();
+        if (!this.premiumCodeInput) return;
+
+        const code = this.normalizePremiumCode(this.premiumCodeInput.value);
+        if (!code) {
+            this.showNotification('Please enter your activation code.', 'warning');
+            return;
+        }
+        if (!this.isValidPremiumCode(code)) {
+            showToast({
+                title: 'Invalid code',
+                description: 'That activation code is not recognized.',
+                icon: '❌'
+            });
+            return;
+        }
+        if (this.isPremiumCodeUsed(code)) {
+            showToast({
+                title: 'Already used',
+                description: 'This activation code has already been redeemed.',
+                icon: '⚠️'
+            });
+            return;
+        }
+
+        this.unlockPremiumWithCode(code);
+    }
+
+    unlockPremiumWithCode(code) {
+        const normalized = this.normalizePremiumCode(code);
+        if (!this.premiumState) {
+            this.premiumState = { premiumUnlocked: true, usedCodes: [normalized] };
+        } else {
+            this.premiumState.premiumUnlocked = true;
+            this.markPremiumCodeUsed(normalized);
+        }
+        this.savePremiumState();
+        this.closePremiumModal();
+        this.updatePremiumUIState();
+        this.updateSubscriptionBadge();
+        this.renderCards();
+        this.renderFolders();
+        this.updateFolderSelectors();
+        showToast({
+            title: 'Premium unlocked!',
+            description: 'Unlimited decks, Multiple Choice, and pro tools are ready.',
+            icon: '🌟'
+        });
+    }
+
+    normalizePremiumCode(code) {
+        return normalizePremiumCodeValue(code);
+    }
+
+    isValidPremiumCode(code) {
+        const normalized = this.normalizePremiumCode(code);
+        return PREMIUM_CODE_SET.has(normalized);
+    }
+
+    isPremiumCodeUsed(code) {
+        const normalized = this.normalizePremiumCode(code);
+        return Array.isArray(this.premiumState?.usedCodes) && this.premiumState.usedCodes.includes(normalized);
+    }
+
+    markPremiumCodeUsed(code) {
+        const normalized = this.normalizePremiumCode(code);
+        if (!normalized) return;
+        if (!this.premiumState) {
+            this.premiumState = { premiumUnlocked: false, usedCodes: [] };
+        }
+        if (!Array.isArray(this.premiumState.usedCodes)) {
+            this.premiumState.usedCodes = [];
+        }
+        if (!this.premiumState.usedCodes.includes(normalized)) {
+            this.premiumState.usedCodes.push(normalized);
+        }
+    }
+
+    requirePremiumFeature(featureLabel, onAllow) {
+        if (this.isPremiumUser()) {
+            if (typeof onAllow === 'function') {
+                onAllow();
+            }
+            return true;
+        }
+        this.showPremiumRequiredToast(featureLabel);
+        return false;
+    }
+
+    showPremiumRequiredToast(featureLabel = 'This feature') {
+        const description = `${featureLabel} is available for Premium users. Enter your activation code to unlock it.`;
+        if (typeof showToast === 'function') {
+            showToast({
+                title: 'Premium only',
+                description,
+                icon: '🔒',
+                timeout: 3200
+            });
+        } else {
+            this.showNotification(description, 'warning');
+        }
+        setTimeout(() => {
+            if (!this.isPremiumUser()) {
+                this.openPremiumModal();
+            }
+        }, 400);
+    }
+}
+
+const FALLBACK_CATEGORY_KEYS = {
+    WORDS: 'words',
+    SENTENCES: 'sentences',
+    GRAMMAR: 'grammar',
+    LISTENING: 'listening',
+    READING: 'reading'
+};
+
+const FALLBACK_STUDY_MODES = {
+    FLASH: 'Flash',
+    TYPING: 'Typing',
+    AUDIO: 'Audio',
+    MULTIPLE_CHOICE: 'MultipleChoice',
+    QUIZ: 'Quiz',
+    HIGHLIGHT: 'Highlight'
+};
+
+const FALLBACK_BEHAVIORS = {
+    AUTO_SPACED_REPETITION: 'Auto-spaced repetition',
+    REVEALS_ENGLISH: 'Reveals English',
+    STRUCTURED: 'Structured presentation',
+    TRANSCRIPT_ON_BACK: 'Transcript on back',
+    VOCAB_EXTRACTION: 'Vocab extraction'
+};
+
+const CATEGORY_KEY_MAP = typeof CATEGORY_KEYS !== 'undefined' ? CATEGORY_KEYS : FALLBACK_CATEGORY_KEYS;
+const STUDY_MODE_MAP = typeof STUDY_MODES !== 'undefined' ? STUDY_MODES : FALLBACK_STUDY_MODES;
+const CATEGORY_CONFIG_MAP = typeof CATEGORY_CONFIG !== 'undefined' ? CATEGORY_CONFIG : {};
+const BEHAVIOR_MAP = typeof BEHAVIORS !== 'undefined' ? BEHAVIORS : FALLBACK_BEHAVIORS;
+
+const CATEGORY_LABEL_FALLBACK = {
+    [CATEGORY_KEY_MAP.WORDS]: 'Words',
+    [CATEGORY_KEY_MAP.SENTENCES]: 'Sentences',
+    [CATEGORY_KEY_MAP.GRAMMAR]: 'Grammar',
+    [CATEGORY_KEY_MAP.LISTENING]: 'Listening',
+    [CATEGORY_KEY_MAP.READING]: 'Reading'
+};
+
+const STUDY_MODE_LABELS = {
+    [STUDY_MODE_MAP.FLASH || 'Flash']: 'Flashcards',
+    [STUDY_MODE_MAP.TYPING || 'Typing']: 'Typing Practice',
+    [STUDY_MODE_MAP.AUDIO || 'Audio']: 'Audio Focus',
+    [STUDY_MODE_MAP.MULTIPLE_CHOICE || 'MultipleChoice']: 'Multiple Choice',
+    [STUDY_MODE_MAP.QUIZ || 'Quiz']: 'Quiz Mode',
+    [STUDY_MODE_MAP.HIGHLIGHT || 'Highlight']: 'Highlight & Annotate'
+};
+
+const FLASH_MODE_KEY = STUDY_MODE_MAP.FLASH || 'Flash';
+const TYPING_MODE_KEY = STUDY_MODE_MAP.TYPING || 'Typing';
+const AUDIO_MODE_KEY = STUDY_MODE_MAP.AUDIO || 'Audio';
+const HIGHLIGHT_MODE_KEY = STUDY_MODE_MAP.HIGHLIGHT || 'Highlight';
+
+const READY_MODE_MAP = {
+    [CATEGORY_KEY_MAP.WORDS]: new Set([FLASH_MODE_KEY, TYPING_MODE_KEY]),
+    [CATEGORY_KEY_MAP.SENTENCES]: new Set([FLASH_MODE_KEY]),
+    [CATEGORY_KEY_MAP.GRAMMAR]: new Set([FLASH_MODE_KEY]),
+    [CATEGORY_KEY_MAP.LISTENING]: new Set([AUDIO_MODE_KEY]),
+    [CATEGORY_KEY_MAP.READING]: new Set([HIGHLIGHT_MODE_KEY])
+};
+
+const REAL_MODE_HANDLERS = {
+    [CATEGORY_KEY_MAP.WORDS]: {
+        [FLASH_MODE_KEY]: 'launchWordPackFlashSession',
+        [TYPING_MODE_KEY]: 'launchWordPackTypingSession'
+    },
+    [CATEGORY_KEY_MAP.SENTENCES]: {
+        [FLASH_MODE_KEY]: 'launchSentencePackFlashSession'
+    },
+    [CATEGORY_KEY_MAP.GRAMMAR]: {
+        [FLASH_MODE_KEY]: 'launchGrammarPackFlashSession'
+    },
+    [CATEGORY_KEY_MAP.LISTENING]: {
+        [AUDIO_MODE_KEY]: 'launchListeningPackAudioSession'
+    },
+    [CATEGORY_KEY_MAP.READING]: {
+        [HIGHLIGHT_MODE_KEY]: 'launchReadingHighlightSession'
+    }
+};
+
+const CATEGORY_METADATA = {
+    [CATEGORY_KEY_MAP.WORDS]: {
+        packHeader: 'Word packs',
+        packDescription: 'Choose a collection to review vocabulary lists by exam or theme.',
+        icon: '🔤'
+    },
+    [CATEGORY_KEY_MAP.SENTENCES]: {
+        packHeader: 'Sentence packs',
+        packDescription: 'Pick a book or topic to explore curated sentences.',
+        icon: '💬'
+    },
+    [CATEGORY_KEY_MAP.GRAMMAR]: {
+        packHeader: 'Grammar packs',
+        packDescription: 'Select a topic to focus on rules and usage.',
+        icon: '📘'
+    },
+    [CATEGORY_KEY_MAP.LISTENING]: {
+        packHeader: 'Listening packs',
+        packDescription: 'Warm up with guided audio practice sets.',
+        icon: '🎧'
+    },
+    [CATEGORY_KEY_MAP.READING]: {
+        packHeader: 'Reading packs',
+        packDescription: 'Dive into guided passages and curated notes.',
+        icon: '📖'
+    }
+};
+
+const CATEGORY_PACKS = {
+    [CATEGORY_KEY_MAP.WORDS]: [
+        {
+            id: 'words-cet4',
+            title: 'CET-4',
+            description: 'Core 4,500-word list.',
+            detail: 'Focus on high-frequency CET-4 vocabulary with quick filters and progress tracking.',
+            icon: 'books.png'
+        },
+        {
+            id: 'words-cet6',
+            title: 'CET-6',
+            description: 'Core 6000-word list.',
+            detail: 'Master the CET-6 lexicon with curated decks and review streaks.',
+            icon: 'books.png'
+        },
+        {
+            id: 'words-ielts',
+            title: 'IELTS 8000',
+            description: '8000-word list.',
+            detail: 'Academic vocabulary curated for IELTS Listening, Reading, and Writing.',
+            icon: 'books.png'
+        },
+        {
+            id: 'words-toefl',
+            title: 'TOEFL 8000',
+            description: '8000-word list.',
+            detail: 'Complete the TOEFL-ready deck organized by difficulty bands.',
+            icon: 'books.png'
+        }
+    ],
+    [CATEGORY_KEY_MAP.SENTENCES]: [
+        {
+            id: 'sentences-nce1',
+            title: 'The Economist',
+            description: '',
+            detail: '',
+            icon: 'writing.png'
+        },
+        {
+            id: 'sentences-nce2',
+            title: 'Books',
+            description: '',
+            detail: '',
+            icon: 'writing.png'
+        },
+        {
+            id: 'sentences-daily',
+            title: 'IELTS Reading',
+            description: '',
+            detail: '',
+            icon: 'writing.png'
+        },
+        {
+            id: 'sentences-economist',
+            title: 'Ted Talk',
+            description: '',
+            detail: '',
+            icon: 'writing.png'
+        }
+    ],
+    [CATEGORY_KEY_MAP.GRAMMAR]: [
+        {
+            id: 'grammar-tenses',
+            title: 'Tenses',
+            description: 'Timeline-focused explanations and drills.',
+            detail: 'Compare simple, perfect, and continuous forms with targeted practice.',
+            icon: '⏱️'
+        },
+        {
+            id: 'grammar-conditionals',
+            title: 'Conditionals',
+            description: 'Zero to mixed conditional patterns.',
+            detail: 'Master hypothetical statements with structured decks.',
+            icon: '🔗'
+        },
+        {
+            id: 'grammar-passive',
+            title: 'Passive Voice',
+            description: 'Transform sentences and keep meaning intact.',
+            detail: 'Learn when to use the passive voice with practical examples.',
+            icon: '🔄'
+        },
+        {
+            id: 'grammar-clauses',
+            title: 'Clauses',
+            description: 'Adjective, noun, and adverb clause practice.',
+            detail: 'Strengthen linking ideas with clause-focused lessons.',
+            icon: '🧩'
+        },
+        {
+            id: 'grammar-subjunctive',
+            title: 'Subjunctive',
+            description: 'Formal expressions and nuanced grammar.',
+            detail: 'Tackle advanced mood usage with curated references.',
+            icon: '✨'
+        }
+    ],
+    [CATEGORY_KEY_MAP.LISTENING]: [
+        {
+            id: 'listening-clips',
+            title: 'Short Clips',
+            description: 'Quick listening bites for warm-ups.',
+            detail: 'Start sessions with short audio bursts and comprehension checks.',
+            icon: '🎧'
+        },
+        {
+            id: 'listening-ielts',
+            title: 'IELTS Listening',
+            description: 'Section-based IELTS practice tracks.',
+            detail: 'Simulate IELTS Listening sections with timed playlists.',
+            icon: '🎯'
+        },
+        {
+            id: 'listening-toefl',
+            title: 'TOEFL Listening',
+            description: 'Lecture-style and conversation audio.',
+            detail: 'Work through TOEFL-style conversations and lectures.',
+            icon: '🎼'
+        },
+        {
+            id: 'listening-daily',
+            title: 'Daily Listening Practice',
+            description: 'News clips and lifestyle content.',
+            detail: 'Stay consistent with everyday listening snippets.',
+            icon: '📻'
+        }
+    ],
+    [CATEGORY_KEY_MAP.READING]: [
+        {
+            id: 'reading-economist',
+            title: 'Economist Pack',
+            description: 'Weekly articles distilled into study notes.',
+            detail: 'Analyze Economist paragraphs with vocabulary highlights.',
+            icon: '📊'
+        },
+        {
+            id: 'reading-graded',
+            title: 'Graded Readers',
+            description: 'Level-based short stories.',
+            detail: 'Pick a graded reader level and build extensive reading habits.',
+            icon: '📚'
+        },
+        {
+            id: 'reading-ielts',
+            title: 'IELTS Reading',
+            description: 'Academic and general training passages.',
+            detail: 'Get comfortable with IELTS passages and question types.',
+            icon: '🧠'
+        },
+        {
+            id: 'reading-daily',
+            title: 'One Paragraph a Day',
+            description: 'Micro-reading habit builder.',
+            detail: 'Read one curated paragraph every day to stay sharp.',
+            icon: '🗓️'
+        }
+    ]
+};
+
+const WORD_PACK_DATA = typeof WORD_PACK_MAP !== 'undefined' ? WORD_PACK_MAP : {};
+const SENTENCE_PACK_DATA = typeof SENTENCE_PACK_MAP !== 'undefined' ? SENTENCE_PACK_MAP : {};
+const GRAMMAR_PACK_DATA = typeof GRAMMAR_PACK_MAP !== 'undefined' ? GRAMMAR_PACK_MAP : {};
+const LISTENING_PACK_DATA = typeof LISTENING_PACK_MAP !== 'undefined' ? LISTENING_PACK_MAP : {};
+const READING_PACK_DATA = typeof READING_PACK_MAP !== 'undefined' ? READING_PACK_MAP : {};
+
+const getCategoryLabel = (categoryKey) => CATEGORY_CONFIG_MAP[categoryKey]?.label || CATEGORY_LABEL_FALLBACK[categoryKey] || 'Category';
+const getStudyModeLabel = (mode) => STUDY_MODE_LABELS[mode] || mode;
+
+function initCategoryNavigation() {
+    const screenNodes = Array.from(document.querySelectorAll('[data-screen]'));
+    if (!screenNodes.length) {
+        return { setActiveScreen: () => {}, getActiveScreen: () => null };
+    }
+
+    const screens = screenNodes.reduce((acc, node) => {
+        const key = node.dataset.screen;
+        if (key) {
+            acc[key] = node;
+        }
+        return acc;
+    }, {});
+
+    const navButtons = document.querySelectorAll('[data-screen-target]');
+    if (!navButtons.length) {
+        return;
+    }
+
+    let activeScreen = null;
+
+    const setActiveScreen = (targetName) => {
+        const target = screens[targetName] || screens.home;
+        if (!target) return;
+
+        Object.values(screens).forEach(screen => {
+            screen.hidden = true;
+            screen.setAttribute('aria-hidden', 'true');
+            screen.classList.remove('is-active');
+        });
+
+        target.hidden = false;
+        target.setAttribute('aria-hidden', 'false');
+        target.classList.add('is-active');
+        activeScreen = targetName;
+
+        // Notify workspace to move under the active screen (Words or Sentences)
+        try {
+            if (window.vocabox && typeof window.vocabox.onScreenChanged === 'function') {
+                window.vocabox.onScreenChanged(targetName);
+            }
+        } catch (e) {
+            console.warn('onScreenChanged handler failed:', e);
+        }
+    };
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetName = button.dataset.screenTarget;
+            if (!targetName || targetName === activeScreen) {
+                return;
+            }
+            setActiveScreen(targetName);
+            if (targetName !== 'home') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    });
+
+    setActiveScreen('home');
+
+    return {
+        setActiveScreen,
+        getActiveScreen: () => activeScreen
+    };
+}
+
+function initPackNavigation(screenController = {}) {
+    const sections = document.querySelectorAll('[data-pack-section]');
+    if (!sections.length) {
+        return;
+    }
+
+    const detailTitle = document.getElementById('packDetailTitle');
+    const detailCategory = document.getElementById('packDetailCategory');
+    const detailDescription = document.getElementById('packDetailDescription');
+    const detailPlaceholder = document.getElementById('packDetailPlaceholder');
+    const detailTodo = document.getElementById('packDetailTodo');
+    const detailBackBtn = document.querySelector('[data-pack-back-btn]');
+    const detailBehavior = document.getElementById('packDetailBehavior');
+    const detailStudyModes = document.getElementById('packDetailStudyModes');
+
+    const studyModeTitleEl = document.getElementById('studyModeTitle');
+    const studyModeSubtitleEl = document.getElementById('studyModeSubtitle');
+    const studyModeDescriptionEl = document.getElementById('studyModeDescription');
+    const studyModeBehaviorEl = document.getElementById('studyModeBehavior');
+    const studyModeCardTypeEl = document.getElementById('studyModeCardType');
+    const studyModeBackBtn = document.querySelector('[data-study-back-btn]');
+
+    let lastCategory = CATEGORY_KEY_MAP.WORDS;
+    let lastPack = null;
+
+    const setScreen = (screenName) => {
+        if (screenController && typeof screenController.setActiveScreen === 'function') {
+            screenController.setActiveScreen(screenName);
+        }
+    };
+
+    const showPlaceholderStudyMode = ({ categoryKey, pack, studyMode, categoryConfig }) => {
+        const packTitle = pack?.title || pack?.detail || pack?.description || 'Pack';
+        window.vocabox?.setCurrentStudyContext?.(categoryKey, packTitle, studyMode);
+        window.vocabox?.hideReadingHighlightSession?.({ preserveScreen: true });
+        if (!pack) return;
+        const config = categoryConfig || CATEGORY_CONFIG_MAP[categoryKey] || {};
+        const categoryLabel = getCategoryLabel(categoryKey);
+        const modeLabel = getStudyModeLabel(studyMode);
+
+        if (studyModeTitleEl) {
+            studyModeTitleEl.textContent = `${modeLabel} Mode`;
+        }
+        if (studyModeSubtitleEl) {
+            studyModeSubtitleEl.textContent = `${categoryLabel} · ${pack.title}`;
+        }
+        if (studyModeDescriptionEl) {
+            studyModeDescriptionEl.textContent = `${modeLabel} mode for ${pack.title} is coming soon. Flashcards are live for Words, Sentences, and Grammar, Listening offers Audio, and Reading Highlight is available. Other combinations will follow next.`;
+        }
+        if (studyModeBehaviorEl) {
+            studyModeBehaviorEl.textContent = config.behavior || BEHAVIOR_MAP.AUTO_SPACED_REPETITION;
+        }
+        if (studyModeCardTypeEl) {
+            studyModeCardTypeEl.textContent = config.cardType || 'N/A';
+        }
+        if (studyModeBackBtn) {
+            studyModeBackBtn.textContent = `← Back to ${pack.title}`;
+        }
+
+        setScreen('study-mode');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const showModeComingSoonToast = (modeLabel) => {
+        const label = modeLabel || 'This mode';
+        showToast?.({
+            title: 'Coming soon',
+            description: `${label} is still in development. Please choose a mode marked Ready.`,
+            icon: '🚧'
+        });
+    };
+
+    const tryLaunchRealStudyMode = ({ categoryKey, pack, studyMode }) => {
+        const handlerMap = REAL_MODE_HANDLERS[categoryKey];
+        if (!handlerMap) {
+            return false;
+        }
+
+        const handlerName = handlerMap[studyMode];
+        if (!handlerName) {
+            return false;
+        }
+
+        const vocabox = window.vocabox;
+        if (!vocabox || typeof vocabox[handlerName] !== 'function') {
+            showToast?.({
+                title: 'Study mode unavailable',
+                description: 'Please refresh the page to load the study engine.',
+                icon: '⚠️'
+            });
+            return false;
+        }
+
+        return Boolean(vocabox[handlerName](pack.id, pack));
+    };
+
+    const renderStudyModeButtons = (categoryKey, pack, categoryConfig) => {
+        if (!detailStudyModes) return;
+        if (!categoryConfig || !Array.isArray(categoryConfig.studyModes) || categoryConfig.studyModes.length === 0) {
+            detailStudyModes.innerHTML = '<p class="study-mode-empty">Study modes coming soon.</p>';
+            return;
+        }
+
+        const readyModes = READY_MODE_MAP[categoryKey] || new Set();
+
+        detailStudyModes.innerHTML = categoryConfig.studyModes.map(mode => {
+            const label = getStudyModeLabel(mode);
+            const isDefault = mode === categoryConfig.defaultStudyMode;
+            const isReady = readyModes.has(mode);
+            const hintText = isReady ? 'Launch study session' : 'Coming soon';
+            const stateBadge = isReady
+                ? '<span class="study-mode-ready">Ready</span>'
+                : '<span class="study-mode-coming">Soon</span>';
+            const modeState = isReady ? 'ready' : 'soon';
+            return `
+                <button class="study-mode-btn ${isDefault ? 'is-default' : ''} ${isReady ? 'is-ready' : 'is-coming'}" type="button" data-study-mode="${mode}" data-mode-state="${modeState}" data-mode-label="${label}" aria-disabled="${isReady ? 'false' : 'true'}">
+                    <span class="study-mode-btn-label">${label}</span>
+                    <div class="study-mode-btn-row">
+                        ${isDefault ? '<span class="study-mode-badge">Default</span>' : ''}
+                        ${stateBadge}
+                    </div>
+                    <span class="study-mode-btn-hint">${hintText}</span>
+                </button>
+            `;
+        }).join('');
+
+        detailStudyModes.querySelectorAll('.study-mode-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const modeState = button.dataset.modeState || 'soon';
+                const modeLabelForToast = button.dataset.modeLabel || 'This mode';
+                if (modeState !== 'ready') {
+                    showModeComingSoonToast(modeLabelForToast);
+                    return;
+                }
+                const mode = button.dataset.studyMode;
+                if (!mode) return;
+                const handled = tryLaunchRealStudyMode({ categoryKey, pack, studyMode: mode });
+                if (!handled) {
+                    showPlaceholderStudyMode({
+                        categoryKey,
+                        pack,
+                        studyMode: mode,
+                        categoryConfig
+                    });
+                }
+            });
+        });
+    };
+
+    sections.forEach(section => {
+        const categoryKey = section.dataset.packSection;
+        const packs = CATEGORY_PACKS[categoryKey];
+        const metadata = CATEGORY_METADATA[categoryKey];
+        const grid = section.querySelector('.pack-grid');
+        const titleEl = section.querySelector('.pack-section-title');
+        const subtitleEl = section.querySelector('.pack-section-subtitle');
+
+        if (metadata) {
+            if (metadata.packHeader && titleEl) {
+                titleEl.textContent = metadata.packHeader;
+            }
+            if (metadata.packDescription && subtitleEl) {
+                subtitleEl.textContent = metadata.packDescription;
+            }
+        }
+
+        if (!grid || !packs) {
+            return;
+        }
+
+        grid.innerHTML = packs.map(pack => {
+            const iconValue = pack.icon || metadata?.icon || '📘';
+            // Check if icon is an image file (ends with image extension)
+            const isImageFile = /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(iconValue);
+            const iconHtml = isImageFile 
+                ? `<img src="${iconValue}" alt="${pack.title}" style="width: 100%; height: 100%; object-fit: contain;">`
+                : iconValue;
+            
+            return `
+            <button class="pack-card" type="button" data-pack-category="${categoryKey}" data-pack-id="${pack.id}">
+                <div class="pack-card-icon" aria-hidden="true">${iconHtml}</div>
+                <div class="pack-card-text">
+                    <h4 class="pack-card-title">${pack.title}</h4>
+                    <p class="pack-card-description">${pack.description}</p>
+                </div>
+            </button>
+            `;
+        }).join('');
+
+        section.addEventListener('click', (event) => {
+            const card = event.target.closest('.pack-card');
+            if (!card) return;
+
+            const category = card.dataset.packCategory;
+            const packId = card.dataset.packId;
+            const pack = CATEGORY_PACKS[category]?.find(item => item.id === packId);
+
+            if (!pack) return;
+
+            lastCategory = category || CATEGORY_KEY_MAP.WORDS;
+            lastPack = pack;
+
+            const categoryTitle = getCategoryLabel(lastCategory);
+            const categoryConfig = CATEGORY_CONFIG_MAP[lastCategory];
+
+            // Special handling for Sentences: load pack into shared workspace on Sentences screen
+            if (lastCategory === CATEGORY_KEY_MAP.SENTENCES) {
+                window.vocabox?.launchSentencePackWorkspace?.(pack.id, pack);
+                setScreen('sentences');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            if (detailTitle) {
+                detailTitle.textContent = pack.title;
+            }
+            if (detailCategory) {
+                detailCategory.textContent = `${categoryTitle} · Pack`;
+            }
+            if (detailDescription) {
+                detailDescription.textContent = pack.detail || pack.description;
+            }
+            if (detailPlaceholder) {
+                detailPlaceholder.textContent = `This is the placeholder view for ${pack.title}. Study modes defined for ${categoryTitle} will be added soon.`;
+            }
+            if (detailTodo) {
+                detailTodo.textContent = '// TODO: Launch study modes defined in category config.';
+            }
+            if (detailBehavior) {
+                detailBehavior.textContent = categoryConfig?.behavior || BEHAVIOR_MAP.AUTO_SPACED_REPETITION;
+            }
+            if (detailBackBtn) {
+                detailBackBtn.dataset.screenTarget = lastCategory;
+                detailBackBtn.textContent = `← Back to ${categoryTitle}`;
+            }
+
+            renderStudyModeButtons(lastCategory, pack, categoryConfig);
+            setScreen('pack-detail');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    if (detailBackBtn) {
+        detailBackBtn.addEventListener('click', () => {
+            if (!detailBackBtn.dataset.screenTarget) {
+                detailBackBtn.dataset.screenTarget = 'home';
+            }
+        });
+    }
 }
 
 // Initialize the app when DOM is loaded
@@ -10007,7 +11998,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log("INIT: Creating VocaBox instance...");
         window.vocabox = new VocaBox();
+        window.isPremiumUser = function() {
+            return Boolean(window.vocabox?.isPremiumUser?.());
+        };
         console.log("INIT: VocaBox instance created successfully");
+        const screenController = initCategoryNavigation();
+        window.vocaboxScreenController = screenController;
+        initPackNavigation(screenController);
     } catch (error) {
         console.error("INIT ERROR: Failed to create VocaBox instance", error);
         console.error("INIT ERROR stack:", error.stack);
