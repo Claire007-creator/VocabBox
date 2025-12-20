@@ -462,6 +462,10 @@ class VocaBox {
         this.premiumCodeForm = document.getElementById('premiumCodeForm');
         this.premiumCodeInput = document.getElementById('premiumCodeInput');
         
+        // Global navigation buttons
+        this.globalHomeBtn = document.getElementById('globalHomeBtn');
+        this.packImportBtn = document.getElementById('packImportBtn');
+        
         // Special Access elements
         this.specialAccessBtn = document.getElementById('specialAccessBtn');
         this.specialAccessModal = document.getElementById('specialAccessModal');
@@ -1116,6 +1120,16 @@ class VocaBox {
         // Subscription button handler
         if (this.subscriptionBtn) {
             this.subscriptionBtn.addEventListener('click', () => this.showUpgradeModal());
+        }
+        
+        // Global home button handler
+        if (this.globalHomeBtn) {
+            this.globalHomeBtn.addEventListener('click', () => this.navigateToHome());
+        }
+        
+        // Pack import button handler
+        if (this.packImportBtn) {
+            this.packImportBtn.addEventListener('click', () => this.handlePackImport());
         }
         
         // Upgrade/Subscription Modal handlers
@@ -11396,6 +11410,163 @@ class VocaBox {
             }
         }, 400);
     }
+
+    // Navigate to home screen from anywhere
+    navigateToHome() {
+        const screenController = window.vocaboxScreenController;
+        if (screenController && typeof screenController.setActiveScreen === 'function') {
+            screenController.setActiveScreen('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            // Fallback: hide all screens and show home
+            const allScreens = document.querySelectorAll('[data-screen]');
+            allScreens.forEach(screen => {
+                screen.hidden = true;
+            });
+            const homeScreen = document.querySelector('[data-screen="home"]');
+            if (homeScreen) {
+                homeScreen.hidden = false;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    }
+
+    // Handle importing a word pack to user's list
+    async handlePackImport() {
+        const packInfo = this.currentPackToImport;
+        if (!packInfo || !packInfo.pack) {
+            showToast({
+                title: 'No pack selected',
+                description: 'Please select a word book first.',
+                icon: '⚠️'
+            });
+            return;
+        }
+
+        const { pack } = packInfo;
+        
+        // Check if user is logged in (optional - for now we'll allow guest imports)
+        // if (!this.currentUser) {
+        //     showToast({
+        //         title: 'Login required',
+        //         description: 'Please sign in to import word books.',
+        //         icon: '🔐'
+        //     });
+        //     this.openSignInModal();
+        //     return;
+        // }
+
+        try {
+            // Get the pack data
+            const packData = WORD_PACK_DATA[pack.id];
+            if (!packData || !Array.isArray(packData.cards)) {
+                showToast({
+                    title: 'Pack not available',
+                    description: 'This word book data is not available yet.',
+                    icon: '❌'
+                });
+                return;
+            }
+
+            // Check if cards array is empty or contains only sample cards
+            if (packData.cards.length === 0 || packData.cards.length < 5) {
+                showToast({
+                    title: 'Pack data limited',
+                    description: 'This pack contains only sample cards. Full content coming soon.',
+                    icon: '⚠️'
+                });
+                return;
+            }
+
+            // Get existing cards to check for duplicates
+            const existingCards = this.cards || [];
+            const existingCardKeys = new Set(
+                existingCards.map(card => `${card.front}:::${card.back}`)
+            );
+
+            // Filter out duplicates
+            const newCards = packData.cards.filter(card => {
+                const key = `${card.front}:::${card.back}`;
+                return !existingCardKeys.has(key);
+            });
+
+            if (newCards.length === 0) {
+                showToast({
+                    title: 'Already imported',
+                    description: 'All words from this pack are already in your list.',
+                    icon: 'ℹ️'
+                });
+                return;
+            }
+
+            // Import the cards
+            const importedCount = await this.importPackCards(newCards, pack.title);
+            
+            if (importedCount > 0) {
+                showToast({
+                    title: 'Import successful!',
+                    description: `Added ${importedCount} words from ${pack.title} to your list.`,
+                    icon: '✅',
+                    timeout: 3500
+                });
+                
+                // Refresh UI
+                await this.loadCards();
+                this.renderCards();
+                this.updateFolderSelectors();
+            }
+        } catch (error) {
+            console.error('Error importing pack:', error);
+            showToast({
+                title: 'Import failed',
+                description: 'An error occurred while importing. Please try again.',
+                icon: '❌'
+            });
+        }
+    }
+
+    // Import pack cards into user's list
+    async importPackCards(cards, packTitle) {
+        if (!Array.isArray(cards) || cards.length === 0) {
+            return 0;
+        }
+
+        // Find or create a folder for imported packs
+        let importFolder = this.folders.find(f => f.name === 'Imported Packs');
+        if (!importFolder) {
+            importFolder = {
+                id: 'imported-packs-' + Date.now(),
+                name: 'Imported Packs',
+                description: 'Word books imported from packs',
+                createdAt: new Date().toISOString()
+            };
+            this.folders.push(importFolder);
+            this.saveFolders(this.folders);
+        }
+
+        let importedCount = 0;
+        for (const card of cards) {
+            const newCard = {
+                id: Date.now() + Math.random(),
+                front: card.front || '',
+                back: card.back || '',
+                folderId: importFolder.id,
+                createdAt: new Date().toISOString(),
+                source: packTitle || 'Imported Pack'
+            };
+            
+            this.cards.push(newCard);
+            importedCount++;
+            
+            // Small delay to ensure unique IDs
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+
+        // Save to storage
+        await this.saveCards();
+        
+        return importedCount;
+    }
 }
 
 const FALLBACK_CATEGORY_KEYS = {
@@ -11960,18 +12131,21 @@ function initPackNavigation(screenController = {}) {
             if (detailCategory) {
                 detailCategory.textContent = `${categoryTitle} · Pack`;
             }
-            if (detailDescription) {
-                detailDescription.textContent = pack.detail || pack.description;
+            
+            // Show import button for word packs only
+            const packImportBtn = document.getElementById('packImportBtn');
+            if (packImportBtn) {
+                if (lastCategory === CATEGORY_KEY_MAP.WORDS) {
+                    packImportBtn.style.display = 'block';
+                    // Store pack info for import
+                    if (window.vocabox) {
+                        window.vocabox.currentPackToImport = { category: lastCategory, pack };
+                    }
+                } else {
+                    packImportBtn.style.display = 'none';
+                }
             }
-            if (detailPlaceholder) {
-                detailPlaceholder.textContent = `This is the placeholder view for ${pack.title}. Study modes defined for ${categoryTitle} will be added soon.`;
-            }
-            if (detailTodo) {
-                detailTodo.textContent = '// TODO: Launch study modes defined in category config.';
-            }
-            if (detailBehavior) {
-                detailBehavior.textContent = categoryConfig?.behavior || BEHAVIOR_MAP.AUTO_SPACED_REPETITION;
-            }
+            
             if (detailBackBtn) {
                 detailBackBtn.dataset.screenTarget = lastCategory;
                 detailBackBtn.textContent = `← Back to ${categoryTitle}`;
