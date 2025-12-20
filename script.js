@@ -1193,6 +1193,10 @@ class VocaBox {
         if (this.mainCardArrowRight) {
             this.mainCardArrowRight.addEventListener('click', () => this.nextCardView());
         }
+        
+        // Initialize swipe gestures for mobile card navigation
+        this.initializeSwipeGestures();
+        
         if (this.practiceScopeSelect) {
             this.practiceScopeSelect.addEventListener('change', (e) => {
                 this.currentPracticeScope = e.target.value;
@@ -3624,6 +3628,15 @@ class VocaBox {
                 this.mainCardArrowRight.style.display = this.currentCardIndex < cardsToShow.length - 1 ? 'flex' : 'none';
             }
             
+            // Show mobile swipe hint on small screens
+            const isMobile = window.innerWidth <= 768;
+            const swipeHint = document.querySelector('.mobile-swipe-hint');
+            if (swipeHint && isMobile && cardsToShow.length > 1) {
+                swipeHint.style.display = 'block';
+            } else if (swipeHint) {
+                swipeHint.style.display = 'none';
+            }
+            
             // Show only the current card
             const currentCard = cardsToShow[this.currentCardIndex];
             if (currentCard) {
@@ -3861,6 +3874,84 @@ class VocaBox {
             this.currentCardIndex++;
             this.renderCards();
         }
+    }
+
+    /**
+     * Initialize swipe gesture navigation for mobile devices
+     * Swipe left -> next card, swipe right -> previous card
+     */
+    initializeSwipeGestures() {
+        if (!this.cardsContainer) return;
+        
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let isSwiping = false;
+        
+        const minSwipeDistance = 60; // Minimum distance in pixels to trigger swipe
+        const maxVerticalRatio = 1.2; // Ratio to detect if swipe is more horizontal than vertical
+        
+        const handleTouchStart = (e) => {
+            // Only handle if touching the card area directly
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isSwiping = true;
+        };
+        
+        const handleTouchMove = (e) => {
+            if (!isSwiping) return;
+            
+            const touch = e.touches[0];
+            touchEndX = touch.clientX;
+            touchEndY = touch.clientY;
+            
+            // Calculate distances
+            const deltaX = Math.abs(touchEndX - touchStartX);
+            const deltaY = Math.abs(touchEndY - touchStartY);
+            
+            // If horizontal swipe is dominant, prevent vertical scroll
+            if (deltaX > deltaY * maxVerticalRatio && deltaX > 10) {
+                e.preventDefault();
+            }
+        };
+        
+        const handleTouchEnd = (e) => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            const absDeltaX = Math.abs(deltaX);
+            const absDeltaY = Math.abs(deltaY);
+            
+            // Check if swipe is horizontal enough and meets minimum distance
+            if (absDeltaX > absDeltaY * maxVerticalRatio && absDeltaX > minSwipeDistance) {
+                if (deltaX > 0) {
+                    // Swipe right -> previous card
+                    console.log('Swipe right detected - going to previous card');
+                    this.previousCardView();
+                } else {
+                    // Swipe left -> next card
+                    console.log('Swipe left detected - going to next card');
+                    this.nextCardView();
+                }
+            }
+            
+            // Reset values
+            touchStartX = 0;
+            touchStartY = 0;
+            touchEndX = 0;
+            touchEndY = 0;
+        };
+        
+        // Attach listeners to cards container
+        this.cardsContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
+        this.cardsContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+        this.cardsContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+        
+        console.log('INIT: Swipe gestures initialized for card navigation');
     }
 
     createCardElement(card) {
@@ -11178,18 +11269,20 @@ class VocaBox {
             badge.textContent = 'Special Access';
             badge.style.background = '#9C27B0';
             badge.style.color = 'white';
+            badge.style.display = 'inline-block';
         } else if (tier === 'free') {
             badge.textContent = 'Free';
             badge.style.background = '#e0e0e0';
             badge.style.color = '#666';
+            badge.style.display = 'inline-block';
         } else if (tier === 'premium') {
-            badge.textContent = '⭐ Premium';
-            badge.style.background = '#4CAF50';
-            badge.style.color = 'white';
+            // Hide the green Premium badge - we only show the orange Premium button
+            badge.style.display = 'none';
         } else if (tier === 'pro') {
             badge.textContent = '💎 Pro';
             badge.style.background = '#9C27B0';
             badge.style.color = 'white';
+            badge.style.display = 'inline-block';
         }
     }
 
@@ -12234,16 +12327,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Wait a bit for all scripts to load (in case of async loading issues)
     setTimeout(() => {
-        try {
-            console.log("INIT: Creating VocaBox instance...");
+    try {
+        console.log("INIT: Creating VocaBox instance...");
             console.log("INIT: CONFIG available:", typeof CONFIG !== 'undefined');
             console.log("INIT: CATEGORY_KEYS available:", typeof CATEGORY_KEYS !== 'undefined' || typeof window.CATEGORY_KEYS !== 'undefined');
             
-            window.vocabox = new VocaBox();
+        window.vocabox = new VocaBox();
             window.isPremiumUser = function() {
                 return Boolean(window.vocabox?.isPremiumUser?.());
             };
-            console.log("INIT: VocaBox instance created successfully");
+        console.log("INIT: VocaBox instance created successfully");
             
             try {
                 const screenController = initCategoryNavigation();
@@ -12267,25 +12360,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             console.log("INIT: App initialization complete");
-        } catch (error) {
-            console.error("INIT ERROR: Failed to create VocaBox instance", error);
-            console.error("INIT ERROR stack:", error.stack);
+    } catch (error) {
+        console.error("INIT ERROR: Failed to create VocaBox instance", error);
+        console.error("INIT ERROR stack:", error.stack);
             console.error("INIT ERROR: Error details:", {
                 message: error.message,
                 name: error.name,
                 fileName: error.fileName,
                 lineNumber: error.lineNumber
             });
-            // Try to show error to user
-            try {
+        // Try to show error to user
+        try {
                 const errorDiv = document.createElement('div');
                 errorDiv.style.cssText = 'padding: 20px; text-align: center; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; margin: 20px;';
                 errorDiv.innerHTML = '<h1 style="color: #856404;">App Initialization Failed</h1><p>Please refresh the page. If the problem persists, check the browser console for details.</p><p style="color: red; font-family: monospace;">Error: ' + error.message + '</p><p style="font-size: 0.9em; color: #666;">Check the browser console (F12) for more details.</p>';
                 document.body.insertBefore(errorDiv, document.body.firstChild);
-            } catch (e) {
-                console.error("Could not display error message:", e);
-            }
+        } catch (e) {
+            console.error("Could not display error message:", e);
         }
+    }
     }, 100); // Small delay to ensure all scripts are loaded
 });
 
