@@ -1823,26 +1823,20 @@
     </div>
 
     <!-- Configuration -->
-    <script src="config.js"></script>
-    <script src="category-config.js"></script>
-    <script src="data/premium-codes.js"></script>
-    <script src="word-pack-map.js"></script>
-    <script src="sentence-pack-map.js"></script>
-    <script src="grammar-pack-map.js"></script>
-    <script src="listening-pack-map.js"></script>
-    <script src="reading-pack-map.js"></script>
-    
-    <!-- Add new pack maps -->
-    <script src="word-pack-map.js"></script>
-    <script src="sentence-pack-map.js"></script>
-    <script src="grammar-pack-map.js"></script>
-    <script src="listening-pack-map.js"></script>
+    <script src="config.js" onerror="console.error('Failed to load config.js')"></script>
+    <script src="category-config.js" onerror="console.error('Failed to load category-config.js')"></script>
+    <script src="data/premium-codes.js" onerror="console.error('Failed to load premium-codes.js')"></script>
+    <script src="word-pack-map.js" onerror="console.error('Failed to load word-pack-map.js')"></script>
+    <script src="sentence-pack-map.js" onerror="console.error('Failed to load sentence-pack-map.js')"></script>
+    <script src="grammar-pack-map.js" onerror="console.error('Failed to load grammar-pack-map.js')"></script>
+    <script src="listening-pack-map.js" onerror="console.error('Failed to load listening-pack-map.js')"></script>
+    <script src="reading-pack-map.js" onerror="console.error('Failed to load reading-pack-map.js')"></script>
 
     <!-- Supabase Client (loaded only if configured) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="console.error('Failed to load Supabase client')"></script>
     
     <!-- Main Application Script -->
-    <script src="script.js"></script>
+    <script src="script.js" onerror="console.error('Failed to load script.js'); alert('Failed to load application script. Please refresh the page.')"></script>
 
     <!-- Footer with ICP and 公安备案 (Add your numbers after completing filings) -->
     <footer style="text-align: center; padding: 20px; color: #666; font-size: 0.85rem; border-top: 1px solid #eee; margin-top: 40px; background: #f8f9fa;">

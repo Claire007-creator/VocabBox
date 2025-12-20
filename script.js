@@ -11846,8 +11846,12 @@ const getCategoryLabel = (categoryKey) => CATEGORY_CONFIG_MAP[categoryKey]?.labe
 const getStudyModeLabel = (mode) => STUDY_MODE_LABELS[mode] || mode;
 
 function initCategoryNavigation() {
+    console.log("INIT: initCategoryNavigation called");
     const screenNodes = Array.from(document.querySelectorAll('[data-screen]'));
+    console.log("INIT: Found screen nodes:", screenNodes.length);
+    
     if (!screenNodes.length) {
+        console.warn("INIT: No screen nodes found, returning empty controller");
         return { setActiveScreen: () => {}, getActiveScreen: () => null };
     }
 
@@ -11860,8 +11864,11 @@ function initCategoryNavigation() {
     }, {});
 
     const navButtons = document.querySelectorAll('[data-screen-target]');
+    console.log("INIT: Found navigation buttons:", navButtons.length);
+    
     if (!navButtons.length) {
-        return;
+        console.warn("INIT: No navigation buttons found, returning empty controller");
+        return { setActiveScreen: () => {}, getActiveScreen: () => null };
     }
 
     let activeScreen = null;
@@ -11891,17 +11898,23 @@ function initCategoryNavigation() {
         }
     };
 
-    navButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const targetName = button.dataset.screenTarget;
-            if (!targetName || targetName === activeScreen) {
-                return;
-            }
-            setActiveScreen(targetName);
-            if (targetName !== 'home') {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        });
+    navButtons.forEach((button, index) => {
+        try {
+            button.addEventListener('click', () => {
+                const targetName = button.dataset.screenTarget;
+                console.log("INIT: Navigation button clicked, target:", targetName);
+                if (!targetName || targetName === activeScreen) {
+                    return;
+                }
+                setActiveScreen(targetName);
+                if (targetName !== 'home') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+            console.log(`INIT: Event listener attached to button ${index + 1}, target: ${button.dataset.screenTarget}`);
+        } catch (error) {
+            console.error(`INIT: Failed to attach event listener to button ${index + 1}:`, error);
+        }
     });
 
     setActiveScreen('home');
@@ -11913,8 +11926,24 @@ function initCategoryNavigation() {
 }
 
 function initPackNavigation(screenController = {}) {
+    console.log("INIT: initPackNavigation called");
+    
+    // Check if required dependencies are available
+    if (typeof CATEGORY_PACKS === 'undefined') {
+        console.error("INIT: CATEGORY_PACKS is not defined! Cannot initialize pack navigation.");
+        return;
+    }
+    
+    if (typeof CATEGORY_KEY_MAP === 'undefined') {
+        console.error("INIT: CATEGORY_KEY_MAP is not defined! Cannot initialize pack navigation.");
+        return;
+    }
+    
     const sections = document.querySelectorAll('[data-pack-section]');
+    console.log("INIT: Found pack sections:", sections.length);
+    
     if (!sections.length) {
+        console.warn("INIT: No pack sections found");
         return;
     }
 
@@ -12102,14 +12131,29 @@ function initPackNavigation(screenController = {}) {
         }).join('');
 
         section.addEventListener('click', (event) => {
-            const card = event.target.closest('.pack-card');
-            if (!card) return;
+            try {
+                const card = event.target.closest('.pack-card');
+                if (!card) return;
 
-            const category = card.dataset.packCategory;
-            const packId = card.dataset.packId;
-            const pack = CATEGORY_PACKS[category]?.find(item => item.id === packId);
+                const category = card.dataset.packCategory;
+                const packId = card.dataset.packId;
+                
+                if (!category || !packId) {
+                    console.warn("INIT: Pack card missing category or packId:", { category, packId });
+                    return;
+                }
+                
+                if (!CATEGORY_PACKS || !CATEGORY_PACKS[category]) {
+                    console.error("INIT: CATEGORY_PACKS not available or category not found:", category);
+                    return;
+                }
+                
+                const pack = CATEGORY_PACKS[category].find(item => item.id === packId);
 
-            if (!pack) return;
+                if (!pack) {
+                    console.warn("INIT: Pack not found:", { category, packId });
+                    return;
+                }
 
             lastCategory = category || CATEGORY_KEY_MAP.WORDS;
             lastPack = pack;
@@ -12154,6 +12198,15 @@ function initPackNavigation(screenController = {}) {
             renderStudyModeButtons(lastCategory, pack, categoryConfig);
             setScreen('pack-detail');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error("INIT: Error handling pack card click:", error);
+                console.error("INIT: Error details:", {
+                    message: error.message,
+                    stack: error.stack,
+                    category: category,
+                    packId: packId
+                });
+            }
         });
     });
 
@@ -12169,26 +12222,71 @@ function initPackNavigation(screenController = {}) {
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log("INIT: DOMContentLoaded fired");
-    try {
-        console.log("INIT: Creating VocaBox instance...");
-        window.vocabox = new VocaBox();
-        window.isPremiumUser = function() {
-            return Boolean(window.vocabox?.isPremiumUser?.());
-        };
-        console.log("INIT: VocaBox instance created successfully");
-        const screenController = initCategoryNavigation();
-        window.vocaboxScreenController = screenController;
-        initPackNavigation(screenController);
-    } catch (error) {
-        console.error("INIT ERROR: Failed to create VocaBox instance", error);
-        console.error("INIT ERROR stack:", error.stack);
-        // Try to show error to user
-        try {
-            document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>App Initialization Failed</h1><p>Please refresh the page. If the problem persists, check the browser console for details.</p><p style="color: red;">Error: ' + error.message + '</p></div>';
-        } catch (e) {
-            console.error("Could not display error message:", e);
-        }
+    
+    // Check for critical dependencies
+    const missingDeps = [];
+    if (typeof CONFIG === 'undefined') {
+        console.warn("INIT: CONFIG not found, using defaults");
     }
+    if (typeof CATEGORY_KEYS === 'undefined' && typeof window.CATEGORY_KEYS === 'undefined') {
+        console.warn("INIT: CATEGORY_KEYS not found, using fallbacks");
+    }
+    
+    // Wait a bit for all scripts to load (in case of async loading issues)
+    setTimeout(() => {
+        try {
+            console.log("INIT: Creating VocaBox instance...");
+            console.log("INIT: CONFIG available:", typeof CONFIG !== 'undefined');
+            console.log("INIT: CATEGORY_KEYS available:", typeof CATEGORY_KEYS !== 'undefined' || typeof window.CATEGORY_KEYS !== 'undefined');
+            
+            window.vocabox = new VocaBox();
+            window.isPremiumUser = function() {
+                return Boolean(window.vocabox?.isPremiumUser?.());
+            };
+            console.log("INIT: VocaBox instance created successfully");
+            
+            try {
+                const screenController = initCategoryNavigation();
+                if (!screenController || typeof screenController.setActiveScreen !== 'function') {
+                    console.error("INIT: screenController is invalid:", screenController);
+                    throw new Error("Failed to initialize category navigation");
+                }
+                window.vocaboxScreenController = screenController;
+                console.log("INIT: Category navigation initialized");
+            } catch (error) {
+                console.error("INIT: Failed to initialize category navigation:", error);
+                throw error;
+            }
+            
+            try {
+                initPackNavigation(window.vocaboxScreenController);
+                console.log("INIT: Pack navigation initialized");
+            } catch (error) {
+                console.error("INIT: Failed to initialize pack navigation:", error);
+                // Don't throw - pack navigation is less critical
+            }
+            
+            console.log("INIT: App initialization complete");
+        } catch (error) {
+            console.error("INIT ERROR: Failed to create VocaBox instance", error);
+            console.error("INIT ERROR stack:", error.stack);
+            console.error("INIT ERROR: Error details:", {
+                message: error.message,
+                name: error.name,
+                fileName: error.fileName,
+                lineNumber: error.lineNumber
+            });
+            // Try to show error to user
+            try {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'padding: 20px; text-align: center; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; margin: 20px;';
+                errorDiv.innerHTML = '<h1 style="color: #856404;">App Initialization Failed</h1><p>Please refresh the page. If the problem persists, check the browser console for details.</p><p style="color: red; font-family: monospace;">Error: ' + error.message + '</p><p style="font-size: 0.9em; color: #666;">Check the browser console (F12) for more details.</p>';
+                document.body.insertBefore(errorDiv, document.body.firstChild);
+            } catch (e) {
+                console.error("Could not display error message:", e);
+            }
+        }
+    }, 100); // Small delay to ensure all scripts are loaded
 });
 
 
