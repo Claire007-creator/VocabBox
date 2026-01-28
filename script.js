@@ -325,6 +325,8 @@ class VocaBox {
         // this.deleteSpecificOrphanedCards();
         // Migrate folder-level cards to List 01 (one-time migration)
         this.migrateFolderLevelCardsToList1();
+        // Migrate old folder names (remove " Word Book" suffix)
+        this.migrateOldFolderNames();
         
         // Analyze current state after all cleanup
         this.logCurrentCardState();
@@ -1755,6 +1757,91 @@ class VocaBox {
         }
     }
 
+    /**
+     * One-time migration: move guest cards/folders into the newly logged-in user.
+     * This lets users keep the decks they created before signing up.
+     */
+    migrateGuestDataToCurrentUser() {
+        if (!this.currentUser || !this.currentUser.username) return;
+
+        try {
+            const username = this.currentUser.username;
+            const migrationFlagKey = `vocaBoxMigrated_${username}`;
+
+            // Avoid migrating multiple times for the same user
+            if (localStorage.getItem(migrationFlagKey) === 'true') {
+                return;
+            }
+
+            const guestCardsKey = 'vocaBoxCards_guest';
+            const guestFoldersKey = 'vocaBoxFolders_guest';
+            const userCardsKey = `vocaBoxCards_${username}`;
+            const userFoldersKey = `vocaBoxFolders_${username}`;
+
+            const guestCardsRaw = localStorage.getItem(guestCardsKey);
+            const guestFoldersRaw = localStorage.getItem(guestFoldersKey);
+            const userCardsRaw = localStorage.getItem(userCardsKey);
+            const userFoldersRaw = localStorage.getItem(userFoldersKey);
+
+            // Nothing to migrate
+            if (!guestCardsRaw && !guestFoldersRaw) {
+                localStorage.setItem(migrationFlagKey, 'true');
+                return;
+            }
+
+            // Helper to check if a stored JSON array is effectively empty
+            const isEmptyArray = (raw) => {
+                if (!raw) return true;
+                try {
+                    const parsed = JSON.parse(raw);
+                    return !Array.isArray(parsed) || parsed.length === 0;
+                } catch {
+                    return true;
+                }
+            };
+
+            // Only copy guest data into the user slot if the user slot is empty
+            if (guestCardsRaw && isEmptyArray(userCardsRaw)) {
+                localStorage.setItem(userCardsKey, guestCardsRaw);
+            }
+
+            if (guestFoldersRaw && isEmptyArray(userFoldersRaw)) {
+                localStorage.setItem(userFoldersKey, guestFoldersRaw);
+            }
+
+            // Mark migration done for this user
+            localStorage.setItem(migrationFlagKey, 'true');
+
+            // Refresh in-memory state if we're already running
+            this.cards = Array.isArray(this.cards) ? this.cards : [];
+            const migratedCards = localStorage.getItem(userCardsKey);
+            if (migratedCards) {
+                try {
+                    const parsedCards = JSON.parse(migratedCards);
+                    if (Array.isArray(parsedCards)) {
+                        this.cards = parsedCards;
+                    }
+                } catch (e) {
+                    console.warn('[migrateGuestDataToCurrentUser] Failed to parse migrated cards:', e);
+                }
+            }
+
+            const migratedFoldersRaw = localStorage.getItem(userFoldersKey);
+            if (migratedFoldersRaw) {
+                try {
+                    const parsedFolders = JSON.parse(migratedFoldersRaw);
+                    if (Array.isArray(parsedFolders)) {
+                        this.folders = parsedFolders;
+                    }
+                } catch (e) {
+                    console.warn('[migrateGuestDataToCurrentUser] Failed to parse migrated folders:', e);
+                }
+            }
+        } catch (e) {
+            console.warn('[migrateGuestDataToCurrentUser] Migration failed:', e);
+        }
+    }
+
     // Subscription Management Methods
     loadUserSubscription() {
         // Support both logged-in users and guest users
@@ -2238,13 +2325,17 @@ class VocaBox {
         if (this.supabase && CONFIG.features.useSupabase && this.validateEmail(contact)) {
             try {
                 await this.signInWithSupabase(contact, password);
+                // Migrate any guest data into this account (first-time login)
+                this.migrateGuestDataToCurrentUser();
                 this.updateAuthUI();
                 this.closeSignInModal();
                 this.showNotification(`Welcome back, ${this.currentUser.username}!`, 'success');
                 
-                // Reload cards for this user
+                // Reload data for this user
                 const loadedCards = await this.loadCards();
                 this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+                this.folders = this.loadFolders();
+                this.renderFolders();
                 this.renderCards();
                 this.updateCardCount();
                 return;
@@ -2271,13 +2362,18 @@ class VocaBox {
         // Sign in successful
         this.currentUser = { username: user.username };
         this.saveCurrentUser(this.currentUser);
+        
+        // Migrate any guest data into this account
+        this.migrateGuestDataToCurrentUser();
         this.updateAuthUI();
         this.closeSignInModal();
         this.showNotification(`Welcome back, ${user.username}!`, 'success');
         
-        // Reload cards for this user
+        // Reload data for this user
         const loadedCards = await this.loadCards();
         this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+        this.folders = this.loadFolders();
+        this.renderFolders();
         this.renderCards();
         this.updateCardCount();
     }
@@ -2321,12 +2417,16 @@ class VocaBox {
         if (this.supabase && CONFIG.features.useSupabase && this.validateEmail(contact)) {
             try {
                 await this.signUpWithSupabase(username, contact, password);
+                // Migrate any guest data (cards/folders) into this new account
+                this.migrateGuestDataToCurrentUser();
                 this.updateAuthUI();
                 this.closeSignUpModal();
                 
-                // Initialize empty cards for new user
-                this.cards = [];
-                this.saveCards();
+                // Reload data for this user (may now include migrated decks)
+                const loadedCards = await this.loadCards();
+                this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+                this.folders = this.loadFolders();
+                this.renderFolders();
                 this.renderCards();
                 this.updateCardCount();
                 this.showNotification(`Account created successfully! Welcome, ${username}! 🎉`, 'success');
@@ -2354,12 +2454,17 @@ class VocaBox {
         // Sign in the new user
         this.currentUser = { username: username };
         this.saveCurrentUser(this.currentUser);
+        
+        // Migrate any guest data into the new account
+        this.migrateGuestDataToCurrentUser();
         this.updateAuthUI();
         this.closeSignUpModal();
         
-        // Initialize empty cards for new user
-        this.cards = [];
-        this.saveCards();
+        // Reload data for this user
+        const loadedCards = await this.loadCards();
+        this.cards = Array.isArray(loadedCards) ? loadedCards : [];
+        this.folders = this.loadFolders();
+        this.renderFolders();
         this.renderCards();
         this.updateCardCount();
         
@@ -3718,7 +3823,14 @@ class VocaBox {
         if (!cards.length) return false;
         return cards.every(card => {
             const category = (card?.category || 'card').toLowerCase();
-            return category === 'card' || category === 'word' || category === 'imported' || category === '';
+            // Treat both word and sentence decks as eligible for workspace practice
+            return (
+                category === 'card' ||
+                category === 'word' ||
+                category === 'sentence' ||
+                category === 'imported' ||
+                category === ''
+            );
         });
     }
     
@@ -3852,11 +3964,11 @@ class VocaBox {
         if (typeof showToast === 'function') {
             showToast({
                 title: `${modeLabel} unavailable`,
-                description: 'Select a Words folder to use this mode.',
+                description: 'Select a folder with cards to use this mode.',
                 icon: '📘'
             });
         } else {
-            alert(`Select a Words folder to start ${modeLabel}.`);
+            alert(`Select a folder with cards to start ${modeLabel}.`);
         }
     }
     
@@ -4060,7 +4172,7 @@ class VocaBox {
             });
         }
         
-        // Add flip functionality
+        // Add flip functionality (works on both desktop and mobile)
         const flipContainer = cardDiv.querySelector('.card-flip-container');
         flipContainer.addEventListener('click', () => {
             const isFlipped = cardDiv.dataset.flipped === 'true';
@@ -4947,16 +5059,75 @@ class VocaBox {
     // Built-in IELTS 8000 now uses data/IELTS_8000_exact.txt (8000 cleaned entries).
     async getEmbeddedIELTSData() {
         // Fetch IELTS 8000 data from data/IELTS_8000_exact.txt
+        // Use absolute path from root to ensure it works in production (Netlify)
+        const dataUrl = '/data/IELTS_8000_exact.txt';
+        
         try {
-            const response = await fetch('data/IELTS_8000_exact.txt', { cache: 'no-cache' });
+            console.log('[IELTS8000] Fetching from:', dataUrl);
+            console.log('[IELTS8000] Full URL:', window.location.origin + dataUrl);
+            
+            const response = await fetch(dataUrl, { cache: 'no-store' });
+            
+            console.log('[IELTS8000] Response status:', response.status, response.statusText);
+            console.log('[IELTS8000] Content-Type:', response.headers.get('content-type'));
+            console.log('[IELTS8000] Content-Length:', response.headers.get('content-length'));
+            
+            // Check for HTTP errors
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorMsg = `Failed to load IELTS file: ${response.status} ${response.statusText} URL=${dataUrl}`;
+                console.error('[IELTS8000]', errorMsg);
+                
+                if (response.status === 404) {
+                    throw new Error(`Cannot load IELTS_8000_exact.txt (404 Not Found). The file is not deployed or not accessible at ${dataUrl}. Verify: (1) public/data/IELTS_8000_exact.txt exists in repo, (2) Netlify includes it in build output.`);
+                }
+                
+                throw new Error(`${errorMsg}. Check Netlify deployment and redirect rules.`);
             }
+            
+            // Read response as text
             const text = await response.text();
-            console.log('[getEmbeddedIELTSData] Successfully loaded IELTS_8000_exact.txt');
+            console.log('[IELTS8000] Received response, size:', text.length, 'bytes');
+            console.log('[IELTS8000] First 200 chars:', text.substring(0, 200));
+            
+            // CRITICAL: Detect HTML hijack (Netlify redirecting to index.html)
+            const textLower = text.toLowerCase();
+            if (textLower.includes('<html') || textLower.includes('<!doctype')) {
+                console.error('[IELTS8000] ERROR: Received HTML instead of text file!');
+                console.error('[IELTS8000] This means /data/IELTS_8000_exact.txt is being redirected to index.html');
+                console.error('[IELTS8000] Fix: Update netlify.toml to add /data/* passthrough redirect BEFORE SPA fallback');
+                throw new Error(`/data/IELTS_8000_exact.txt is being redirected to HTML (index.html hijack). Fix Netlify redirects: add [[redirects]] from="/data/*" to="/data/:splat" BEFORE the SPA /* redirect.`);
+            }
+            
+            // Basic validation: check if file has content
+            if (!text || text.length < 1000) {
+                throw new Error(`IELTS 8000 data file appears empty or incomplete (${text.length} bytes). Expected ~380KB (383,543 bytes).`);
+            }
+            
+            // Validate it looks like word list data (should start with "1. " or similar)
+            const firstLine = text.split('\n')[0];
+            console.log('[IELTS8000] First line:', firstLine);
+            if (!firstLine || !firstLine.match(/^\d+\./)) {
+                console.warn('[IELTS8000] Warning: First line does not match expected format (should start with "1.")');
+            }
+            
+            console.log('[IELTS8000] ✓ Successfully loaded valid IELTS_8000_exact.txt file');
             return text;
+            
         } catch (error) {
-            console.error('[getEmbeddedIELTSData] Error fetching IELTS_8000_exact.txt:', error);
+            console.error('[IELTS8000] ERROR:', error.message);
+            console.error('[IELTS8000] Error details:', {
+                name: error.name,
+                message: error.message,
+                url: dataUrl,
+                fullURL: window.location.origin + dataUrl
+            });
+            
+            // Provide more helpful error message for network errors
+            if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+                throw new Error(`Network error loading IELTS 8000 data. Cannot reach ${dataUrl}. Possible causes: (1) File not deployed to Netlify, (2) Network connection issue, (3) CORS/security blocking.`);
+            }
+            
+            // Re-throw with original message (already detailed)
             throw error;
         }
     }
@@ -7048,7 +7219,7 @@ class VocaBox {
         const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Word Pack';
         this.setCurrentStudyContext(CATEGORY_KEY_MAP.WORDS, packTitle, FLASH_MODE_KEY);
 
-        const ensured = this.ensureWordPackDeck(packId);
+        const ensured = this.ensureWordPackDeck(packId, packInfo.title);
         if (!ensured) {
             this.showNotification('Unable to load this pack right now.', 'warning');
             return false;
@@ -7099,7 +7270,7 @@ class VocaBox {
         const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Word Pack';
         this.setCurrentStudyContext(CATEGORY_KEY_MAP.WORDS, packTitle, TYPING_MODE_KEY);
 
-        const ensured = this.ensureWordPackDeck(packId);
+        const ensured = this.ensureWordPackDeck(packId, packInfo.title);
         if (!ensured) {
             this.showNotification('Unable to load this pack right now.', 'warning');
             return false;
@@ -7133,7 +7304,7 @@ class VocaBox {
         return true;
     }
 
-    ensureSentencePackDeck(packId) {
+    ensureSentencePackDeck(packId, packTitle = null) {
         const packMeta = SENTENCE_PACK_DATA[packId];
         if (!packMeta) {
             return null;
@@ -7147,7 +7318,7 @@ class VocaBox {
         if (!folder) {
             folder = {
                 id: folderId,
-                name: packMeta.folderName || packMeta.label || 'Sentence Pack',
+                name: packTitle || packMeta.folderName || packMeta.label || 'Sentence Pack',
                 description: packMeta.description || 'Auto-generated sentence pack folder',
                 parentFolderId: null,
                 createdAt: new Date().toISOString(),
@@ -7192,7 +7363,7 @@ class VocaBox {
         const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Sentence Pack';
         this.setCurrentStudyContext(CATEGORY_KEY_MAP.SENTENCES, packTitle, FLASH_MODE_KEY);
 
-        const ensured = this.ensureSentencePackDeck(packId);
+        const ensured = this.ensureSentencePackDeck(packId, packInfo.title);
         if (!ensured) {
             this.showNotification('Unable to load this sentence pack right now.', 'warning');
             return false;
@@ -7238,7 +7409,7 @@ class VocaBox {
         const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Sentence Pack';
         this.setCurrentStudyContext(CATEGORY_KEY_MAP.SENTENCES, packTitle, FLASH_MODE_KEY);
 
-        const ensured = this.ensureSentencePackDeck(packId);
+        const ensured = this.ensureSentencePackDeck(packId, packInfo.title);
         if (!ensured) {
             this.showNotification('Unable to load this sentence pack right now.', 'warning');
             return false;
@@ -7271,7 +7442,7 @@ class VocaBox {
         return true;
     }
 
-    ensureListeningPackDeck(packId) {
+    ensureListeningPackDeck(packId, packTitle = null) {
         const packMeta = LISTENING_PACK_DATA[packId];
         if (!packMeta) {
             return null;
@@ -7285,7 +7456,7 @@ class VocaBox {
         if (!folder) {
             folder = {
                 id: folderId,
-                name: packMeta.folderName || packMeta.label || 'Listening Pack',
+                name: packTitle || packMeta.folderName || packMeta.label || 'Listening Pack',
                 description: packMeta.description || 'Auto-generated listening pack folder',
                 parentFolderId: null,
                 createdAt: new Date().toISOString(),
@@ -7330,7 +7501,7 @@ class VocaBox {
         const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Listening Pack';
         this.setCurrentStudyContext(CATEGORY_KEY_MAP.LISTENING, packTitle, AUDIO_MODE_KEY);
 
-        const ensured = this.ensureListeningPackDeck(packId);
+        const ensured = this.ensureListeningPackDeck(packId, packInfo.title);
         if (!ensured) {
             this.showNotification('Unable to load this listening pack right now.', 'warning');
             return false;
@@ -7646,7 +7817,7 @@ class VocaBox {
         };
     }
 
-    ensureGrammarPackDeck(packId) {
+    ensureGrammarPackDeck(packId, packTitle = null) {
         const packMeta = GRAMMAR_PACK_DATA[packId];
         if (!packMeta) {
             return null;
@@ -7660,7 +7831,7 @@ class VocaBox {
         if (!folder) {
             folder = {
                 id: folderId,
-                name: packMeta.folderName || packMeta.label || 'Grammar Pack',
+                name: packTitle || packMeta.folderName || packMeta.label || 'Grammar Pack',
                 description: packMeta.description || 'Auto-generated grammar pack folder',
                 parentFolderId: null,
                 createdAt: new Date().toISOString(),
@@ -7705,7 +7876,7 @@ class VocaBox {
         const packTitle = packInfo.title || packMeta.folderName || packMeta.description || 'Grammar Pack';
         this.setCurrentStudyContext(CATEGORY_KEY_MAP.GRAMMAR, packTitle, FLASH_MODE_KEY);
 
-        const ensured = this.ensureGrammarPackDeck(packId);
+        const ensured = this.ensureGrammarPackDeck(packId, packInfo.title);
         if (!ensured) {
             this.showNotification('Unable to load this grammar pack right now.', 'warning');
             return false;
@@ -7975,7 +8146,7 @@ class VocaBox {
                 </div>
             `;
         } else {
-            this.correctAnswerContent.innerHTML = `<div style="text-align: center; color: #4CAF50; font-size: 1.2rem;">Perfect! 🎉</div>`;
+            this.correctAnswerContent.innerHTML = `<div style="text-align: center; color: #4CAF50; font-size: 1.4rem; font-weight: 600; padding: 16px;">Perfect! 🎉</div>`;
         }
     }
 
@@ -9957,6 +10128,50 @@ class VocaBox {
         localStorage.setItem(migrationKey, 'true');
     }
 
+    // One-time migration: Remove " Word Book" suffix from folder names
+    migrateOldFolderNames() {
+        const migrationKey = 'vocabox_folder_names_migrated';
+        if (localStorage.getItem(migrationKey) === 'true') {
+            console.log('[migrateOldFolderNames] Migration already completed');
+            return;
+        }
+
+        console.log('[migrateOldFolderNames] Starting migration...');
+        this.folders = this.loadFolders();
+        
+        let migratedCount = 0;
+        const suffixesToRemove = [' Word Book', ' Sentence Pack', ' Grammar Pack', ' Listening Pack'];
+
+        for (const folder of this.folders) {
+            let originalName = folder.name;
+            let newName = originalName;
+
+            // Check if folder name ends with any of the suffixes
+            for (const suffix of suffixesToRemove) {
+                if (originalName.endsWith(suffix)) {
+                    newName = originalName.slice(0, -suffix.length);
+                    break;
+                }
+            }
+
+            // If name changed, update it
+            if (newName !== originalName) {
+                console.log(`[migrateOldFolderNames] Renaming "${originalName}" to "${newName}"`);
+                folder.name = newName;
+                migratedCount++;
+            }
+        }
+
+        if (migratedCount > 0) {
+            this.saveFolders(this.folders);
+            this.renderFolders();
+            console.log(`[migrateOldFolderNames] Migration complete: ${migratedCount} folders renamed`);
+        }
+
+        // Mark migration as complete
+        localStorage.setItem(migrationKey, 'true');
+    }
+
     getCardsForCurrentFolder() {
         // CRITICAL: Ensure cards is always an array (don't reload, just ensure it's valid)
         this.ensureCardsIsArray();
@@ -11550,6 +11765,12 @@ class VocaBox {
         // }
 
         try {
+            // Special handling for IELTS 8000 - use full dataset from file
+            if (pack.id === 'words-ielts' && pack.title === 'IELTS 8000') {
+                await this.handleImportIELTSFull(pack.title);
+                return;
+            }
+
             // Get the pack data
             const packData = WORD_PACK_DATA[pack.id];
             if (!packData || !Array.isArray(packData.cards)) {
@@ -11557,6 +11778,16 @@ class VocaBox {
                     title: 'Pack not available',
                     description: 'This word book data is not available yet.',
                     icon: '❌'
+                });
+                return;
+            }
+
+            // Safety check: If pack data has suspiciously few cards (< 100), warn the user
+            if (packData.cards.length < 100 && pack.title.includes('8000')) {
+                showToast({
+                    title: 'Pack data incomplete',
+                    description: `Warning: Only ${packData.cards.length} sample cards available. Full content coming soon.`,
+                    icon: '⚠️'
                 });
                 return;
             }
@@ -11592,8 +11823,8 @@ class VocaBox {
                 return;
             }
 
-            // Import the cards
-            const importedCount = await this.importPackCards(newCards, pack.title);
+            // Import the cards into a dedicated folder for this pack
+            const importedCount = await this.importPackCards(newCards, pack.title, packData);
             
             if (importedCount > 0) {
                 showToast({
@@ -11618,19 +11849,183 @@ class VocaBox {
         }
     }
 
+    // Handle IELTS 8000 import using the full dataset from data/IELTS_8000_exact.txt
+    async handleImportIELTSFull(packTitle) {
+        try {
+            showToast({
+                title: 'Loading IELTS 8000...',
+                description: 'Importing full word list, please wait...',
+                icon: '⏳'
+            });
+
+            // Use the existing IELTS import system that loads from txt file
+            const text = await this.getEmbeddedIELTSData();
+            if (!text) {
+                throw new Error('Failed to load IELTS 8000 data file from /data/IELTS_8000_exact.txt');
+            }
+
+            // Parse the file using existing IELTS format parser
+            const rawItems = this.parseIELTSFormat(text);
+            
+            console.log(`[handleImportIELTSFull] Raw parsed items: ${rawItems.length}`);
+            
+            // Deduplicate by word (front) case-insensitively
+            const seenFront = new Set();
+            const items = [];
+            for (const row of rawItems) {
+                const normalizedKey = (row.front || '').trim().toLowerCase().replace(/\s+/g, ' ');
+                if (!normalizedKey) continue;
+                if (seenFront.has(normalizedKey)) continue;
+                seenFront.add(normalizedKey);
+                items.push(row);
+            }
+            
+            console.log(`[handleImportIELTSFull] After deduplication: ${items.length} unique words`);
+            
+            // Safety check: ensure we have a reasonable number of words (prevents "5 word" regression)
+            if (items.length < 500) {
+                throw new Error(`Data file appears incomplete: only ${items.length} words parsed. Expected 7000+. The file may be corrupted or improperly formatted.`);
+            }
+
+            console.log(`[handleImportIELTSFull] Parsed ${items.length} words from IELTS_8000_exact.txt`);
+
+            // Create or find the IELTS 8000 folder
+            const desiredFolderName = packTitle || 'IELTS 8000';
+            let importFolder = this.folders.find(f => f.name === desiredFolderName);
+            
+            if (!importFolder) {
+                importFolder = {
+                    id: 'pack-words-ielts-' + Date.now(),
+                    name: desiredFolderName,
+                    description: 'Core IELTS vocabulary - 8000 words',
+                    createdAt: new Date().toISOString()
+                };
+                this.folders.push(importFolder);
+                this.saveFolders(this.folders);
+            }
+
+            // Check for duplicates
+            const existingCards = this.cards || [];
+            const existingCardKeys = new Set(
+                existingCards.map(card => `${card.front}:::${card.back}`)
+            );
+
+            // Filter out duplicates
+            const newCards = items.filter(item => {
+                const key = `${item.front}:::${item.back}`;
+                return !existingCardKeys.has(key);
+            });
+
+            if (newCards.length === 0) {
+                showToast({
+                    title: 'Already imported',
+                    description: 'All IELTS 8000 words are already in your list.',
+                    icon: 'ℹ️'
+                });
+                return;
+            }
+
+            // Import in chunks to avoid performance issues
+            const CHUNK_SIZE = 500;
+            let importedCount = 0;
+
+            for (let i = 0; i < newCards.length; i += CHUNK_SIZE) {
+                const chunk = newCards.slice(i, i + CHUNK_SIZE);
+                
+                for (const item of chunk) {
+                    const newCard = {
+                        id: Date.now() + Math.random(),
+                        front: item.front || '',
+                        back: item.back || '',
+                        folderId: importFolder.id,
+                        category: 'card',
+                        createdAt: new Date().toISOString(),
+                        source: 'IELTS 8000',
+                        isSystemCard: false // User-imported cards count toward their limits
+                    };
+                    
+                    this.cards.push(newCard);
+                    importedCount++;
+                    
+                    // Small delay to ensure unique IDs
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+
+                // Save periodically to avoid data loss
+                if (i % (CHUNK_SIZE * 2) === 0) {
+                    await this.saveCards();
+                }
+            }
+
+            // Final save
+            await this.saveCards();
+            
+            // Refresh UI
+            this.renderFolders();
+            this.renderCards();
+            this.updateCardCount();
+            this.updateFolderSelectors();
+
+            showToast({
+                title: 'Import successful!',
+                description: `Added ${importedCount} words from IELTS 8000 to your list.`,
+                icon: '✅',
+                timeout: 4000
+            });
+
+            console.log(`[handleImportIELTSFull] Successfully imported ${importedCount} words`);
+
+        } catch (error) {
+            console.error('[handleImportIELTSFull] Error:', error);
+            
+            // Provide detailed error message for debugging
+            let errorDescription = error.message || 'An unknown error occurred while importing IELTS 8000.';
+            
+            // Add helpful context for common errors
+            if (error.message.includes('404') || error.message.includes('Failed to fetch')) {
+                errorDescription = `${errorDescription}\n\nTip: Ensure /data/IELTS_8000_exact.txt is deployed and publicly accessible.`;
+            }
+            
+            showToast({
+                title: 'IELTS 8000 Import Failed',
+                description: errorDescription,
+                icon: '❌',
+                timeout: 6000
+            });
+        }
+    }
+
     // Import pack cards into user's list
-    async importPackCards(cards, packTitle) {
+    // - Creates (or reuses) a dedicated folder per word book, using the exact pack title (e.g. "CET-4")
+    // - Falls back to a generic "Imported Packs" folder if pack metadata is missing
+    async importPackCards(cards, packTitle, packData) {
         if (!Array.isArray(cards) || cards.length === 0) {
             return 0;
         }
 
-        // Find or create a folder for imported packs
-        let importFolder = this.folders.find(f => f.name === 'Imported Packs');
+        // Use the exact pack title as folder name (e.g. "CET-4", not "CET-4 Word Book")
+        const desiredFolderId = packData?.folderId || `pack-${(packData?.id || packTitle || 'import').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+        const desiredFolderName = packTitle || packData?.folderName || 'Imported Pack';
+        const desiredDescription = packData?.description || 'Imported word pack';
+
+        let importFolder = null;
+
+        // Try to find by id first
+        if (desiredFolderId) {
+            importFolder = this.folders.find(f => String(f.id) === String(desiredFolderId));
+        }
+
+        // Then try by name
+        if (!importFolder) {
+            importFolder = this.folders.find(f => f.name === desiredFolderName);
+        }
+
+        // If still not found, create a new folder specifically for this pack
         if (!importFolder) {
             importFolder = {
-                id: 'imported-packs-' + Date.now(),
-                name: 'Imported Packs',
-                description: 'Word books imported from packs',
+                id: desiredFolderId || 'imported-pack-' + Date.now(),
+                name: desiredFolderName,
+                description: desiredDescription,
                 createdAt: new Date().toISOString()
             };
             this.folders.push(importFolder);

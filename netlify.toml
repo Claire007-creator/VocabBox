@@ -1,6 +1,24 @@
 [build]
+  command = "bash build.sh"
   publish = "."
   
+# Ensure data folder files are served with correct headers
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+    Access-Control-Allow-Origin = "*"
+
+# CRITICAL: Pass through /data/* requests to actual files (DO NOT redirect to index.html)
+# This MUST come BEFORE the SPA fallback redirect
+[[redirects]]
+  from = "/data/*"
+  to = "/data/:splat"
+  status = 200
+
+# SPA fallback - only for routes that are not actual files
+# This ensures /data/IELTS_8000_exact.txt is served as-is, not redirected to index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
