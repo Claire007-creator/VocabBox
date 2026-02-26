@@ -513,6 +513,8 @@ class VocaBox {
         this.cardsNavigation = document.getElementById('cardsNavigation');
         this.mainCardArrowLeft = document.getElementById('mainCardArrowLeft');
         this.mainCardArrowRight = document.getElementById('mainCardArrowRight');
+        this.quickPrevCardBtn = document.getElementById('quickPrevCardBtn');
+        this.quickNextCardBtn = document.getElementById('quickNextCardBtn');
         
         // Font size control elements
         this.decreaseFontBtn = document.getElementById('decreaseFontBtn');
@@ -1194,6 +1196,12 @@ class VocaBox {
         }
         if (this.mainCardArrowRight) {
             this.mainCardArrowRight.addEventListener('click', () => this.nextCardView());
+        }
+        if (this.quickPrevCardBtn) {
+            this.quickPrevCardBtn.addEventListener('click', () => this.previousCardView());
+        }
+        if (this.quickNextCardBtn) {
+            this.quickNextCardBtn.addEventListener('click', () => this.nextCardView());
         }
         
         // Initialize swipe gestures for mobile card navigation
@@ -3708,6 +3716,14 @@ class VocaBox {
             if (this.mainCardArrowRight) {
                 this.mainCardArrowRight.style.display = 'none';
             }
+            if (this.quickPrevCardBtn) {
+                this.quickPrevCardBtn.disabled = true;
+                this.quickPrevCardBtn.setAttribute('aria-disabled', 'true');
+            }
+            if (this.quickNextCardBtn) {
+                this.quickNextCardBtn.disabled = true;
+                this.quickNextCardBtn.setAttribute('aria-disabled', 'true');
+            }
             // Hide decoration cat when no cards
             const cardsDecoration = document.querySelector('.cat-decoration');
             if (cardsDecoration) cardsDecoration.style.display = 'none';
@@ -3731,6 +3747,16 @@ class VocaBox {
             }
             if (this.mainCardArrowRight) {
                 this.mainCardArrowRight.style.display = this.currentCardIndex < cardsToShow.length - 1 ? 'flex' : 'none';
+            }
+            if (this.quickPrevCardBtn) {
+                const canGoPrev = this.currentCardIndex > 0;
+                this.quickPrevCardBtn.disabled = !canGoPrev;
+                this.quickPrevCardBtn.setAttribute('aria-disabled', String(!canGoPrev));
+            }
+            if (this.quickNextCardBtn) {
+                const canGoNext = this.currentCardIndex < cardsToShow.length - 1;
+                this.quickNextCardBtn.disabled = !canGoNext;
+                this.quickNextCardBtn.setAttribute('aria-disabled', String(!canGoNext));
             }
             
             // Show mobile swipe hint on small screens
