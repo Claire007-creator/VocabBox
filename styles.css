@@ -231,6 +231,7 @@ body {
     margin-bottom: 40px;
     border-top: 4px solid #7ECCC4;
     position: relative;
+    overflow: hidden;
 }
 
 /* Subtle pattern for category screens */
@@ -251,6 +252,13 @@ body {
         );
     border-radius: 20px;
     pointer-events: none;
+    z-index: 0;
+}
+
+/* Keep real content above the decorative ::before layer so clicks always work. */
+.category-screen > * {
+    position: relative;
+    z-index: 1;
 }
 
 .home-hero {
