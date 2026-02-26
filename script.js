@@ -12619,12 +12619,14 @@ function initPackNavigation(screenController = {}) {
         }).join('');
 
         section.addEventListener('click', (event) => {
+            let category = '';
+            let packId = '';
             try {
                 const card = event.target.closest('.pack-card');
                 if (!card) return;
 
-                const category = card.dataset.packCategory;
-                const packId = card.dataset.packId;
+                category = card.dataset.packCategory;
+                packId = card.dataset.packId;
                 
                 if (!category || !packId) {
                     console.warn("INIT: Pack card missing category or packId:", { category, packId });
@@ -12651,9 +12653,21 @@ function initPackNavigation(screenController = {}) {
 
             // Special handling for Sentences: load pack into shared workspace on Sentences screen
             if (lastCategory === CATEGORY_KEY_MAP.SENTENCES) {
-                window.vocabox?.launchSentencePackWorkspace?.(pack.id, pack);
+                const launched = window.vocabox?.launchSentencePackWorkspace?.(pack.id, pack);
+                if (!launched) {
+                    showToast?.({
+                        title: 'Unable to open sentence pack',
+                        description: 'Please refresh and try again.',
+                        icon: '⚠️'
+                    });
+                    return;
+                }
                 setScreen('sentences');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // Bring the shared workspace into view so users immediately see Add Card and existing cards.
+                setTimeout(() => {
+                    const workspaceRoot = document.getElementById('deckWorkspaceRoot');
+                    workspaceRoot?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 120);
                 return;
             }
 

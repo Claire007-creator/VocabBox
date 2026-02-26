@@ -212,7 +212,7 @@ body {
 
 /* Home Screen - Landing Page Style */
 .home-screen {
-    background: linear-gradient(135deg, rgba(126, 204, 196, 0.05) 0%, rgba(255, 255, 255, 0.98) 100%);
+    background: #7ECCC4;
     border-radius: 20px;
     padding: 60px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -269,9 +269,10 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.2em;
     font-size: 1.2rem;
-    color: #7ECCC4;
+    color: #1f4d47;
     font-weight: 700;
     margin-bottom: 10px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .home-title {
