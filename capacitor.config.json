@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/@capacitor/cli@latest/assets/schema.json",
+  "appId": "com.mycompany.vocabox",
+  "appName": "VocaBox",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

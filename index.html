@@ -1887,7 +1887,9 @@
     <script src="reading-pack-map.js" onerror="console.error('Failed to load reading-pack-map.js')"></script>
     
     <!-- Supabase Client (loaded only if configured) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="console.error('Failed to load Supabase client')"></script>
+    <!-- async: prevents this CDN fetch from blocking the WebView when running offline in Capacitor. -->
+    <!-- Safe because CONFIG.features.useSupabase is false by default. -->
+    <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="console.error('Failed to load Supabase client')"></script>
     
     <!-- Main Application Script -->
     <script src="script.js" onerror="console.error('Failed to load script.js'); alert('Failed to load application script. Please refresh the page.')"></script>

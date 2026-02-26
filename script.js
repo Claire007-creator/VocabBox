@@ -12707,6 +12707,56 @@ function initPackNavigation(screenController = {}) {
     }
 }
 
+// ─── Android Hardware Back Button (Capacitor) ────────────────────────────────
+// Patches window.vocaboxScreenController to track a navigation history stack,
+// then hooks into the Capacitor App plugin's backButton event so the hardware
+// back key works naturally: each press pops one screen, and a final press on
+// the home screen exits the app. This block is a no-op in regular browsers.
+(function setupAndroidBackButton() {
+    var _history = [];
+    var _ignoreNext = false;
+
+    function patch() {
+        var ctrl = window.vocaboxScreenController;
+        if (!ctrl || ctrl.__backPatched) return true;
+        var _orig = ctrl.setActiveScreen.bind(ctrl);
+        ctrl.setActiveScreen = function (screenName) {
+            if (!_ignoreNext) {
+                var cur = ctrl.getActiveScreen();
+                if (cur && cur !== screenName) {
+                    _history.push(cur);
+                    if (_history.length > 30) _history.shift();
+                }
+            }
+            _ignoreNext = false;
+            _orig(screenName);
+        };
+        ctrl.__backPatched = true;
+        return true;
+    }
+
+    function attach() {
+        if (!patch()) { setTimeout(attach, 200); return; }
+        if (typeof window.Capacitor === 'undefined' || !window.Capacitor.isNativePlatform()) return;
+        var AppPlugin = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        if (!AppPlugin || typeof AppPlugin.addListener !== 'function') return;
+        AppPlugin.addListener('backButton', function () {
+            if (_history.length > 0) {
+                _ignoreNext = true;
+                window.vocaboxScreenController.setActiveScreen(_history.pop());
+            } else {
+                AppPlugin.exitApp();
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // 600 ms: the main DOMContentLoaded uses a 100 ms setTimeout to create
+        // window.vocaboxScreenController, so we wait a bit longer to be safe.
+        setTimeout(attach, 600);
+    });
+}());
+
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log("INIT: DOMContentLoaded fired");
