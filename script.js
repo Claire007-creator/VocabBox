@@ -12578,7 +12578,17 @@ function initCategoryNavigation() {
                 }
                 setActiveScreen(targetName);
                 if (targetName !== 'home') {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // For category screens that host the card workspace, scroll to top first
+                    // then bring the workspace into view so users immediately see their cards.
+                    window.scrollTo({ top: 0 });
+                    if (targetName === 'sentences' || targetName === 'words') {
+                        setTimeout(() => {
+                            const workspaceRoot = document.getElementById('deckWorkspaceRoot');
+                            if (workspaceRoot) {
+                                workspaceRoot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }, 150);
+                    }
                 }
             });
             console.log(`INIT: Event listener attached to button ${index + 1}, target: ${button.dataset.screenTarget}`);
