@@ -223,6 +223,8 @@ class VocaBox {
         this.currentTypingIndex = 0;
         this.typingTestCards = [];
         this.typingModeReverse = false; // false = type back (default), true = type front
+        this.guidedRetypeMode = false;
+        this.currentTypingCorrectAnswer = '';
         this.flipTestCards = [];
             this.mcTestCards = [];
             this.currentMcIndex = 0;
@@ -761,6 +763,7 @@ class VocaBox {
         this.replayTypingAudioBtn = document.getElementById('replayTypingAudioBtn');
         this.currentTypingAudioId = null;
         this.finishTestBtn = document.getElementById('finishTestBtn');
+        this.typeCorrectAnswerBtn = document.getElementById('typeCorrectAnswerBtn');
 
         // Test Results Modal elements
         this.testResultsModal = document.getElementById('testResultsModal');
@@ -1537,7 +1540,10 @@ class VocaBox {
                 }
             });
 
-            this.typingAnswer.addEventListener('input', () => this.updateTypingAnswerCentering());
+            this.typingAnswer.addEventListener('input', () => {
+                this.updateTypingAnswerCentering();
+                this.updateGuidedRetypeProgress();
+            });
             window.addEventListener('resize', () => this.updateTypingAnswerCentering());
         }
         
@@ -1623,6 +1629,12 @@ class VocaBox {
             this.finishTestBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showTestResults();
+            });
+        }
+        if (this.typeCorrectAnswerBtn) {
+            this.typeCorrectAnswerBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.startGuidedRetypeMode();
             });
         }
 
@@ -7978,6 +7990,7 @@ class VocaBox {
             correctCount: 0,
             incorrectCount: 0
         };
+        this.resetGuidedRetypeState();
 
         this.closeTypingSideSelection();
         this.currentTypingIndex = 0;
@@ -7992,6 +8005,7 @@ class VocaBox {
         this.typingAnswer.value = '';
         this.answerResult.style.display = 'none';
         this.typingModeReverse = false; // Reset to default on exit
+        this.resetGuidedRetypeState();
         // Return to Words workspace
         if (window.vocaboxScreenController) {
             window.vocaboxScreenController.setActiveScreen('words');
@@ -8046,6 +8060,7 @@ class VocaBox {
         
         this.typingAnswer.value = '';
         this.answerResult.style.display = 'none';
+        this.resetGuidedRetypeState();
         this.typingCardNum.textContent = this.currentTypingIndex + 1;
         this.updateTypingProgress();
         // Reset centering state for new question
@@ -8085,6 +8100,112 @@ class VocaBox {
         } else {
             this.typingAudioReplay.style.display = 'none';
         }
+    }
+
+    resetGuidedRetypeState() {
+        this.guidedRetypeMode = false;
+        this.currentTypingCorrectAnswer = '';
+        if (this.typeCorrectAnswerBtn) {
+            this.typeCorrectAnswerBtn.style.display = 'none';
+            this.typeCorrectAnswerBtn.disabled = true;
+            this.typeCorrectAnswerBtn.setAttribute('aria-disabled', 'true');
+        }
+    }
+
+    startGuidedRetypeMode() {
+        if (!this.currentTypingCorrectAnswer || !this.typingAnswer) {
+            return;
+        }
+        this.guidedRetypeMode = true;
+        this.typingAnswer.value = '';
+        this.updateGuidedRetypeProgress();
+        this.updateTypingAnswerCentering();
+        this.typingAnswer.focus();
+    }
+
+    updateGuidedRetypeProgress() {
+        if (!this.guidedRetypeMode || !this.correctAnswerContent) {
+            return;
+        }
+        const panel = this.correctAnswerContent.querySelector('#guidedRetypePanel');
+        const remainingEl = this.correctAnswerContent.querySelector('#guidedRetypeRemaining');
+        if (!panel || !remainingEl) {
+            return;
+        }
+
+        panel.hidden = false;
+        const userValue = this.typingAnswer ? this.typingAnswer.value : '';
+        const progress = this.computeGuidedRetypeProgress(userValue, this.currentTypingCorrectAnswer);
+
+        if (progress.done) {
+            remainingEl.innerHTML = '<span class="guided-retype-done">All highlighted words are cleared. Great job!</span>';
+            return;
+        }
+
+        const remainingWords = progress.remainingWords.map((word, idx) => {
+            if (idx === 0 && progress.partialMatchLength > 0) {
+                const remainder = word.slice(progress.partialMatchLength);
+                if (!remainder) {
+                    return '';
+                }
+                return `<span class="word-expected">${this.escapeHtml(remainder)}</span>`;
+            }
+            return `<span class="word-expected">${this.escapeHtml(word)}</span>`;
+        }).filter(Boolean);
+
+        remainingEl.innerHTML = remainingWords.join(' ');
+    }
+
+    computeGuidedRetypeProgress(userInput, correctAnswer) {
+        const normalizedCorrect = this.normalizeText(correctAnswer || '').replace(/\s+/g, ' ').trim();
+        const normalizedUserRaw = this.normalizeText(userInput || '');
+        const normalizedUser = normalizedUserRaw.replace(/\s+/g, ' ').trim();
+
+        const correctWords = normalizedCorrect ? normalizedCorrect.split(' ') : [];
+        if (!correctWords.length) {
+            return { done: true, remainingWords: [], partialMatchLength: 0 };
+        }
+
+        const userWordsRaw = normalizedUser ? normalizedUser.split(' ') : [];
+        const endsWithSpace = /\s$/.test(normalizedUserRaw);
+
+        let completedWords = userWordsRaw;
+        let partialWord = '';
+        if (!endsWithSpace && userWordsRaw.length > 0) {
+            partialWord = userWordsRaw[userWordsRaw.length - 1];
+            completedWords = userWordsRaw.slice(0, -1);
+        }
+
+        let matchedPrefixCount = 0;
+        while (
+            matchedPrefixCount < completedWords.length &&
+            matchedPrefixCount < correctWords.length &&
+            completedWords[matchedPrefixCount] === correctWords[matchedPrefixCount]
+        ) {
+            matchedPrefixCount++;
+        }
+
+        let partialMatchLength = 0;
+        if (
+            matchedPrefixCount === completedWords.length &&
+            partialWord &&
+            matchedPrefixCount < correctWords.length
+        ) {
+            const nextWord = correctWords[matchedPrefixCount];
+            while (
+                partialMatchLength < partialWord.length &&
+                partialMatchLength < nextWord.length &&
+                partialWord[partialMatchLength] === nextWord[partialMatchLength]
+            ) {
+                partialMatchLength++;
+            }
+        }
+
+        return {
+            done: matchedPrefixCount >= correctWords.length,
+            remainingWords: correctWords.slice(matchedPrefixCount),
+            partialMatchLength
+        };
     }
 
     async replayTypingAudio() {
@@ -8158,6 +8279,13 @@ class VocaBox {
         
         // Show comparison if incorrect
         if (!isCorrect) {
+            this.guidedRetypeMode = false;
+            this.currentTypingCorrectAnswer = correctText;
+            if (this.typeCorrectAnswerBtn) {
+                this.typeCorrectAnswerBtn.style.display = 'inline-flex';
+                this.typeCorrectAnswerBtn.disabled = false;
+                this.typeCorrectAnswerBtn.removeAttribute('aria-disabled');
+            }
             const { highlightedUser, highlightedCorrect } = this.compareTexts(userText, correctText);
             this.correctAnswerContent.innerHTML = `
                 <div class="comparison-section">
@@ -8169,11 +8297,39 @@ class VocaBox {
                         <strong>Correct Answer:</strong>
                         <div class="correct-text">${highlightedCorrect}</div>
                     </div>
+                    <div class="guided-retype-panel" id="guidedRetypePanel" hidden>
+                        <strong class="guided-retype-title">Retype while looking at the correct answer. Correct words will disappear:</strong>
+                        <div class="guided-retype-remaining" id="guidedRetypeRemaining"></div>
+                    </div>
                 </div>
             `;
         } else {
+            this.resetGuidedRetypeState();
             this.correctAnswerContent.innerHTML = `<div style="text-align: center; color: #4CAF50; font-size: 1.4rem; font-weight: 600; padding: 16px;">Perfect! 🎉</div>`;
         }
+
+        this.scrollTypingResultIntoView();
+    }
+
+    scrollTypingResultIntoView() {
+        if (!this.answerResult || this.answerResult.style.display !== 'block') {
+            return;
+        }
+
+        const rect = this.answerResult.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const isFullyVisible = rect.top >= 0 && rect.bottom <= viewportHeight;
+
+        if (isFullyVisible) {
+            return;
+        }
+
+        setTimeout(() => {
+            this.answerResult.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 60);
     }
 
     normalizeText(text) {
