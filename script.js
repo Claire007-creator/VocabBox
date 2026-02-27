@@ -8279,28 +8279,12 @@ class VocaBox {
         
         // Show comparison if incorrect
         if (!isCorrect) {
-            this.guidedRetypeMode = false;
             this.currentTypingCorrectAnswer = correctText;
-            if (this.typeCorrectAnswerBtn) {
-                this.typeCorrectAnswerBtn.style.display = 'inline-flex';
-                this.typeCorrectAnswerBtn.disabled = false;
-                this.typeCorrectAnswerBtn.removeAttribute('aria-disabled');
-            }
-            const { highlightedUser, highlightedCorrect } = this.compareTexts(userText, correctText);
+            const { highlightedCorrect } = this.compareTexts(userText, correctText);
             this.correctAnswerContent.innerHTML = `
-                <div class="comparison-section">
-                    <div class="user-typed">
-                        <strong>You typed:</strong>
-                        <div class="typed-text">${highlightedUser}</div>
-                    </div>
-                    <div class="correct-answer-section">
-                        <strong>Correct Answer:</strong>
-                        <div class="correct-text">${highlightedCorrect}</div>
-                    </div>
-                    <div class="guided-retype-panel" id="guidedRetypePanel" hidden>
-                        <strong class="guided-retype-title">Retype while looking at the correct answer. Correct words will disappear:</strong>
-                        <div class="guided-retype-remaining" id="guidedRetypeRemaining"></div>
-                    </div>
+                <div class="correct-answer-section">
+                    <strong>Correct Answer:</strong>
+                    <div class="correct-text">${highlightedCorrect}</div>
                 </div>
             `;
         } else {
