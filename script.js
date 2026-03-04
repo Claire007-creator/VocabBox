@@ -3896,12 +3896,26 @@ class VocaBox {
         // Ensure workspace is visible
         this.deckWorkspaceRoot.style.display = '';
 
-        // Attach workspace right after the pack-section for the current category
         const packSection = targetScreen.querySelector('[data-pack-section]');
-        if (packSection && this.deckWorkspaceRoot.parentElement !== targetScreen) {
-            packSection.insertAdjacentElement('afterend', this.deckWorkspaceRoot);
-        } else if (!packSection && this.deckWorkspaceRoot.parentElement !== targetScreen) {
-            targetScreen.appendChild(this.deckWorkspaceRoot);
+
+        if (screenName === 'sentences') {
+            // For Sentences: place workspace ABOVE the pack grid so users see their
+            // cards immediately on arrival — no scrolling required.
+            if (packSection) {
+                // Only move if not already the element directly before the pack section
+                if (this.deckWorkspaceRoot.nextElementSibling !== packSection) {
+                    packSection.insertAdjacentElement('beforebegin', this.deckWorkspaceRoot);
+                }
+            } else if (this.deckWorkspaceRoot.parentElement !== targetScreen) {
+                targetScreen.appendChild(this.deckWorkspaceRoot);
+            }
+        } else {
+            // For Words (and any future categories): keep workspace after the pack grid
+            if (packSection && this.deckWorkspaceRoot.parentElement !== targetScreen) {
+                packSection.insertAdjacentElement('afterend', this.deckWorkspaceRoot);
+            } else if (!packSection && this.deckWorkspaceRoot.parentElement !== targetScreen) {
+                targetScreen.appendChild(this.deckWorkspaceRoot);
+            }
         }
     }
     
@@ -12562,10 +12576,9 @@ function initCategoryNavigation() {
                 }
                 setActiveScreen(targetName);
                 if (targetName !== 'home') {
-                    // For category screens that host the card workspace, scroll to top first
-                    // then bring the workspace into view so users immediately see their cards.
-                    window.scrollTo({ top: 0 });
-                    if (targetName === 'sentences' || targetName === 'words') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // For Words, the workspace is below the pack grid — scroll to it.
+                    if (targetName === 'words') {
                         setTimeout(() => {
                             const workspaceRoot = document.getElementById('deckWorkspaceRoot');
                             if (workspaceRoot) {
@@ -12573,6 +12586,8 @@ function initCategoryNavigation() {
                             }
                         }, 150);
                     }
+                    // For Sentences, the workspace is placed ABOVE the pack grid,
+                    // so it is immediately visible — no extra scroll needed.
                 }
             });
             console.log(`INIT: Event listener attached to button ${index + 1}, target: ${button.dataset.screenTarget}`);
