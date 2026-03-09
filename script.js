@@ -763,7 +763,16 @@ class VocaBox {
         this.replayTypingAudioBtn = document.getElementById('replayTypingAudioBtn');
         this.currentTypingAudioId = null;
         this.finishTestBtn = document.getElementById('finishTestBtn');
-        this.typeCorrectAnswerBtn = document.getElementById('typeCorrectAnswerBtn');
+        this.startRetypeBtn = document.getElementById('startRetypeBtn');
+        this.exitRetypeBtn = document.getElementById('exitRetypeBtn');
+
+        // Font size control buttons (typing / feedback / correct answer)
+        this.inputFontSmaller = document.getElementById('inputFontSmaller');
+        this.inputFontLarger = document.getElementById('inputFontLarger');
+        this.feedbackFontSmaller = document.getElementById('feedbackFontSmaller');
+        this.feedbackFontLarger = document.getElementById('feedbackFontLarger');
+        this.correctFontSmaller = document.getElementById('correctFontSmaller');
+        this.correctFontLarger = document.getElementById('correctFontLarger');
 
         // Test Results Modal elements
         this.testResultsModal = document.getElementById('testResultsModal');
@@ -1467,6 +1476,66 @@ class VocaBox {
         if (this.typingModeToggleBtn) {
             this.typingModeToggleBtn.addEventListener('click', () => this.toggleTypingMode());
         }
+        if (this.startRetypeBtn) {
+            this.startRetypeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.startRetypeMode();
+            });
+        }
+        if (this.exitRetypeBtn) {
+            this.exitRetypeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exitRetypeMode();
+            });
+        }
+
+        // Font size controls
+        const applySavedFontSize = (varName, storageKey) => {
+            try {
+                const saved = localStorage.getItem(storageKey);
+                if (!saved) return;
+                const numeric = parseFloat(saved);
+                if (Number.isNaN(numeric)) return;
+                document.documentElement.style.setProperty(varName, `${numeric}`);
+            } catch (_) {
+                // ignore storage errors
+            }
+        };
+
+        applySavedFontSize('--fs-input', 'vocabox_fs_input');
+        applySavedFontSize('--fs-feedback', 'vocabox_fs_feedback');
+        applySavedFontSize('--fs-correct', 'vocabox_fs_correct');
+
+        const adjust = (varName, storageKey, delta) => {
+            const root = document.documentElement;
+            const currentRaw = getComputedStyle(root).getPropertyValue(varName).trim() || '1rem';
+            const numeric = parseFloat(currentRaw);
+            if (Number.isNaN(numeric)) return;
+            const next = Math.min(1.6, Math.max(0.8, numeric + delta));
+            root.style.setProperty(varName, `${next}`);
+            try {
+                localStorage.setItem(storageKey, String(next));
+            } catch (_) {}
+        };
+
+        if (this.inputFontSmaller) {
+            this.inputFontSmaller.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', -0.05));
+        }
+        if (this.inputFontLarger) {
+            this.inputFontLarger.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', 0.05));
+        }
+        if (this.feedbackFontSmaller) {
+            this.feedbackFontSmaller.addEventListener('click', () => adjust('--fs-feedback', 'vocabox_fs_feedback', -0.05));
+        }
+        if (this.feedbackFontLarger) {
+            this.feedbackFontLarger.addEventListener('click', () => adjust('--fs-feedback', 'vocabox_fs_feedback', 0.05));
+        }
+        if (this.correctFontSmaller) {
+            this.correctFontSmaller.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', -0.05));
+        }
+        if (this.correctFontLarger) {
+            this.correctFontLarger.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', 0.05));
+        }
         if (this.typingPrevBtn) {
         this.typingPrevBtn.addEventListener('click', () => this.previousTypingCard());
         }
@@ -1534,7 +1603,7 @@ class VocaBox {
                             this.showTestResults();
                         }
                     } else {
-                        // Answer not checked yet - check the answer
+                        // Answer not checked yet - check the answer (same as clicking the button)
                         this.checkAnswer();
                     }
                 }
@@ -8126,6 +8195,24 @@ class VocaBox {
         }
     }
 
+    // Simple retype mode: keep only textarea + correct answer visible
+    startRetypeMode() {
+        if (!this.correctAnswerContent || !this.typingAnswer || !this.answerResult) {
+            return;
+        }
+        this.guidedRetypeMode = false;
+        this.answerResult.classList.add('retype-active');
+        this.typingAnswer.value = '';
+        this.typingAnswer.focus();
+    }
+
+    exitRetypeMode() {
+        if (!this.answerResult) {
+            return;
+        }
+        this.answerResult.classList.remove('retype-active');
+    }
+
     startGuidedRetypeMode() {
         if (!this.currentTypingCorrectAnswer || !this.typingAnswer) {
             return;
@@ -8291,6 +8378,9 @@ class VocaBox {
         this.answerResult.className = 'answer-result ' + (isCorrect ? 'correct' : 'incorrect');
         this.resultTitle.textContent = isCorrect ? '✅ Correct!' : '❌ Not Quite Right';
         
+        // Exit any existing retype mode
+        this.exitRetypeMode && this.exitRetypeMode();
+
         // Show comparison if incorrect
         if (!isCorrect) {
             this.currentTypingCorrectAnswer = correctText;
@@ -8304,6 +8394,11 @@ class VocaBox {
         } else {
             this.resetGuidedRetypeState();
             this.correctAnswerContent.innerHTML = `<div style="text-align: center; color: #4CAF50; font-size: 1.4rem; font-weight: 600; padding: 16px;">Perfect! 🎉</div>`;
+        }
+
+        // Ensure correct answer area is always visible
+        if (this.correctAnswerContent) {
+            this.correctAnswerContent.style.display = '';
         }
 
         this.scrollTypingResultIntoView();

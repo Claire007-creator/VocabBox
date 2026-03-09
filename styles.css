@@ -1,3 +1,10 @@
+:root {
+    /* Typing + feedback font sizes (can be adjusted via UI) */
+    --fs-input: 1rem;
+    --fs-feedback: 0.95rem;
+    --fs-correct: 1rem;
+}
+
 .listening-card-front {
     text-align: center;
     background: rgba(95, 179, 167, 0.08);
@@ -3258,15 +3265,15 @@ body {
 .typing-textarea {
     width: 100%;
     min-height: 120px;
-    padding: 20px;
+    padding: 16px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: 26px;
+    font-size: calc(var(--fs-input) * 1rem * 1.2);
     font-weight: 500;
     font-family: inherit;
-    line-height: 1.6;
+    line-height: 1.5;
     resize: vertical;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     transition: border-color 0.3s ease;
 }
 
@@ -3392,10 +3399,11 @@ body {
 }
 
 .answer-result {
-    margin-top: 20px;
-    padding: 20px;
+    margin-top: 16px;
+    padding: 16px 18px;
     border-radius: 12px;
     animation: fadeIn 0.4s ease;
+    font-size: var(--fs-feedback);
 }
 
 .answer-result.correct {
@@ -3409,10 +3417,64 @@ body {
 }
 
 .result-header h3 {
-    font-size: 1.3rem;
+    font-size: calc(var(--fs-feedback) * 1.1);
     font-weight: 700;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     line-height: 1.4;
+}
+
+/* Correct answer container uses its own adjustable size */
+#correctAnswerContent {
+    font-size: var(--fs-correct);
+}
+
+/* Retype mode – simplify the result view */
+.answer-result.retype-active .result-header {
+    display: none;
+}
+
+.answer-result.retype-active .retype-start-btn {
+    display: none;
+}
+
+.answer-result.retype-active .retype-back-btn {
+    display: inline-flex;
+}
+
+/* Small, inline font controls under textarea */
+.typing-font-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+}
+
+.typing-font-controls .font-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.typing-font-controls .font-label {
+    color: #666;
+    font-size: 0.75rem;
+}
+
+.typing-font-controls .font-btn {
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.typing-font-controls .font-btn:hover {
+    background: #f5f5f5;
 }
 
 .answer-result.correct .result-header h3 {

@@ -1525,6 +1525,24 @@
                 </div>
                 <div class="typing-answer-section">
                     <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
+                    <!-- Font size controls for typing and feedback -->
+                    <div class="typing-font-controls">
+                        <div class="font-group">
+                            <span class="font-label">Typing:</span>
+                            <button type="button" class="font-btn" id="inputFontSmaller">A-</button>
+                            <button type="button" class="font-btn" id="inputFontLarger">A+</button>
+                        </div>
+                        <div class="font-group">
+                            <span class="font-label">Result:</span>
+                            <button type="button" class="font-btn" id="feedbackFontSmaller">A-</button>
+                            <button type="button" class="font-btn" id="feedbackFontLarger">A+</button>
+                        </div>
+                        <div class="font-group">
+                            <span class="font-label">Correct:</span>
+                            <button type="button" class="font-btn" id="correctFontSmaller">A-</button>
+                            <button type="button" class="font-btn" id="correctFontLarger">A+</button>
+                        </div>
+                    </div>
                     <div class="typing-mode-toggle-container" style="text-align: center; margin: 12px 0;">
                         <button class="btn btn-secondary btn-small" id="typingModeToggleBtn" type="button" style="font-size: 0.9rem; padding: 8px 16px;">
                             Type Front Side
@@ -1537,6 +1555,14 @@
                         <h3 id="resultTitle"></h3>
                     </div>
                     <div id="correctAnswerContent"></div>
+                    <div class="retype-controls">
+                        <button class="btn btn-secondary btn-small retype-start-btn" id="startRetypeBtn" type="button">
+                            Retype
+                        </button>
+                        <button class="btn btn-secondary btn-small retype-back-btn" id="exitRetypeBtn" type="button" style="display: none;">
+                            Back
+                        </button>
+                    </div>
                 </div>
                 <button class="card-arrow card-arrow-right" id="typingCardArrowRight" aria-label="Next card">→</button>
             </div>
