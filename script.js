@@ -1476,41 +1476,9 @@ class VocaBox {
         // All test mode event listeners removed since test mode screen no longer exists
 
         // ── Home screen hero/section buttons ──────────────────────────────────
-        const homeCreateCardBtn = document.getElementById('homeCreateCardBtn');
-        const homeCreateCardBtn2 = document.getElementById('homeCreateCardBtn2');
-        const homeBrowsePacksBtn = document.getElementById('homeBrowsePacksBtn');
-        const homePacksPanel = document.getElementById('homePacksPanel');
-
-        const togglePacksPanel = () => {
-            if (!homePacksPanel) return;
-            homePacksPanel.hidden = !homePacksPanel.hidden;
-            if (homeBrowsePacksBtn) {
-                homeBrowsePacksBtn.textContent = homePacksPanel.hidden
-                    ? 'Browse Ready-Made Packs'
-                    : 'Hide Pack Choices';
-            }
-        };
-
-        if (homeCreateCardBtn) {
-            homeCreateCardBtn.addEventListener('click', () => {
-                // Navigate to Words screen first so the add-card modal has proper context
-                if (window.vocaboxScreenController) {
-                    window.vocaboxScreenController.setActiveScreen('words');
-                }
-                setTimeout(() => this.openAddCardModal(), 80);
-            });
-        }
-        if (homeCreateCardBtn2) {
-            homeCreateCardBtn2.addEventListener('click', () => {
-                if (window.vocaboxScreenController) {
-                    window.vocaboxScreenController.setActiveScreen('words');
-                }
-                setTimeout(() => this.openAddCardModal(), 80);
-            });
-        }
-        if (homeBrowsePacksBtn) {
-            homeBrowsePacksBtn.addEventListener('click', togglePacksPanel);
-        }
+        // Homepage hero buttons are wired synchronously in the DOMContentLoaded
+        // init block (below) so they work immediately on page load, without waiting
+        // for the async init (loadCards + initAudioDB) to complete.
         // ────────────────────────────────────────────────────────────────────────
 
         // Typing mode controls
@@ -13293,7 +13261,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("INIT: Failed to initialize pack navigation:", error);
                 // Don't throw - pack navigation is less critical
             }
-            
+
+            // Wire homepage hero buttons synchronously so they are ready immediately,
+            // before the async VocaBox init (loadCards + initAudioDB) completes.
+            // Button 1: Create Your First Card  → navigate to Words + open add-card modal
+            // Button 2: Browse Ready-Made Packs → toggle inline category chooser panel
+            (function wireHomeHeroButtons() {
+                const createBtn = document.getElementById('homeCreateCardBtn');
+                const browseBtn = document.getElementById('homeBrowsePacksBtn');
+                const packsPanel = document.getElementById('homePacksPanel');
+
+                if (createBtn) {
+                    createBtn.addEventListener('click', () => {
+                        if (window.vocaboxScreenController) {
+                            window.vocaboxScreenController.setActiveScreen('words');
+                        }
+                        // Allow the screen transition to complete, then open the modal.
+                        // openAddCardModal() is always available by click-time because
+                        // cacheDOMElements() runs as the very first sync step of async init.
+                        setTimeout(() => {
+                            if (window.vocabox && typeof window.vocabox.openAddCardModal === 'function') {
+                                window.vocabox.openAddCardModal();
+                            }
+                        }, 100);
+                    });
+                }
+
+                if (browseBtn && packsPanel) {
+                    browseBtn.addEventListener('click', () => {
+                        packsPanel.hidden = !packsPanel.hidden;
+                        browseBtn.textContent = packsPanel.hidden
+                            ? 'Browse Ready-Made Packs'
+                            : 'Hide Pack Choices';
+                    });
+                }
+            }());
+
             console.log("INIT: App initialization complete");
     } catch (error) {
         console.error("INIT ERROR: Failed to create VocaBox instance", error);
