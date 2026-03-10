@@ -1,8 +1,9 @@
 :root {
-    /* Typing + feedback font sizes (can be adjusted via UI) */
-    --fs-input: 1rem;
-    --fs-feedback: 0.95rem;
-    --fs-correct: 1rem;
+    /* Typing + feedback font sizes (unitless scale factors, used via calc(1rem * var(--fs-...))) */
+    --fs-typing-card: 1;
+    --fs-input: 1;
+    --fs-feedback: 0.95;
+    --fs-correct: 1;
 }
 
 .listening-card-front {
@@ -3249,7 +3250,7 @@ body {
 }
 
 .question-content {
-    font-size: 17px;
+    font-size: 17px;  /* base; overridden inside typing test via --fs-typing-card */
     line-height: 1.6;
     color: #333;
     padding: 15px;
@@ -3257,6 +3258,11 @@ body {
     border-radius: 10px;
     white-space: normal;
 }
+/* Typing test card content: adjustable via ⚙ settings panel */
+#typingModeScreen .question-content {
+    font-size: calc(1rem * var(--fs-typing-card));
+}
+
 
 .typing-answer-section {
     margin-bottom: 15px;
@@ -3403,7 +3409,7 @@ body {
     padding: 16px 18px;
     border-radius: 12px;
     animation: fadeIn 0.4s ease;
-    font-size: var(--fs-feedback);
+    font-size: calc(1rem * var(--fs-feedback));
 }
 
 .answer-result.correct {
@@ -3425,7 +3431,7 @@ body {
 
 /* Correct answer container uses its own adjustable size */
 #correctAnswerContent {
-    font-size: var(--fs-correct);
+    font-size: calc(1rem * var(--fs-correct));
 }
 
 /* Retype mode – simplify the result view */

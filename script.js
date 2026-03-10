@@ -768,7 +768,9 @@ class VocaBox {
         this.typingSettingsBtn = document.getElementById('typingSettingsBtn');
         this.typingSettingsPanel = document.getElementById('typingSettingsPanel');
 
-        // Font size control buttons (typing / feedback / correct answer)
+        // Font size control buttons (card content / typing / feedback / correct answer)
+        this.cardContentFontSmaller = document.getElementById('cardContentFontSmaller');
+        this.cardContentFontLarger = document.getElementById('cardContentFontLarger');
         this.inputFontSmaller = document.getElementById('inputFontSmaller');
         this.inputFontLarger = document.getElementById('inputFontLarger');
         this.feedbackFontSmaller = document.getElementById('feedbackFontSmaller');
@@ -1509,6 +1511,7 @@ class VocaBox {
             }
         };
 
+        applySavedFontSize('--fs-typing-card', 'vocabox_fs_typing_card');
         applySavedFontSize('--fs-input', 'vocabox_fs_input');
         applySavedFontSize('--fs-feedback', 'vocabox_fs_feedback');
         applySavedFontSize('--fs-correct', 'vocabox_fs_correct');
@@ -1525,6 +1528,12 @@ class VocaBox {
             } catch (_) {}
         };
 
+        if (this.cardContentFontSmaller) {
+            this.cardContentFontSmaller.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', -0.05));
+        }
+        if (this.cardContentFontLarger) {
+            this.cardContentFontLarger.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', 0.05));
+        }
         if (this.inputFontSmaller) {
             this.inputFontSmaller.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', -0.05));
         }
@@ -3984,6 +3993,10 @@ class VocaBox {
         this.deckWorkspaceRoot.style.display = '';
 
         const packSection = targetScreen.querySelector('[data-pack-section]');
+
+        // Always restore pack-section visibility on navigation so that a previous
+        // updateWorkspacePracticeBar hide does not persist across screen changes.
+        if (packSection) packSection.style.display = '';
 
         if (screenName === 'sentences') {
             // For Sentences: place workspace ABOVE the pack grid so users see their
