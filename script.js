@@ -4260,6 +4260,10 @@ class VocaBox {
                     <button class="delete-btn" data-id="${card.id}"><img src="trashbin.png" alt="Delete" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Delete</button>
                 </div>
             </div>
+            <div class="card-practice-bar">
+                <button class="btn-practice-typing" type="button">⌨ Typing Test</button>
+                <button class="btn-practice-mc" type="button">☑ Multiple Choice</button>
+            </div>
         `;
 
         // Add event listeners after innerHTML
@@ -4272,6 +4276,22 @@ class VocaBox {
         
         editBtn.addEventListener('click', () => this.openEditCardModal(card.id));
         deleteBtn.addEventListener('click', () => this.deleteCard(card.id));
+
+        // Practice buttons — always wired directly on the card
+        const typingTestBtn = cardDiv.querySelector('.btn-practice-typing');
+        const mcTestBtn = cardDiv.querySelector('.btn-practice-mc');
+        if (typingTestBtn) {
+            typingTestBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.startTypingPracticeFromWorkspace();
+            });
+        }
+        if (mcTestBtn) {
+            mcTestBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.startMultipleChoicePracticeFromWorkspace();
+            });
+        }
         
         // Add font size control listeners
         fontDecreaseBtn.addEventListener('click', (e) => {

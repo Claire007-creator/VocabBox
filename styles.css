@@ -5917,3 +5917,43 @@ body {
   background: #b24a3b; 
 }
 
+
+/* ============================================================
+   CARD PRACTICE BAR — always visible on every rendered card
+   ============================================================ */
+.card-practice-bar {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    justify-content: center;
+}
+
+.btn-practice-typing,
+.btn-practice-mc {
+    flex: 1;
+    max-width: 200px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-practice-typing {
+    background: #7ECCC4;
+    color: #fff;
+}
+
+.btn-practice-mc {
+    background: #F4D58D;
+    color: #333;
+}
+
+.btn-practice-typing:hover { opacity: 0.85; }
+.btn-practice-mc:hover { opacity: 0.85; }
+
+.btn-practice-typing:active,
+.btn-practice-mc:active { transform: scale(0.97); }
