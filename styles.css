@@ -220,13 +220,14 @@ body {
 
 /* Home Screen - Landing Page Style */
 .home-screen {
-    background: #7ECCC4;
+    background: #F5FAF9;
     border-radius: 20px;
-    padding: 60px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
     animation: fadeInUp 0.6s ease;
     margin-bottom: 40px;
     border: none;
+    overflow: hidden;
 }
 
 /* Category Screens - Library/Tool Page Style */
@@ -270,50 +271,340 @@ body {
 }
 
 .home-hero {
+    background: #7ECCC4;
+    padding: 56px 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 40px;
-    margin-bottom: 50px;
 }
 
 .home-hero-text {
     flex: 1;
 }
 
+.home-hero-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.home-btn-cta {
+    font-size: 1rem;
+    padding: 13px 26px;
+    border-radius: 10px;
+    background: #1f4d47;
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+.home-btn-cta:hover { background: #163835; transform: translateY(-1px); }
+
+.home-btn-secondary-cta {
+    font-size: 0.95rem;
+    padding: 11px 20px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.25);
+    color: #1f4d47;
+    border: 2px solid rgba(31,77,71,0.25);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.home-btn-secondary-cta:hover { background: rgba(255,255,255,0.45); }
+
 .home-eyebrow {
     text-transform: uppercase;
     letter-spacing: 0.2em;
-    font-size: 1.2rem;
+    font-size: 0.85rem;
     color: #1f4d47;
     font-weight: 700;
     margin-bottom: 10px;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .home-title {
-    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-size: clamp(1.9rem, 3.5vw, 3rem);
     line-height: 1.2;
-    margin-bottom: 15px;
-    color: var(--text-color);
+    margin-bottom: 10px;
+    color: #1a3330;
+    font-weight: 800;
 }
 
 .home-subtitle {
-    font-size: 1.1rem;
-    color: var(--text-color-light);
+    font-size: 1.05rem;
+    color: #2a5a54;
+    line-height: 1.6;
+    max-width: 520px;
 }
 
 .home-hero-art {
-    flex: 0 0 220px;
+    flex: 0 0 200px;
     display: flex;
     justify-content: center;
 }
 
 .home-hero-art img {
-    width: 220px;
-    height: 220px;
+    width: 200px;
+    height: 200px;
     object-fit: contain;
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.2));
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15));
+}
+
+/* ── Shared section card style ── */
+.home-section {
+    background: #fff;
+    margin: 0;
+    padding: 48px 60px;
+    border-top: 1px solid rgba(126,204,196,0.15);
+}
+
+.home-section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-color);
+    margin-bottom: 6px;
+}
+
+.home-section-sub {
+    font-size: 0.95rem;
+    color: var(--text-color-light);
+    margin-bottom: 28px;
+}
+
+/* ── How It Works (Section 2) — tinted background so it reads as a distinct block ── */
+.home-how-it-works {
+    background: rgba(126,204,196,0.07);
+    border-top: none;
+}
+
+.home-how-it-works .home-section-title {
+    margin-bottom: 6px;
+}
+
+.home-how-it-works .home-section-sub {
+    margin-bottom: 32px;
+}
+
+.home-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+}
+
+.home-step {
+    flex: 1;
+    text-align: center;
+    padding: 24px 20px;
+    border-radius: 14px;
+    transition: background 0.2s;
+}
+
+.home-step:hover {
+    background: rgba(126,204,196,0.12);
+}
+
+.home-step-icon {
+    font-size: 2rem;
+    line-height: 1;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.home-step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1f4d47;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+}
+
+.home-step-heading {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-color);
+}
+
+.home-step-desc {
+    font-size: 0.9rem;
+    color: var(--text-color-light);
+    line-height: 1.5;
+}
+
+.home-step-arrow {
+    font-size: 1.6rem;
+    color: #bde0db;
+    flex: 0 0 auto;
+    padding-top: 38px;
+    align-self: flex-start;
+}
+
+/* ── Start Learning (Section 3) ── */
+.home-start-learning {
+    background: #fff;
+}
+
+.home-start-learning .home-section-title {
+    margin-bottom: 6px;
+}
+
+.home-start-learning .home-section-sub {
+    margin-bottom: 26px;
+}
+
+.home-start-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.home-start-option {
+    border-radius: 16px;
+    padding: 36px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+}
+
+.home-start-option:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.home-start-create {
+    background: rgba(126,204,196,0.12);
+    border: 2px solid rgba(126,204,196,0.4);
+}
+
+.home-start-browse {
+    background: rgba(244,213,141,0.18);
+    border: 2px solid rgba(244,213,141,0.5);
+}
+
+.home-start-icon {
+    font-size: 2.4rem;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+
+.home-start-option h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.home-start-option p {
+    font-size: 0.9rem;
+    color: var(--text-color-light);
+    margin: 0;
+    line-height: 1.5;
+    flex: 1;
+}
+
+.home-start-option .btn {
+    margin-top: 10px;
+    align-self: flex-start;
+}
+
+.home-btn-outline {
+    background: transparent;
+    border: 2px solid #7ECCC4;
+    color: #2a6660;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.home-btn-outline:hover { background: rgba(126,204,196,0.12); }
+
+/* ── Continue Learning (Section 4) — appears ONLY when user has decks ── */
+.home-continue-learning {
+    background: #F5FAF9;
+    border-top: 3px solid #7ECCC4;
+}
+
+.home-continue-learning .home-section-title {
+    margin-bottom: 4px;
+}
+
+.home-recent-decks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.home-deck-card {
+    background: #fff;
+    border: 1px solid rgba(126,204,196,0.3);
+    border-radius: 14px;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: box-shadow 0.15s ease;
+}
+
+.home-deck-card:hover {
+    box-shadow: 0 4px 16px rgba(126,204,196,0.2);
+}
+
+.home-deck-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.home-deck-meta {
+    font-size: 0.82rem;
+    color: var(--text-color-light);
+}
+
+.home-deck-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.home-deck-actions .btn {
+    font-size: 0.82rem;
+    padding: 7px 13px;
+}
+
+/* ── Explore (Section 5) — visually secondary/supplementary ── */
+.home-explore {
+    background: #F8F8F8;
+    border-radius: 0 0 20px 20px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.home-explore .home-section-title {
+    font-size: 1.15rem;
+    color: var(--text-color-light);
+    margin-bottom: 4px;
+}
+
+.home-explore .home-section-sub {
+    margin-bottom: 24px;
+}
+
+.home-explore .category-grid {
+    margin-top: 22px;
 }
 
 .category-grid {
@@ -850,16 +1141,50 @@ body {
     .home-hero {
         flex-direction: column;
         text-align: center;
+        padding: 44px 40px;
     }
 
     .home-hero-art {
         order: -1;
     }
+
+    .home-hero-actions {
+        justify-content: center;
+    }
+
+    .home-subtitle {
+        max-width: none;
+    }
 }
 
 @media (max-width: 768px) {
     .home-screen {
-        padding: 30px;
+        padding: 0;
+    }
+
+    .home-hero {
+        padding: 36px 24px;
+    }
+
+    .home-section {
+        padding: 32px 24px;
+    }
+
+    .home-steps {
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .home-step-arrow {
+        transform: rotate(90deg);
+        padding-top: 0;
+        padding-bottom: 4px;
+        align-self: center;
+    }
+
+    .home-start-grid {
+        grid-template-columns: 1fr;
     }
     
     .category-screen {

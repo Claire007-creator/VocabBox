@@ -359,6 +359,7 @@ class VocaBox {
         this.updateCurrentFolderInfo(); // Explicitly update the button on page load
         this.loadFontSize();
         this.applyCustomColors();
+        this.updateHomeContinueLearning();
         
             console.log("INIT: initialization complete");
             
@@ -1473,6 +1474,42 @@ class VocaBox {
 
         // Flip mode controls - REMOVED (Learn/Test feature removed)
         // All test mode event listeners removed since test mode screen no longer exists
+
+        // ── Home screen hero/section buttons ──────────────────────────────────
+        const homeCreateCardBtn = document.getElementById('homeCreateCardBtn');
+        const homeCreateCardBtn2 = document.getElementById('homeCreateCardBtn2');
+        const homeBrowsePacksBtn = document.getElementById('homeBrowsePacksBtn');
+        const homeExplorePacks = document.getElementById('homeExplorePacks');
+
+        const scrollToExplore = () => {
+            const el = document.getElementById('homeExplore');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        if (homeCreateCardBtn) {
+            homeCreateCardBtn.addEventListener('click', () => {
+                // Navigate to Words screen first so the add-card modal has proper context
+                if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                setTimeout(() => this.openAddCardModal(), 80);
+            });
+        }
+        if (homeCreateCardBtn2) {
+            homeCreateCardBtn2.addEventListener('click', () => {
+                if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                setTimeout(() => this.openAddCardModal(), 80);
+            });
+        }
+        if (homeBrowsePacksBtn) {
+            homeBrowsePacksBtn.addEventListener('click', scrollToExplore);
+        }
+        if (homeExplorePacks) {
+            homeExplorePacks.addEventListener('click', scrollToExplore);
+        }
+        // ────────────────────────────────────────────────────────────────────────
 
         // Typing mode controls
         this.exitTypingBtn.addEventListener('click', () => this.exitTypingMode());
@@ -3889,6 +3926,10 @@ class VocaBox {
         
         // Reapply font size after rendering
         setTimeout(() => this.applyFontSize(), 50);
+        // Keep the homepage Continue Learning section in sync
+        if (typeof this.updateHomeContinueLearning === 'function') {
+            this.updateHomeContinueLearning();
+        }
     }
     
     updateCardNavigation(totalCards) {
@@ -3986,6 +4027,10 @@ class VocaBox {
         if (!targetScreen) {
             // Hide workspace for other screens
             this.deckWorkspaceRoot.style.display = 'none';
+            // Refresh Continue Learning section whenever user returns to home
+            if (screenName === 'home' && typeof this.updateHomeContinueLearning === 'function') {
+                this.updateHomeContinueLearning();
+            }
             return;
         }
 
@@ -4126,6 +4171,67 @@ class VocaBox {
 
     // Card-screen practice launchers: use the currently active folder directly,
     // never open the folder-chooser popup.
+    // Populate the "Continue Learning" section on the homepage.
+    // Shows up to 3 folders that contain cards, with quick-access buttons.
+    updateHomeContinueLearning() {
+        const section = document.getElementById('homeContinueLearning');
+        const container = document.getElementById('homeRecentDecks');
+        if (!section || !container) return;
+
+        // Collect folders that have at least one card
+        const foldersWithCards = (this.folders || []).filter(folder => {
+            if (!folder || !folder.id) return false;
+            return (this.cards || []).some(c => String(c.folderId) === String(folder.id));
+        });
+
+        if (!foldersWithCards.length) {
+            section.hidden = true;
+            return;
+        }
+
+        section.hidden = false;
+        const topFolders = foldersWithCards.slice(0, 3);
+
+        container.innerHTML = topFolders.map(folder => {
+            const cardCount = (this.cards || []).filter(c => String(c.folderId) === String(folder.id)).length;
+            const safeId = String(folder.id).replace(/"/g, '&quot;');
+            return `<div class="home-deck-card">
+                <div class="home-deck-name">${folder.name || 'Unnamed Deck'}</div>
+                <div class="home-deck-meta">${cardCount} card${cardCount !== 1 ? 's' : ''}</div>
+                <div class="home-deck-actions">
+                    <button class="btn btn-primary btn-small" type="button"
+                        data-home-resume-folder="${safeId}">▶ Resume Practice</button>
+                    <button class="btn btn-secondary btn-small" type="button"
+                        data-home-open-folder="${safeId}">Open Deck</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Wire the dynamically created buttons
+        container.querySelectorAll('[data-home-resume-folder]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const folderId = btn.dataset.homeResumeFolder;
+                if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                setTimeout(() => {
+                    this.selectFolder(folderId);
+                    this.startTypingFromCard();
+                }, 80);
+            });
+        });
+
+        container.querySelectorAll('[data-home-open-folder]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const folderId = btn.dataset.homeOpenFolder;
+                if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                setTimeout(() => this.selectFolder(folderId), 80);
+            });
+        });
+    }
+
     startTypingFromCard() {
         const folderId = (this.currentFolder && this.currentFolder !== 'all')
             ? this.currentFolder
