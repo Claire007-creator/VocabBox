@@ -8179,7 +8179,7 @@ class VocaBox {
         this.typingPrevBtn.disabled = this.currentTypingIndex === 0;
         }
         if (this.typingNextBtn) {
-        this.typingNextBtn.disabled = this.currentTypingIndex === this.typingTestCards.length - 1;
+        this.typingNextBtn.disabled = false; // nextTypingCard() handles last card via showTestResults()
         }
         
         // Store current audio ID and show/hide replay button

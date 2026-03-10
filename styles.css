@@ -3417,7 +3417,7 @@ body {
 }
 
 .result-header h3 {
-    font-size: calc(var(--fs-feedback) * 1.1);
+    font-size: calc(1rem * var(--fs-feedback) * 1.1);
     font-weight: 700;
     margin-bottom: 12px;
     line-height: 1.4;
@@ -5917,106 +5917,3 @@ body {
   background: #b24a3b; 
 }
 
-
-/* ============================================================
-   TYPING MODE — PROGRESSIVE DISCLOSURE UI (settings gear, states)
-   ============================================================ */
-
-/* --- Test header: group gear + exit together --- */
-.test-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* --- Gear icon button --- */
-.btn-icon {
-    background: none;
-    border: 1px solid transparent;
-    font-size: 1.3rem;
-    line-height: 1;
-    cursor: pointer;
-    padding: 6px 10px;
-    border-radius: 8px;
-    color: #555;
-    transition: background 0.15s, border-color 0.15s;
-}
-.btn-icon:hover {
-    background: rgba(0, 0, 0, 0.07);
-    border-color: #ccc;
-}
-
-/* --- Settings panel --- */
-.typing-settings-panel {
-    background: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    padding: 14px 18px;
-    margin-bottom: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 20px;
-    align-items: center;
-}
-.typing-settings-panel[hidden] { display: none !important; }
-
-.settings-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-.settings-label {
-    font-size: 0.78rem;
-    color: #666;
-    white-space: nowrap;
-    min-width: 78px;
-}
-
-/* --- Check Answer: large, centred below textarea --- */
-.btn-check-answer {
-    display: block !important;
-    width: 100%;
-    max-width: 340px;
-    margin: 18px auto 0 !important;
-    font-size: 1.1rem;
-    padding: 14px 24px;
-}
-
-/* --- Result action buttons (Retype / Next / Back) --- */
-.retype-controls {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 18px;
-}
-.retype-next-btn { min-width: 110px; }
-
-/* ============================================================
-   UI STATE CLASSES  (added to #typingModeScreen by JS)
-   ============================================================ */
-
-/* ---- state-typing (new card, before checking) ---- */
-#typingModeScreen.state-typing .answer-result          { display: none !important; }
-#typingModeScreen.state-typing .card-arrow             { display: none !important; }
-#typingModeScreen.state-typing .audio-replay-section   { display: none !important; }
-#typingModeScreen.state-typing #checkAnswerBtn         { display: block !important; }
-
-/* ---- state-result (after Check Answer) ---- */
-#typingModeScreen.state-result #checkAnswerBtn         { display: none !important; }
-#typingModeScreen.state-result .card-arrow             { display: none !important; }
-#typingModeScreen.state-result .answer-result          { display: block !important; }
-#typingModeScreen.state-result #startRetypeBtn         { display: inline-flex !important; }
-#typingModeScreen.state-result #typingNextBtn          { display: inline-flex !important; }
-#typingModeScreen.state-result #exitRetypeBtn          { display: none !important; }
-
-/* ---- state-retype (user is retyping) ---- */
-#typingModeScreen.state-retype .typing-question        { display: none !important; }
-#typingModeScreen.state-retype .test-progress          { display: none !important; }
-#typingModeScreen.state-retype .card-arrow             { display: none !important; }
-#typingModeScreen.state-retype #checkAnswerBtn         { display: none !important; }
-#typingModeScreen.state-retype .answer-result          { display: block !important; }
-#typingModeScreen.state-retype #startRetypeBtn         { display: none !important; }
-#typingModeScreen.state-retype #typingNextBtn          { display: none !important; }
-#typingModeScreen.state-retype #exitRetypeBtn          { display: inline-flex !important; }
