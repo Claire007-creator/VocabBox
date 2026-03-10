@@ -778,6 +778,13 @@ class VocaBox {
         this.feedbackFontLarger = document.getElementById('feedbackFontLarger');
         this.correctFontSmaller = document.getElementById('correctFontSmaller');
         this.correctFontLarger = document.getElementById('correctFontLarger');
+        // Inline font controls (directly under each section)
+        this.promptFontMinus = document.getElementById('promptFontMinus');
+        this.promptFontPlus  = document.getElementById('promptFontPlus');
+        this.inputFontMinus  = document.getElementById('inputFontMinus');
+        this.inputFontPlus   = document.getElementById('inputFontPlus');
+        this.correctFontMinus = document.getElementById('correctFontMinus');
+        this.correctFontPlus  = document.getElementById('correctFontPlus');
 
         // Test Results Modal elements
         this.testResultsModal = document.getElementById('testResultsModal');
@@ -1558,6 +1565,25 @@ class VocaBox {
         }
         if (this.correctFontLarger) {
             this.correctFontLarger.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', 0.05));
+        }
+        // Inline font controls — same variables/localStorage as settings-panel A-/A+ controls
+        if (this.promptFontMinus) {
+            this.promptFontMinus.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', -0.05));
+        }
+        if (this.promptFontPlus) {
+            this.promptFontPlus.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', 0.05));
+        }
+        if (this.inputFontMinus) {
+            this.inputFontMinus.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', -0.05));
+        }
+        if (this.inputFontPlus) {
+            this.inputFontPlus.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', 0.05));
+        }
+        if (this.correctFontMinus) {
+            this.correctFontMinus.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', -0.05));
+        }
+        if (this.correctFontPlus) {
+            this.correctFontPlus.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', 0.05));
         }
         if (this.typingPrevBtn) {
         this.typingPrevBtn.addEventListener('click', () => this.previousTypingCard());

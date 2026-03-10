@@ -1611,9 +1611,19 @@
                 <div class="typing-question">
                     <h3>Question:</h3>
                     <div class="question-content" id="typingQuestion"></div>
+                    <div class="inline-font-controls">
+                        <span class="ifc-label">Prompt</span>
+                        <button type="button" class="ifc-btn" id="promptFontMinus">&#8722;</button>
+                        <button type="button" class="ifc-btn" id="promptFontPlus">+</button>
+                    </div>
                 </div>
                 <div class="typing-answer-section">
                     <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
+                    <div class="inline-font-controls">
+                        <span class="ifc-label">Input</span>
+                        <button type="button" class="ifc-btn" id="inputFontMinus">&#8722;</button>
+                        <button type="button" class="ifc-btn" id="inputFontPlus">+</button>
+                    </div>
                     <button class="btn btn-primary btn-check-answer" id="checkAnswerBtn">Check Answer</button>
                 </div>
                 <div class="answer-result" id="answerResult" style="display: none;">
@@ -1621,6 +1631,11 @@
                         <h3 id="resultTitle"></h3>
                     </div>
                     <div id="correctAnswerContent"></div>
+                    <div class="inline-font-controls">
+                        <span class="ifc-label">Correct</span>
+                        <button type="button" class="ifc-btn" id="correctFontMinus">&#8722;</button>
+                        <button type="button" class="ifc-btn" id="correctFontPlus">+</button>
+                    </div>
                     <div class="retype-controls">
                         <button class="btn btn-secondary retype-start-btn" id="startRetypeBtn" type="button">Retype</button>
                         <button class="btn btn-primary retype-next-btn" id="typingNextBtn" type="button">Next →</button>
