@@ -3916,6 +3916,16 @@ class VocaBox {
         if (this.wordPracticeLauncher) {
             this.wordPracticeLauncher.hidden = !showPractice;
         }
+
+        // Hide the pack-section (e.g. "Sentence packs") when custom cards are visible
+        // so it does not appear below the card view.
+        const parentScreen = this.deckWorkspaceRoot && this.deckWorkspaceRoot.parentElement;
+        if (parentScreen) {
+            const packSec = parentScreen.querySelector('[data-pack-section]');
+            if (packSec) {
+                packSec.style.display = hasCards ? 'none' : '';
+            }
+        }
         if (this.cardsNavigation) {
             this.cardsNavigation.classList.toggle('cards-navigation--solo', !showPractice);
         }
@@ -4100,6 +4110,26 @@ class VocaBox {
             alert(`Select a folder with cards to start ${modeLabel}.`);
         }
     }
+
+    // Card-screen practice launchers: use the currently active folder directly,
+    // never open the folder-chooser popup.
+    startTypingFromCard() {
+        const folderId = (this.currentFolder && this.currentFolder !== 'all')
+            ? this.currentFolder
+            : 'all';
+        this.typingSelectedFolderId = folderId;
+        this.startTypingMode('front', 'back');
+    }
+
+    startMCFromCard() {
+        const folderId = (this.currentFolder && this.currentFolder !== 'all')
+            ? this.currentFolder
+            : 'all';
+        this.requirePremiumFeature('Multiple Choice mode', () => {
+            this.mcSelectedFolderId = folderId;
+            this.startMultipleChoiceMode();
+        });
+    }
     
     previousCardView() {
         const cardsToShow = this.getCardsForCurrentFolder();
@@ -4283,13 +4313,13 @@ class VocaBox {
         if (typingTestBtn) {
             typingTestBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.startTypingPracticeFromWorkspace();
+                this.startTypingFromCard();
             });
         }
         if (mcTestBtn) {
             mcTestBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.startMultipleChoicePracticeFromWorkspace();
+                this.startMCFromCard();
             });
         }
         

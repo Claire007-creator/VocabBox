@@ -5957,3 +5957,6 @@ body {
 
 .btn-practice-typing:active,
 .btn-practice-mc:active { transform: scale(0.97); }
+
+/* Remove decorative books image below card — not needed when cards are present */
+.cat-decoration { display: none !important; }
