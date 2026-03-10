@@ -272,15 +272,12 @@ body {
 
 .home-hero {
     background: #7ECCC4;
-    padding: 56px 60px;
+    padding: 60px 40px 52px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 40px;
-}
-
-.home-hero-text {
-    flex: 1;
+    text-align: center;
+    gap: 0;
 }
 
 .home-hero-actions {
@@ -289,6 +286,7 @@ body {
     margin-top: 28px;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
 }
 
 .home-btn-cta {
@@ -338,20 +336,11 @@ body {
     font-size: 1.05rem;
     color: #2a5a54;
     line-height: 1.6;
-    max-width: 520px;
+    max-width: 580px;
 }
 
 .home-hero-art {
-    flex: 0 0 200px;
-    display: flex;
-    justify-content: center;
-}
-
-.home-hero-art img {
-    width: 200px;
-    height: 200px;
-    object-fit: contain;
-    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15));
+    display: none;
 }
 
 /* ── Shared section card style ── */
@@ -379,6 +368,7 @@ body {
 .home-how-it-works {
     background: rgba(126,204,196,0.07);
     border-top: none;
+    text-align: center;
 }
 
 .home-how-it-works .home-section-title {
@@ -405,13 +395,6 @@ body {
 
 .home-step:hover {
     background: rgba(126,204,196,0.12);
-}
-
-.home-step-icon {
-    font-size: 2rem;
-    line-height: 1;
-    display: block;
-    margin-bottom: 10px;
 }
 
 .home-step-num {
@@ -449,9 +432,9 @@ body {
     align-self: flex-start;
 }
 
-/* ── Start Learning (Section 3) ── */
+/* ── Start Learning (Section 3) — hidden; content merged into hero ── */
 .home-start-learning {
-    background: #fff;
+    display: none !important;
 }
 
 .home-start-learning .home-section-title {
@@ -586,11 +569,56 @@ body {
     padding: 7px 13px;
 }
 
-/* ── Explore (Section 5) — visually secondary/supplementary ── */
+/* ── Explore (Section 5) — hidden; category choices moved into hero inline panel ── */
 .home-explore {
-    background: #F8F8F8;
-    border-radius: 0 0 20px 20px;
-    border-top: 1px solid rgba(0,0,0,0.06);
+    display: none !important;
+}
+
+/* ── Inline pack chooser panel (inside hero, revealed on click) ── */
+.home-packs-panel {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(31,77,71,0.22);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 560px;
+    animation: fadeIn 0.2s ease;
+}
+
+.home-packs-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1f4d47;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+}
+
+.home-packs-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.home-pack-btn {
+    background: rgba(255,255,255,0.3);
+    border: 2px solid rgba(31,77,71,0.25);
+    color: #1a3330;
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 9px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.home-pack-btn:hover {
+    background: rgba(255,255,255,0.55);
+    border-color: rgba(31,77,71,0.5);
 }
 
 .home-explore .home-section-title {
@@ -1139,21 +1167,7 @@ body {
 
 @media (max-width: 1024px) {
     .home-hero {
-        flex-direction: column;
-        text-align: center;
-        padding: 44px 40px;
-    }
-
-    .home-hero-art {
-        order: -1;
-    }
-
-    .home-hero-actions {
-        justify-content: center;
-    }
-
-    .home-subtitle {
-        max-width: none;
+        padding: 48px 32px 44px;
     }
 }
 

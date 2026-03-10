@@ -1479,11 +1479,16 @@ class VocaBox {
         const homeCreateCardBtn = document.getElementById('homeCreateCardBtn');
         const homeCreateCardBtn2 = document.getElementById('homeCreateCardBtn2');
         const homeBrowsePacksBtn = document.getElementById('homeBrowsePacksBtn');
-        const homeExplorePacks = document.getElementById('homeExplorePacks');
+        const homePacksPanel = document.getElementById('homePacksPanel');
 
-        const scrollToExplore = () => {
-            const el = document.getElementById('homeExplore');
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const togglePacksPanel = () => {
+            if (!homePacksPanel) return;
+            homePacksPanel.hidden = !homePacksPanel.hidden;
+            if (homeBrowsePacksBtn) {
+                homeBrowsePacksBtn.textContent = homePacksPanel.hidden
+                    ? 'Browse Ready-Made Packs'
+                    : 'Hide Pack Choices';
+            }
         };
 
         if (homeCreateCardBtn) {
@@ -1504,10 +1509,7 @@ class VocaBox {
             });
         }
         if (homeBrowsePacksBtn) {
-            homeBrowsePacksBtn.addEventListener('click', scrollToExplore);
-        }
-        if (homeExplorePacks) {
-            homeExplorePacks.addEventListener('click', scrollToExplore);
+            homeBrowsePacksBtn.addEventListener('click', togglePacksPanel);
         }
         // ────────────────────────────────────────────────────────────────────────
 
