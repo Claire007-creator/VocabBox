@@ -3907,9 +3907,10 @@ class VocaBox {
         
         const isWordDeck = this.isWordDeckCollection(cardsToShow);
         const hasSpecificFolder = this.currentFolder && this.currentFolder !== 'all';
-        const showPractice = Boolean(isWordDeck && hasSpecificFolder);
+        // Show buttons whenever there are word-deck cards; actual practice still needs a folder.
+        const showPractice = Boolean(isWordDeck && cardsToShow.length > 0);
         this.isCurrentWordDeck = isWordDeck;
-        this.canUseWorkspacePractice = showPractice;
+        this.canUseWorkspacePractice = Boolean(isWordDeck && hasSpecificFolder);
         this.workspacePracticeFolderId = showPractice ? this.currentFolder : null;
         
         if (this.wordPracticeLauncher) {
@@ -4058,7 +4059,7 @@ class VocaBox {
     
     startTypingPracticeFromWorkspace() {
         if (!this.canUseWorkspacePractice) {
-            this.notifyPracticeUnavailable('Typing');
+            this.openSharedFolderSelection('typing');
             return;
         }
         const { folderId, listId } = this.getPracticeScopeIds();
@@ -4073,7 +4074,7 @@ class VocaBox {
     
     startMultipleChoicePracticeFromWorkspace() {
         if (!this.canUseWorkspacePractice) {
-            this.notifyPracticeUnavailable('Multiple Choice');
+            this.openSharedFolderSelection('multipleChoice');
             return;
         }
         const { folderId, listId } = this.getPracticeScopeIds();
