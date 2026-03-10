@@ -1509,7 +1509,32 @@
         <div class="test-container">
             <div class="test-header">
                 <h2><img src="keyboard.png" alt="Keyboard" class="session-mode-icon" style="width: 28px; height: 28px; vertical-align: middle; margin-right: 8px;"> Typing Practice Mode</h2>
-                <button class="btn btn-secondary" id="exitTypingBtn">Exit Test</button>
+                <div class="test-header-actions">
+                    <button class="btn-icon" id="typingSettingsBtn" title="Settings" aria-label="Settings" type="button">⚙</button>
+                    <button class="btn btn-secondary" id="exitTypingBtn">Exit Test</button>
+                </div>
+            </div>
+            <!-- Settings panel (hidden by default) -->
+            <div class="typing-settings-panel" id="typingSettingsPanel" hidden>
+                <div class="settings-row">
+                    <span class="settings-label">Typing font:</span>
+                    <button type="button" class="font-btn" id="inputFontSmaller">A−</button>
+                    <button type="button" class="font-btn" id="inputFontLarger">A+</button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Result font:</span>
+                    <button type="button" class="font-btn" id="feedbackFontSmaller">A−</button>
+                    <button type="button" class="font-btn" id="feedbackFontLarger">A+</button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Answer font:</span>
+                    <button type="button" class="font-btn" id="correctFontSmaller">A−</button>
+                    <button type="button" class="font-btn" id="correctFontLarger">A+</button>
+                </div>
+                <div class="settings-row">
+                    <button class="btn btn-secondary btn-small" id="typingModeToggleBtn" type="button">Type Front Side</button>
+                    <button class="btn btn-success btn-small" id="finishTestBtn" style="background: #F4D58D; color: #333;">✓ Finish &amp; See Results</button>
+                </div>
             </div>
             <div class="test-progress">
                 <p>Question <span id="typingCardNum">1</span> of <span id="typingTotalCards">0</span></p>
@@ -1525,30 +1550,7 @@
                 </div>
                 <div class="typing-answer-section">
                     <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
-                    <!-- Font size controls for typing and feedback -->
-                    <div class="typing-font-controls">
-                        <div class="font-group">
-                            <span class="font-label">Typing:</span>
-                            <button type="button" class="font-btn" id="inputFontSmaller">A-</button>
-                            <button type="button" class="font-btn" id="inputFontLarger">A+</button>
-                        </div>
-                        <div class="font-group">
-                            <span class="font-label">Result:</span>
-                            <button type="button" class="font-btn" id="feedbackFontSmaller">A-</button>
-                            <button type="button" class="font-btn" id="feedbackFontLarger">A+</button>
-                        </div>
-                        <div class="font-group">
-                            <span class="font-label">Correct:</span>
-                            <button type="button" class="font-btn" id="correctFontSmaller">A-</button>
-                            <button type="button" class="font-btn" id="correctFontLarger">A+</button>
-                        </div>
-                    </div>
-                    <div class="typing-mode-toggle-container" style="text-align: center; margin: 12px 0;">
-                        <button class="btn btn-secondary btn-small" id="typingModeToggleBtn" type="button" style="font-size: 0.9rem; padding: 8px 16px;">
-                            Type Front Side
-                        </button>
-                    </div>
-                    <button class="btn btn-primary" id="checkAnswerBtn">Check Answer</button>
+                    <button class="btn btn-primary btn-check-answer" id="checkAnswerBtn">Check Answer</button>
                 </div>
                 <div class="answer-result" id="answerResult" style="display: none;">
                     <div class="result-header">
@@ -1556,12 +1558,9 @@
                     </div>
                     <div id="correctAnswerContent"></div>
                     <div class="retype-controls">
-                        <button class="btn btn-secondary btn-small retype-start-btn" id="startRetypeBtn" type="button">
-                            Retype
-                        </button>
-                        <button class="btn btn-secondary btn-small retype-back-btn" id="exitRetypeBtn" type="button" style="display: none;">
-                            Back
-                        </button>
+                        <button class="btn btn-secondary retype-start-btn" id="startRetypeBtn" type="button">Retype</button>
+                        <button class="btn btn-primary retype-next-btn" id="typingNextBtn" type="button">Next →</button>
+                        <button class="btn btn-secondary btn-small retype-back-btn" id="exitRetypeBtn" type="button">← Back</button>
                     </div>
                 </div>
                 <button class="card-arrow card-arrow-right" id="typingCardArrowRight" aria-label="Next card">→</button>
@@ -1571,11 +1570,7 @@
                     <img src="music.png" alt="Replay Audio" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> Replay Audio
                 </button>
             </div>
-            <div class="finish-test-section" style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-success" id="finishTestBtn" style="font-size: 1.1rem; padding: 12px 30px; background: #F4D58D; color: #333;">
-                    ✓ Finish Test & See Results
-                </button>
-            </div>
+
         </div>
     </div>
 

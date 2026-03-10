@@ -765,6 +765,8 @@ class VocaBox {
         this.finishTestBtn = document.getElementById('finishTestBtn');
         this.startRetypeBtn = document.getElementById('startRetypeBtn');
         this.exitRetypeBtn = document.getElementById('exitRetypeBtn');
+        this.typingSettingsBtn = document.getElementById('typingSettingsBtn');
+        this.typingSettingsPanel = document.getElementById('typingSettingsPanel');
 
         // Font size control buttons (typing / feedback / correct answer)
         this.inputFontSmaller = document.getElementById('inputFontSmaller');
@@ -1486,6 +1488,11 @@ class VocaBox {
             this.exitRetypeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exitRetypeMode();
+            });
+        }
+        if (this.typingSettingsBtn && this.typingSettingsPanel) {
+            this.typingSettingsBtn.addEventListener('click', () => {
+                this.typingSettingsPanel.hidden = !this.typingSettingsPanel.hidden;
             });
         }
 
@@ -8143,6 +8150,7 @@ class VocaBox {
         
         this.typingAnswer.value = '';
         this.answerResult.style.display = 'none';
+        this.setTypingUIState('typing');
         this.resetGuidedRetypeState();
         this.typingCardNum.textContent = this.currentTypingIndex + 1;
         this.updateTypingProgress();
@@ -8202,6 +8210,7 @@ class VocaBox {
         }
         this.guidedRetypeMode = false;
         this.answerResult.classList.add('retype-active');
+        this.setTypingUIState('retype');
         this.typingAnswer.value = '';
         this.typingAnswer.focus();
     }
@@ -8211,6 +8220,14 @@ class VocaBox {
             return;
         }
         this.answerResult.classList.remove('retype-active');
+        this.setTypingUIState('result');
+    }
+
+    setTypingUIState(state) {
+        const screen = this.typingModeScreen;
+        if (!screen) return;
+        screen.classList.remove('state-typing', 'state-result', 'state-retype');
+        if (state) screen.classList.add('state-' + state);
     }
 
     startGuidedRetypeMode() {
@@ -8401,6 +8418,7 @@ class VocaBox {
             this.correctAnswerContent.style.display = '';
         }
 
+        this.setTypingUIState('result');
         this.scrollTypingResultIntoView();
     }
 
