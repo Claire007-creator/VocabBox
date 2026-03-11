@@ -290,9 +290,9 @@ body {
 }
 
 .home-btn-cta {
-    font-size: 1rem;
-    padding: 13px 26px;
-    border-radius: 10px;
+    font-size: 2rem;
+    padding: 18px 40px;
+    border-radius: 12px;
     background: #1f4d47;
     color: #fff;
     border: none;
@@ -303,9 +303,9 @@ body {
 .home-btn-cta:hover { background: #163835; transform: translateY(-1px); }
 
 .home-btn-secondary-cta {
-    font-size: 0.95rem;
-    padding: 11px 20px;
-    border-radius: 10px;
+    font-size: 1.9rem;
+    padding: 16px 36px;
+    border-radius: 12px;
     background: rgba(255,255,255,0.25);
     color: #1f4d47;
     border: 2px solid rgba(31,77,71,0.25);

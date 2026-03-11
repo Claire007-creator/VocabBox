@@ -13254,6 +13254,47 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Wait a bit for all scripts to load (in case of async loading issues)
     setTimeout(() => {
+
+    // Wire critical homepage buttons BEFORE the main try-catch so they always work,
+    // even if initCategoryNavigation() or any other init step throws an error.
+    (function wireHomeHeroButtons() {
+        const createBtn = document.getElementById('homeCreateCardBtn');
+        const browseBtn = document.getElementById('homeBrowsePacksBtn');
+        const packsPanel = document.getElementById('homePacksPanel');
+        const homeBtn   = document.getElementById('globalHomeBtn');
+
+        // "Create Your First Card" → open the add-card modal directly (no page navigation).
+        // Uses lazy reference to window.vocabox so it works even if clicked before async init.
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                if (window.vocabox && typeof window.vocabox.openAddCardModal === 'function') {
+                    window.vocabox.openAddCardModal();
+                }
+            });
+        }
+
+        // "Browse Ready-Made Packs" → toggle the inline category chooser panel.
+        if (browseBtn && packsPanel) {
+            browseBtn.addEventListener('click', () => {
+                packsPanel.hidden = !packsPanel.hidden;
+                browseBtn.textContent = packsPanel.hidden
+                    ? 'Browse Ready-Made Packs'
+                    : 'Hide Pack Choices';
+            });
+        }
+
+        // Home button → navigate to home screen.
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                if (window.vocabox && typeof window.vocabox.navigateToHome === 'function') {
+                    window.vocabox.navigateToHome();
+                } else if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('home');
+                }
+            });
+        }
+    }());
+
     try {
         console.log("INIT: Creating VocaBox instance...");
             console.log("INIT: CONFIG available:", typeof CONFIG !== 'undefined');
@@ -13285,47 +13326,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("INIT: Failed to initialize pack navigation:", error);
                 // Don't throw - pack navigation is less critical
             }
-
-            // Wire homepage hero buttons synchronously so they are ready immediately,
-            // before the async VocaBox init (loadCards + initAudioDB) completes.
-            // Button 1: Create Your First Card  → navigate to Words + open add-card modal
-            // Button 2: Browse Ready-Made Packs → toggle inline category chooser panel
-            (function wireHomeHeroButtons() {
-                const createBtn = document.getElementById('homeCreateCardBtn');
-                const browseBtn = document.getElementById('homeBrowsePacksBtn');
-                const packsPanel = document.getElementById('homePacksPanel');
-                const homeBtn   = document.getElementById('globalHomeBtn');
-
-                // BUG 3 FIX: open add-card modal directly — do NOT navigate to Words first.
-                // openAddCardModal() is a global overlay that works from any screen.
-                if (createBtn) {
-                    createBtn.addEventListener('click', () => {
-                        if (window.vocabox && typeof window.vocabox.openAddCardModal === 'function') {
-                            window.vocabox.openAddCardModal();
-                        }
-                    });
-                }
-
-                if (browseBtn && packsPanel) {
-                    browseBtn.addEventListener('click', () => {
-                        packsPanel.hidden = !packsPanel.hidden;
-                        browseBtn.textContent = packsPanel.hidden
-                            ? 'Browse Ready-Made Packs'
-                            : 'Hide Pack Choices';
-                    });
-                }
-
-                // BUG 2 FIX: wire Home button here (sync, not inside async try-catch).
-                if (homeBtn) {
-                    homeBtn.addEventListener('click', () => {
-                        if (window.vocabox && typeof window.vocabox.navigateToHome === 'function') {
-                            window.vocabox.navigateToHome();
-                        } else if (window.vocaboxScreenController) {
-                            window.vocaboxScreenController.setActiveScreen('home');
-                        }
-                    });
-                }
-            }());
 
             console.log("INIT: App initialization complete");
     } catch (error) {
