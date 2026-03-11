@@ -1150,10 +1150,8 @@ class VocaBox {
             this.subscriptionBtn.addEventListener('click', () => this.showUpgradeModal());
         }
         
-        // Global home button handler
-        if (this.globalHomeBtn) {
-            this.globalHomeBtn.addEventListener('click', () => this.navigateToHome());
-        }
+        // Global home button handler is wired in the sync init block (wireHomeHeroButtons)
+        // to guarantee it works immediately, without waiting for async init (loadCards+initAudioDB).
         
         // Pack import button handler
         if (this.packImportBtn) {
@@ -13296,20 +13294,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const createBtn = document.getElementById('homeCreateCardBtn');
                 const browseBtn = document.getElementById('homeBrowsePacksBtn');
                 const packsPanel = document.getElementById('homePacksPanel');
+                const homeBtn   = document.getElementById('globalHomeBtn');
 
+                // BUG 3 FIX: open add-card modal directly — do NOT navigate to Words first.
+                // openAddCardModal() is a global overlay that works from any screen.
                 if (createBtn) {
                     createBtn.addEventListener('click', () => {
-                        if (window.vocaboxScreenController) {
-                            window.vocaboxScreenController.setActiveScreen('words');
+                        if (window.vocabox && typeof window.vocabox.openAddCardModal === 'function') {
+                            window.vocabox.openAddCardModal();
                         }
-                        // Allow the screen transition to complete, then open the modal.
-                        // openAddCardModal() is always available by click-time because
-                        // cacheDOMElements() runs as the very first sync step of async init.
-                        setTimeout(() => {
-                            if (window.vocabox && typeof window.vocabox.openAddCardModal === 'function') {
-                                window.vocabox.openAddCardModal();
-                            }
-                        }, 100);
                     });
                 }
 
@@ -13319,6 +13312,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         browseBtn.textContent = packsPanel.hidden
                             ? 'Browse Ready-Made Packs'
                             : 'Hide Pack Choices';
+                    });
+                }
+
+                // BUG 2 FIX: wire Home button here (sync, not inside async try-catch).
+                if (homeBtn) {
+                    homeBtn.addEventListener('click', () => {
+                        if (window.vocabox && typeof window.vocabox.navigateToHome === 'function') {
+                            window.vocabox.navigateToHome();
+                        } else if (window.vocaboxScreenController) {
+                            window.vocaboxScreenController.setActiveScreen('home');
+                        }
                     });
                 }
             }());

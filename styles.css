@@ -3601,6 +3601,16 @@ body {
 #typingModeScreen .question-content {
     font-size: calc(1rem * var(--fs-typing-card));
 }
+/* Scoped adjustable font sizes — ONLY affect the 3 content areas inside typing test */
+#typingModeScreen .typing-textarea {
+    font-size: calc(var(--fs-input) * 1rem * 1.2);
+}
+#typingModeScreen .answer-result {
+    font-size: calc(1rem * var(--fs-feedback));
+}
+#typingModeScreen .result-header h3 {
+    font-size: calc(1rem * var(--fs-feedback) * 1.1);
+}
 
 
 .typing-answer-section {
@@ -3613,7 +3623,7 @@ body {
     padding: 16px;
     border: 2px solid #e0e0e0;
     border-radius: 10px;
-    font-size: calc(var(--fs-input) * 1rem * 1.2);
+    /* font-size set per-screen below via #typingModeScreen selector */
     font-weight: 500;
     font-family: inherit;
     line-height: 1.5;
@@ -3748,7 +3758,6 @@ body {
     padding: 16px 18px;
     border-radius: 12px;
     animation: fadeIn 0.4s ease;
-    font-size: calc(1rem * var(--fs-feedback));
 }
 
 .answer-result.correct {
@@ -3762,7 +3771,6 @@ body {
 }
 
 .result-header h3 {
-    font-size: calc(1rem * var(--fs-feedback) * 1.1);
     font-weight: 700;
     margin-bottom: 12px;
     line-height: 1.4;
