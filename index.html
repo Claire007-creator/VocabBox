@@ -106,49 +106,11 @@
                         <p>Explore curated packs for words, sentences, grammar, and more.</p>
                         <button class="btn home-btn-outline" type="button" id="homeExplorePacks">Explore Packs ↓</button>
                     </div>
-                </div>
-            </section>
-
-            <!-- SECTION 4: CONTINUE LEARNING (shown by JS only when user has decks) -->
-            <section class="home-section home-continue-learning" id="homeContinueLearning" hidden>
-                <h2 class="home-section-title">Continue learning</h2>
-                <p class="home-section-sub">Pick up where you left off.</p>
-                <div class="home-recent-decks" id="homeRecentDecks"></div>
-            </section>
-
-            <!-- SECTION 5: EXPLORE CONTENT AREAS (hidden — choices moved into hero panel) -->
-            <section class="home-section home-explore" id="homeExplore" hidden>
-                <h2 class="home-section-title">Browse content areas</h2>
-                <p class="home-section-sub">Explore curated packs for vocabulary, grammar, listening, and reading.</p>
-                <div class="category-grid">
-                    <button class="category-card" type="button" data-screen-target="words">
-                        <div class="category-icon"><img src="card.png" alt="" /></div>
-                        <div class="category-label">Words</div>
-                        <p class="category-copy">Vocabulary packs &amp; your custom word cards</p>
-                    </button>
-                    <button class="category-card" type="button" data-screen-target="sentences">
-                        <div class="category-icon"><img src="writing.png" alt="" /></div>
-                        <div class="category-label">Sentences</div>
-                        <p class="category-copy">Sentence packs &amp; reading practice</p>
-                    </button>
-                    <button class="category-card" type="button" data-screen-target="grammar">
-                        <div class="category-icon"><img src="pencil.png" alt="" /></div>
-                        <div class="category-label">Grammar</div>
-                        <p class="category-copy">Grammar rules and structured drills</p>
-                    </button>
-                    <button class="category-card" type="button" data-screen-target="listening">
-                        <div class="category-icon"><img src="music.png" alt="" /></div>
-                        <div class="category-label">Listening</div>
-                        <p class="category-copy">Audio practice and comprehension</p>
-                    </button>
-                    <button class="category-card" type="button" data-screen-target="reading">
-                        <div class="category-icon"><img src="books.png" alt="" /></div>
-                        <div class="category-label">Reading</div>
-                        <p class="category-copy">Passage reading and highlight study</p>
-                    </button>
-                </div>
-            </section>
-
+                    <div class="category-label">Reading</div>
+                    <p class="category-copy"></p>
+                </button>
+            </div>
+            
         </main>
 
         <!-- Words Category Screen -->
@@ -1606,6 +1568,11 @@
                     <div class="progress-fill" id="typingProgressFill"></div>
                 </div>
             </div>
+            <div class="typing-side-toolbar" id="typingSideToolbar" role="group" aria-label="Choose which side to type">
+                <span class="typing-side-toolbar-label">Typing</span>
+                <button type="button" class="btn btn-secondary btn-small typing-side-btn" id="typingSideBackBtn">Type Back Side</button>
+                <button type="button" class="btn btn-secondary btn-small typing-side-btn" id="typingSideFrontBtn">Type Front Side</button>
+            </div>
             <div class="typing-card">
                 <button class="card-arrow card-arrow-left" id="typingCardArrowLeft" aria-label="Previous card">←</button>
                 <div class="typing-question">
@@ -1619,11 +1586,6 @@
                 </div>
                 <div class="typing-answer-section">
                     <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
-                    <div class="inline-font-controls">
-                        <span class="ifc-label">Input</span>
-                        <button type="button" class="ifc-btn" id="inputFontMinus">&#8722;</button>
-                        <button type="button" class="ifc-btn" id="inputFontPlus">+</button>
-                    </div>
                     <button class="btn btn-primary btn-check-answer" id="checkAnswerBtn">Check Answer</button>
                 </div>
                 <div class="answer-result" id="answerResult" style="display: none;">
@@ -1631,11 +1593,6 @@
                         <h3 id="resultTitle"></h3>
                     </div>
                     <div id="correctAnswerContent"></div>
-                    <div class="inline-font-controls">
-                        <span class="ifc-label">Correct</span>
-                        <button type="button" class="ifc-btn" id="correctFontMinus">&#8722;</button>
-                        <button type="button" class="ifc-btn" id="correctFontPlus">+</button>
-                    </div>
                     <div class="retype-controls">
                         <button class="btn btn-secondary retype-start-btn" id="startRetypeBtn" type="button">Retype</button>
                         <button class="btn btn-primary retype-next-btn" id="typingNextBtn" type="button">Next →</button>

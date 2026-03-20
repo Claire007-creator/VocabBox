@@ -470,6 +470,10 @@ class VocaBox {
         // Global navigation buttons
         this.globalHomeBtn = document.getElementById('globalHomeBtn');
         this.packImportBtn = document.getElementById('packImportBtn');
+
+        // Home — Continue learning (recent decks)
+        this.homeContinueLearning = document.getElementById('homeContinueLearning');
+        this.homeRecentDecks = document.getElementById('homeRecentDecks');
         
         // Special Access elements
         this.specialAccessBtn = document.getElementById('specialAccessBtn');
@@ -750,6 +754,8 @@ class VocaBox {
         this.typingAnswer = document.getElementById('typingAnswer');
         this.checkAnswerBtn = document.getElementById('checkAnswerBtn');
         this.typingModeToggleBtn = document.getElementById('typingModeToggleBtn');
+        this.typingSideBackBtn = document.getElementById('typingSideBackBtn');
+        this.typingSideFrontBtn = document.getElementById('typingSideFrontBtn');
         this.answerResult = document.getElementById('answerResult');
         this.resultTitle = document.getElementById('resultTitle');
         this.correctAnswerContent = document.getElementById('correctAnswerContent');
@@ -766,25 +772,14 @@ class VocaBox {
         this.finishTestBtn = document.getElementById('finishTestBtn');
         this.startRetypeBtn = document.getElementById('startRetypeBtn');
         this.exitRetypeBtn = document.getElementById('exitRetypeBtn');
-        this.typingSettingsBtn = document.getElementById('typingSettingsBtn');
-        this.typingSettingsPanel = document.getElementById('typingSettingsPanel');
 
-        // Font size control buttons (card content / typing / feedback / correct answer)
-        this.cardContentFontSmaller = document.getElementById('cardContentFontSmaller');
-        this.cardContentFontLarger = document.getElementById('cardContentFontLarger');
+        // Font size control buttons (typing / feedback / correct answer)
         this.inputFontSmaller = document.getElementById('inputFontSmaller');
         this.inputFontLarger = document.getElementById('inputFontLarger');
         this.feedbackFontSmaller = document.getElementById('feedbackFontSmaller');
         this.feedbackFontLarger = document.getElementById('feedbackFontLarger');
         this.correctFontSmaller = document.getElementById('correctFontSmaller');
         this.correctFontLarger = document.getElementById('correctFontLarger');
-        // Inline font controls (directly under each section)
-        this.promptFontMinus = document.getElementById('promptFontMinus');
-        this.promptFontPlus  = document.getElementById('promptFontPlus');
-        this.inputFontMinus  = document.getElementById('inputFontMinus');
-        this.inputFontPlus   = document.getElementById('inputFontPlus');
-        this.correctFontMinus = document.getElementById('correctFontMinus');
-        this.correctFontPlus  = document.getElementById('correctFontPlus');
 
         // Test Results Modal elements
         this.testResultsModal = document.getElementById('testResultsModal');
@@ -1492,6 +1487,24 @@ class VocaBox {
         if (this.typingModeToggleBtn) {
             this.typingModeToggleBtn.addEventListener('click', () => this.toggleTypingMode());
         }
+        if (this.typingSideBackBtn) {
+            this.typingSideBackBtn.addEventListener('click', () => {
+                if (!this.typingModeReverse) return;
+                this.typingModeReverse = false;
+                this.updateTypingModeToggleButton();
+                this.updateTypingSideToolbar();
+                this.loadTypingCard();
+            });
+        }
+        if (this.typingSideFrontBtn) {
+            this.typingSideFrontBtn.addEventListener('click', () => {
+                if (this.typingModeReverse) return;
+                this.typingModeReverse = true;
+                this.updateTypingModeToggleButton();
+                this.updateTypingSideToolbar();
+                this.loadTypingCard();
+            });
+        }
         if (this.startRetypeBtn) {
             this.startRetypeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1502,11 +1515,6 @@ class VocaBox {
             this.exitRetypeBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.exitRetypeMode();
-            });
-        }
-        if (this.typingSettingsBtn && this.typingSettingsPanel) {
-            this.typingSettingsBtn.addEventListener('click', () => {
-                this.typingSettingsPanel.hidden = !this.typingSettingsPanel.hidden;
             });
         }
 
@@ -1523,7 +1531,6 @@ class VocaBox {
             }
         };
 
-        applySavedFontSize('--fs-typing-card', 'vocabox_fs_typing_card');
         applySavedFontSize('--fs-input', 'vocabox_fs_input');
         applySavedFontSize('--fs-feedback', 'vocabox_fs_feedback');
         applySavedFontSize('--fs-correct', 'vocabox_fs_correct');
@@ -1540,12 +1547,6 @@ class VocaBox {
             } catch (_) {}
         };
 
-        if (this.cardContentFontSmaller) {
-            this.cardContentFontSmaller.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', -0.05));
-        }
-        if (this.cardContentFontLarger) {
-            this.cardContentFontLarger.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', 0.05));
-        }
         if (this.inputFontSmaller) {
             this.inputFontSmaller.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', -0.05));
         }
@@ -1563,25 +1564,6 @@ class VocaBox {
         }
         if (this.correctFontLarger) {
             this.correctFontLarger.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', 0.05));
-        }
-        // Inline font controls — same variables/localStorage as settings-panel A-/A+ controls
-        if (this.promptFontMinus) {
-            this.promptFontMinus.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', -0.05));
-        }
-        if (this.promptFontPlus) {
-            this.promptFontPlus.addEventListener('click', () => adjust('--fs-typing-card', 'vocabox_fs_typing_card', 0.05));
-        }
-        if (this.inputFontMinus) {
-            this.inputFontMinus.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', -0.05));
-        }
-        if (this.inputFontPlus) {
-            this.inputFontPlus.addEventListener('click', () => adjust('--fs-input', 'vocabox_fs_input', 0.05));
-        }
-        if (this.correctFontMinus) {
-            this.correctFontMinus.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', -0.05));
-        }
-        if (this.correctFontPlus) {
-            this.correctFontPlus.addEventListener('click', () => adjust('--fs-correct', 'vocabox_fs_correct', 0.05));
         }
         if (this.typingPrevBtn) {
         this.typingPrevBtn.addEventListener('click', () => this.previousTypingCard());
@@ -4004,6 +3986,9 @@ class VocaBox {
     }
     
     onScreenChanged(screenName) {
+        if (screenName === 'home') {
+            this.updateHomeContinueLearning();
+        }
         // Move the shared deck workspace under the active category screen (Words or Sentences)
         if (!this.deckWorkspaceRoot) return;
         const wordsScreen = document.getElementById('WordsScreen');
@@ -4056,6 +4041,92 @@ class VocaBox {
                 targetScreen.appendChild(this.deckWorkspaceRoot);
             }
         }
+    }
+
+    /**
+     * Populate homepage "Continue learning" from folders + cards.
+     * Must run after cards/folders are loaded (init) and again when returning to home.
+     */
+    updateHomeContinueLearning() {
+        if (!this.homeRecentDecks || !this.homeContinueLearning) return;
+        this.ensureCardsIsArray();
+        const folders = Array.isArray(this.folders) ? this.folders : [];
+        const cards = Array.isArray(this.cards) ? this.cards : [];
+
+        const parentFolders = folders.filter(folder => {
+            const isLegacyChild = /.+\s-\sList\s\d+$/i.test(folder.name);
+            return !folder.parentFolderId && !isLegacyChild;
+        });
+
+        const withCounts = parentFolders
+            .map(folder => {
+                const childIds = this.getChildFolderIdsForParent(folder.id);
+                const relevantFolderIds = new Set(Array.from(childIds));
+                relevantFolderIds.add(folder.id);
+                const relevantIdStrings = new Set(Array.from(relevantFolderIds).map(id => String(id)));
+                let cardCount = 0;
+                cards.forEach(c => {
+                    const cardFolderIdStr = String(c.folderId);
+                    if (relevantFolderIds.has(c.folderId) || relevantIdStrings.has(cardFolderIdStr)) {
+                        cardCount++;
+                    }
+                });
+                return { folder, cardCount };
+            })
+            .filter(x => x.cardCount > 0)
+            .sort((a, b) => b.cardCount - a.cardCount);
+
+        if (withCounts.length === 0) {
+            this.homeContinueLearning.hidden = true;
+            this.homeRecentDecks.innerHTML = '';
+            return;
+        }
+
+        this.homeContinueLearning.hidden = false;
+        this.homeRecentDecks.innerHTML = '';
+
+        withCounts.slice(0, 8).forEach(({ folder, cardCount }) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'home-deck-card';
+            const nameEl = document.createElement('div');
+            nameEl.className = 'home-deck-name';
+            nameEl.textContent = folder.name;
+            const metaEl = document.createElement('div');
+            metaEl.className = 'home-deck-meta';
+            metaEl.textContent = `${cardCount} card${cardCount !== 1 ? 's' : ''}`;
+            const actions = document.createElement('div');
+            actions.className = 'home-deck-actions';
+            const openBtn = document.createElement('button');
+            openBtn.type = 'button';
+            openBtn.className = 'btn btn-primary btn-small home-deck-open';
+            openBtn.textContent = 'Open deck';
+            const practiceBtn = document.createElement('button');
+            practiceBtn.type = 'button';
+            practiceBtn.className = 'btn btn-secondary btn-small home-deck-practice';
+            practiceBtn.textContent = 'Resume practice';
+            const folderId = folder.id;
+            openBtn.addEventListener('click', () => {
+                if (window.vocaboxScreenController && typeof window.vocaboxScreenController.setActiveScreen === 'function') {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                this.selectFolder(folderId);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            practiceBtn.addEventListener('click', () => {
+                this.typingSelectedFolderId = folderId;
+                if (window.vocaboxScreenController && typeof window.vocaboxScreenController.setActiveScreen === 'function') {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                this.selectFolder(folderId);
+                this.startTypingMode('front', 'back');
+            });
+            actions.appendChild(openBtn);
+            actions.appendChild(practiceBtn);
+            wrap.appendChild(nameEl);
+            wrap.appendChild(metaEl);
+            wrap.appendChild(actions);
+            this.homeRecentDecks.appendChild(wrap);
+        });
     }
     
     getCurrentPracticeFolderId() {
@@ -8276,6 +8347,7 @@ class VocaBox {
     toggleTypingMode() {
         this.typingModeReverse = !this.typingModeReverse;
         this.updateTypingModeToggleButton();
+        this.updateTypingSideToolbar();
         // Reload current card with new mode
         this.loadTypingCard();
     }
@@ -8287,6 +8359,16 @@ class VocaBox {
             : 'Type Front Side';
     }
 
+    /** Sync visible Type Front / Type Back toolbar with typingModeReverse */
+    updateTypingSideToolbar() {
+        if (!this.typingSideBackBtn || !this.typingSideFrontBtn) return;
+        const typeFront = this.typingModeReverse;
+        this.typingSideBackBtn.classList.toggle('typing-side-btn-active', !typeFront);
+        this.typingSideFrontBtn.classList.toggle('typing-side-btn-active', typeFront);
+        this.typingSideBackBtn.setAttribute('aria-pressed', (!typeFront).toString());
+        this.typingSideFrontBtn.setAttribute('aria-pressed', typeFront.toString());
+    }
+
     async loadTypingCard() {
         const card = this.typingTestCards[this.currentTypingIndex];
         // Use reverse mode to determine what to show and what to type
@@ -8294,9 +8376,9 @@ class VocaBox {
         // If reverse is true: show back, type front
         const audioEnabled = typeof CONFIG !== 'undefined' && CONFIG.features && CONFIG.features.enableAudioPronunciation;
         const questionText = this.typingModeReverse ? card.back : card.front;
-        const speakerIcon = audioEnabled ? '<button class="speaker-btn-inline" title="Pronounce word" aria-label="Pronounce word" style="background: none; border: none; cursor: pointer; padding: 5px; margin-left: 10px; vertical-align: middle;"><img src="music.png" alt="Pronounce" style="width: 24px; height: 24px;"></button>' : '';
+        const speakerIcon = audioEnabled ? '<button class="speaker-btn-inline" title="Pronounce word" aria-label="Pronounce word" type="button" style="background: none; border: none; cursor: pointer; padding: 5px; vertical-align: middle; flex-shrink: 0;"><img src="music.png" alt="Pronounce" style="width: 24px; height: 24px;"></button>' : '';
         
-        this.typingQuestion.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap;">${questionText}${speakerIcon}</div>`;
+        this.typingQuestion.innerHTML = `<div class="typing-prompt-inner">${questionText}${speakerIcon}</div>`;
         
         // Add speaker button click handler
         if (audioEnabled) {
@@ -8355,6 +8437,8 @@ class VocaBox {
         } else {
             this.typingAudioReplay.style.display = 'none';
         }
+
+        this.updateTypingSideToolbar();
     }
 
     resetGuidedRetypeState() {
@@ -8373,25 +8457,22 @@ class VocaBox {
             return;
         }
         this.guidedRetypeMode = false;
-        this.answerResult.classList.add('retype-active');
-        this.setTypingUIState('retype');
+        // Enter global retype layout
+        document.body.classList.add('mode-retype');
+        // Ensure result/correct answer are visible
+        this.answerResult.style.display = 'block';
+        this.correctAnswerContent.style.display = '';
         this.typingAnswer.value = '';
         this.typingAnswer.focus();
     }
 
     exitRetypeMode() {
+        // Leave global retype layout
+        document.body.classList.remove('mode-retype');
         if (!this.answerResult) {
             return;
         }
-        this.answerResult.classList.remove('retype-active');
-        this.setTypingUIState('result');
-    }
-
-    setTypingUIState(state) {
-        const screen = this.typingModeScreen;
-        if (!screen) return;
-        screen.classList.remove('state-typing', 'state-result', 'state-retype');
-        if (state) screen.classList.add('state-' + state);
+        // Nothing else needed; regular layout CSS takes over
     }
 
     startGuidedRetypeMode() {
@@ -8582,7 +8663,6 @@ class VocaBox {
             this.correctAnswerContent.style.display = '';
         }
 
-        this.setTypingUIState('result');
         this.scrollTypingResultIntoView();
     }
 

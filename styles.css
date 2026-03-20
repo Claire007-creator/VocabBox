@@ -288,6 +288,20 @@ body {
     align-items: center;
     justify-content: center;
 }
+.home-btn-cta:hover { background: #163835; transform: translateY(-1px); }
+
+.home-btn-secondary-cta {
+    font-size: 1.9rem;
+    padding: 16px 36px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.25);
+    color: #1f4d47;
+    border: 2px solid rgba(31,77,71,0.25);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.home-btn-secondary-cta:hover { background: rgba(255,255,255,0.45); }
 
 .home-btn-cta {
     font-size: 2rem;
@@ -6354,3 +6368,8 @@ body {
     border-color: #aaa;
 }
 .ifc-btn:active { transform: scale(0.93); }
+
+/* Retype mode: hide side toolbar (same as other chrome) */
+body.mode-retype #typingModeScreen .typing-side-toolbar {
+    display: none !important;
+}
