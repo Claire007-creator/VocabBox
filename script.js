@@ -1145,10 +1145,8 @@ class VocaBox {
             this.subscriptionBtn.addEventListener('click', () => this.showUpgradeModal());
         }
         
-        // Global home button handler
-        if (this.globalHomeBtn) {
-            this.globalHomeBtn.addEventListener('click', () => this.navigateToHome());
-        }
+        // Global home button handler is wired in the sync init block (wireHomeHeroButtons)
+        // to guarantee it works immediately, without waiting for async init (loadCards+initAudioDB).
         
         // Pack import button handler
         if (this.packImportBtn) {
@@ -1476,6 +1474,12 @@ class VocaBox {
 
         // Flip mode controls - REMOVED (Learn/Test feature removed)
         // All test mode event listeners removed since test mode screen no longer exists
+
+        // ── Home screen hero/section buttons ──────────────────────────────────
+        // Homepage hero buttons are wired synchronously in the DOMContentLoaded
+        // init block (below) so they work immediately on page load, without waiting
+        // for the async init (loadCards + initAudioDB) to complete.
+        // ────────────────────────────────────────────────────────────────────────
 
         // Typing mode controls
         this.exitTypingBtn.addEventListener('click', () => this.exitTypingMode());
@@ -3898,6 +3902,10 @@ class VocaBox {
         
         // Reapply font size after rendering
         setTimeout(() => this.applyFontSize(), 50);
+        // Keep the homepage Continue Learning section in sync
+        if (typeof this.updateHomeContinueLearning === 'function') {
+            this.updateHomeContinueLearning();
+        }
     }
     
     updateCardNavigation(totalCards) {
@@ -3925,13 +3933,24 @@ class VocaBox {
         
         const isWordDeck = this.isWordDeckCollection(cardsToShow);
         const hasSpecificFolder = this.currentFolder && this.currentFolder !== 'all';
-        const showPractice = Boolean(isWordDeck && hasSpecificFolder);
+        // Show buttons whenever there are word-deck cards; actual practice still needs a folder.
+        const showPractice = Boolean(isWordDeck && cardsToShow.length > 0);
         this.isCurrentWordDeck = isWordDeck;
-        this.canUseWorkspacePractice = showPractice;
+        this.canUseWorkspacePractice = Boolean(isWordDeck && hasSpecificFolder);
         this.workspacePracticeFolderId = showPractice ? this.currentFolder : null;
         
         if (this.wordPracticeLauncher) {
             this.wordPracticeLauncher.hidden = !showPractice;
+        }
+
+        // Hide the pack-section (e.g. "Sentence packs") when custom cards are visible
+        // so it does not appear below the card view.
+        const parentScreen = this.deckWorkspaceRoot && this.deckWorkspaceRoot.parentElement;
+        if (parentScreen) {
+            const packSec = parentScreen.querySelector('[data-pack-section]');
+            if (packSec) {
+                packSec.style.display = hasCards ? 'none' : '';
+            }
         }
         if (this.cardsNavigation) {
             this.cardsNavigation.classList.toggle('cards-navigation--solo', !showPractice);
@@ -3987,6 +4006,10 @@ class VocaBox {
         if (!targetScreen) {
             // Hide workspace for other screens
             this.deckWorkspaceRoot.style.display = 'none';
+            // Refresh Continue Learning section whenever user returns to home
+            if (screenName === 'home' && typeof this.updateHomeContinueLearning === 'function') {
+                this.updateHomeContinueLearning();
+            }
             return;
         }
 
@@ -3994,6 +4017,10 @@ class VocaBox {
         this.deckWorkspaceRoot.style.display = '';
 
         const packSection = targetScreen.querySelector('[data-pack-section]');
+
+        // Always restore pack-section visibility on navigation so that a previous
+        // updateWorkspacePracticeBar hide does not persist across screen changes.
+        if (packSection) packSection.style.display = '';
 
         if (screenName === 'sentences') {
             // For Sentences: place workspace ABOVE the pack grid so users see their
@@ -4165,7 +4192,7 @@ class VocaBox {
     
     startTypingPracticeFromWorkspace() {
         if (!this.canUseWorkspacePractice) {
-            this.notifyPracticeUnavailable('Typing');
+            this.openSharedFolderSelection('typing');
             return;
         }
         const { folderId, listId } = this.getPracticeScopeIds();
@@ -4180,7 +4207,7 @@ class VocaBox {
     
     startMultipleChoicePracticeFromWorkspace() {
         if (!this.canUseWorkspacePractice) {
-            this.notifyPracticeUnavailable('Multiple Choice');
+            this.openSharedFolderSelection('multipleChoice');
             return;
         }
         const { folderId, listId } = this.getPracticeScopeIds();
@@ -4205,6 +4232,87 @@ class VocaBox {
         } else {
             alert(`Select a folder with cards to start ${modeLabel}.`);
         }
+    }
+
+    // Card-screen practice launchers: use the currently active folder directly,
+    // never open the folder-chooser popup.
+    // Populate the "Continue Learning" section on the homepage.
+    // Shows up to 3 folders that contain cards, with quick-access buttons.
+    updateHomeContinueLearning() {
+        const section = document.getElementById('homeContinueLearning');
+        const container = document.getElementById('homeRecentDecks');
+        if (!section || !container) return;
+
+        // Collect folders that have at least one card
+        const foldersWithCards = (this.folders || []).filter(folder => {
+            if (!folder || !folder.id) return false;
+            return (this.cards || []).some(c => String(c.folderId) === String(folder.id));
+        });
+
+        if (!foldersWithCards.length) {
+            section.hidden = true;
+            return;
+        }
+
+        section.hidden = false;
+        const topFolders = foldersWithCards.slice(0, 3);
+
+        container.innerHTML = topFolders.map(folder => {
+            const cardCount = (this.cards || []).filter(c => String(c.folderId) === String(folder.id)).length;
+            const safeId = String(folder.id).replace(/"/g, '&quot;');
+            return `<div class="home-deck-card">
+                <div class="home-deck-name">${folder.name || 'Unnamed Deck'}</div>
+                <div class="home-deck-meta">${cardCount} card${cardCount !== 1 ? 's' : ''}</div>
+                <div class="home-deck-actions">
+                    <button class="btn btn-primary btn-small" type="button"
+                        data-home-resume-folder="${safeId}">▶ Resume Practice</button>
+                    <button class="btn btn-secondary btn-small" type="button"
+                        data-home-open-folder="${safeId}">Open Deck</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Wire the dynamically created buttons
+        container.querySelectorAll('[data-home-resume-folder]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const folderId = btn.dataset.homeResumeFolder;
+                if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                setTimeout(() => {
+                    this.selectFolder(folderId);
+                    this.startTypingFromCard();
+                }, 80);
+            });
+        });
+
+        container.querySelectorAll('[data-home-open-folder]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const folderId = btn.dataset.homeOpenFolder;
+                if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('words');
+                }
+                setTimeout(() => this.selectFolder(folderId), 80);
+            });
+        });
+    }
+
+    startTypingFromCard() {
+        const folderId = (this.currentFolder && this.currentFolder !== 'all')
+            ? this.currentFolder
+            : 'all';
+        this.typingSelectedFolderId = folderId;
+        this.startTypingMode('front', 'back');
+    }
+
+    startMCFromCard() {
+        const folderId = (this.currentFolder && this.currentFolder !== 'all')
+            ? this.currentFolder
+            : 'all';
+        this.requirePremiumFeature('Multiple Choice mode', () => {
+            this.mcSelectedFolderId = folderId;
+            this.startMultipleChoiceMode();
+        });
     }
     
     previousCardView() {
@@ -4366,6 +4474,10 @@ class VocaBox {
                     <button class="delete-btn" data-id="${card.id}"><img src="trashbin.png" alt="Delete" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 4px;"> Delete</button>
                 </div>
             </div>
+            <div class="card-practice-bar">
+                <button class="btn-practice-typing" type="button">⌨ Typing Test</button>
+                <button class="btn-practice-mc" type="button">☑ Multiple Choice</button>
+            </div>
         `;
 
         // Add event listeners after innerHTML
@@ -4378,6 +4490,22 @@ class VocaBox {
         
         editBtn.addEventListener('click', () => this.openEditCardModal(card.id));
         deleteBtn.addEventListener('click', () => this.deleteCard(card.id));
+
+        // Practice buttons — always wired directly on the card
+        const typingTestBtn = cardDiv.querySelector('.btn-practice-typing');
+        const mcTestBtn = cardDiv.querySelector('.btn-practice-mc');
+        if (typingTestBtn) {
+            typingTestBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.startTypingFromCard();
+            });
+        }
+        if (mcTestBtn) {
+            mcTestBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.startMCFromCard();
+            });
+        }
         
         // Add font size control listeners
         fontDecreaseBtn.addEventListener('click', (e) => {
@@ -8268,6 +8396,7 @@ class VocaBox {
         
         this.typingAnswer.value = '';
         this.answerResult.style.display = 'none';
+        this.setTypingUIState('typing');
         this.resetGuidedRetypeState();
         this.typingCardNum.textContent = this.currentTypingIndex + 1;
         this.updateTypingProgress();
@@ -8296,7 +8425,7 @@ class VocaBox {
         this.typingPrevBtn.disabled = this.currentTypingIndex === 0;
         }
         if (this.typingNextBtn) {
-        this.typingNextBtn.disabled = this.currentTypingIndex === this.typingTestCards.length - 1;
+        this.typingNextBtn.disabled = false; // nextTypingCard() handles last card via showTestResults()
         }
         
         // Store current audio ID and show/hide replay button
@@ -13205,6 +13334,47 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Wait a bit for all scripts to load (in case of async loading issues)
     setTimeout(() => {
+
+    // Wire critical homepage buttons BEFORE the main try-catch so they always work,
+    // even if initCategoryNavigation() or any other init step throws an error.
+    (function wireHomeHeroButtons() {
+        const createBtn = document.getElementById('homeCreateCardBtn');
+        const browseBtn = document.getElementById('homeBrowsePacksBtn');
+        const packsPanel = document.getElementById('homePacksPanel');
+        const homeBtn   = document.getElementById('globalHomeBtn');
+
+        // "Create Your First Card" → open the add-card modal directly (no page navigation).
+        // Uses lazy reference to window.vocabox so it works even if clicked before async init.
+        if (createBtn) {
+            createBtn.addEventListener('click', () => {
+                if (window.vocabox && typeof window.vocabox.openAddCardModal === 'function') {
+                    window.vocabox.openAddCardModal();
+                }
+            });
+        }
+
+        // "Browse Ready-Made Packs" → toggle the inline category chooser panel.
+        if (browseBtn && packsPanel) {
+            browseBtn.addEventListener('click', () => {
+                packsPanel.hidden = !packsPanel.hidden;
+                browseBtn.textContent = packsPanel.hidden
+                    ? 'Browse Ready-Made Packs'
+                    : 'Hide Pack Choices';
+            });
+        }
+
+        // Home button → navigate to home screen.
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                if (window.vocabox && typeof window.vocabox.navigateToHome === 'function') {
+                    window.vocabox.navigateToHome();
+                } else if (window.vocaboxScreenController) {
+                    window.vocaboxScreenController.setActiveScreen('home');
+                }
+            });
+        }
+    }());
+
     try {
         console.log("INIT: Creating VocaBox instance...");
             console.log("INIT: CONFIG available:", typeof CONFIG !== 'undefined');
@@ -13236,7 +13406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("INIT: Failed to initialize pack navigation:", error);
                 // Don't throw - pack navigation is less critical
             }
-            
+
             console.log("INIT: App initialization complete");
     } catch (error) {
         console.error("INIT ERROR: Failed to create VocaBox instance", error);

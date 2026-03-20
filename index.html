@@ -43,58 +43,74 @@
 
         <!-- Home Screen -->
         <main class="home-screen" id="homeScreen" data-screen="home">
-            <div class="home-hero">
-                <div class="home-hero-text">
-                    <p class="home-eyebrow">Choose your focus</p>
-                    <h1 class="home-title">What do you want to practice today?</h1>
-                    <p class="home-subtitle"></p>
+
+            <!-- SECTION 1: HERO -->
+            <section class="home-hero">
+                <h1 class="home-title">Build your own flashcards.<br>Practice with typing and multiple choices.</h1>
+                <div class="home-hero-actions">
+                    <button class="btn btn-primary home-btn-cta" type="button" id="homeCreateCardBtn">Create Your First Card</button>
+                    <button class="btn home-btn-secondary-cta" type="button" id="homeBrowsePacksBtn">Browse Ready-Made Packs</button>
                 </div>
-                <div class="home-hero-art" aria-hidden="true">
-                    <img src="cards.png" alt="" />
+                <!-- Inline category chooser — revealed by "Browse Ready-Made Packs" -->
+                <div class="home-packs-panel" id="homePacksPanel" hidden>
+                    <p class="home-packs-label">Choose a content area:</p>
+                    <div class="home-packs-row">
+                        <button class="home-pack-btn" type="button" data-screen-target="words">Words</button>
+                        <button class="home-pack-btn" type="button" data-screen-target="sentences">Sentences</button>
+                        <button class="home-pack-btn" type="button" data-screen-target="grammar">Grammar</button>
+                        <button class="home-pack-btn" type="button" data-screen-target="listening">Listening</button>
+                        <button class="home-pack-btn" type="button" data-screen-target="reading">Reading</button>
+                    </div>
                 </div>
-            </div>
-            <div class="category-grid">
-                <button class="category-card" type="button" data-screen-target="words">
-                    <div class="category-icon">
-                        <img src="card.png" alt="" />
+            </section>
+
+            <!-- SECTION 2: HOW IT WORKS -->
+            <section class="home-section home-how-it-works">
+                <h2 class="home-section-title">How it works</h2>
+                <p class="home-section-sub">Three simple steps to build and master any topic.</p>
+                <div class="home-steps">
+                    <div class="home-step">
+                        <div class="home-step-num">1</div>
+                        <h3 class="home-step-heading">Create Cards</h3>
+                        <p class="home-step-desc">Add content to both sides of a flashcard.</p>
                     </div>
-                    <div class="category-label">Words</div>
-                    <p class="category-copy"></p>
-                </button>
-                <button class="category-card" type="button" data-screen-target="sentences">
-                    <div class="category-icon">
-                        <img src="writing.png" alt="" />
+                    <div class="home-step-arrow" aria-hidden="true">→</div>
+                    <div class="home-step">
+                        <div class="home-step-num">2</div>
+                        <h3 class="home-step-heading">Organize Decks</h3>
+                        <p class="home-step-desc">Group your cards into folders and lists.</p>
                     </div>
-                    <div class="category-label">Sentences</div>
-                    <p class="category-copy"></p>
-                </button>
-                <button class="category-card" type="button" data-screen-target="grammar">
-                    <div class="category-icon">
-                        <img src="pencil.png" alt="" />
+                    <div class="home-step-arrow" aria-hidden="true">→</div>
+                    <div class="home-step">
+                        <div class="home-step-num">3</div>
+                        <h3 class="home-step-heading">Practice Smartly</h3>
+                        <p class="home-step-desc">Study with typing tests and multiple choice.</p>
                     </div>
-                    <div class="category-label">Grammar</div>
-                    <p class="category-copy"></p>
-                </button>
-                <button class="category-card" type="button" data-screen-target="listening">
-                    <div class="category-icon">
-                        <img src="music.png" alt="" />
+                </div>
+            </section>
+
+            <!-- SECTION 3: START LEARNING (hidden — merged into hero) -->
+            <section class="home-section home-start-learning" hidden>
+                <h2 class="home-section-title">Start learning</h2>
+                <p class="home-section-sub">Create your own cards or jump into a ready-made pack.</p>
+                <div class="home-start-grid">
+                    <div class="home-start-option home-start-create">
+                        <div class="home-start-icon">🃏</div>
+                        <h3>Create Your Own Flashcards</h3>
+                        <p>Build a custom deck on any topic and practice your way.</p>
+                        <button class="btn btn-primary" type="button" id="homeCreateCardBtn2">Create Flashcards</button>
                     </div>
-                    <div class="category-label">Listening</div>
-                    <p class="category-copy"></p>
-                </button>
-                <button class="category-card" type="button" data-screen-target="reading">
-                    <div class="category-icon">
-                        <img src="books.png" alt="" />
+                    <div class="home-start-option home-start-browse">
+                        <div class="home-start-icon">📚</div>
+                        <h3>Start With Ready-Made Packs</h3>
+                        <p>Explore curated packs for words, sentences, grammar, and more.</p>
+                        <button class="btn home-btn-outline" type="button" id="homeExplorePacks">Explore Packs ↓</button>
                     </div>
                     <div class="category-label">Reading</div>
                     <p class="category-copy"></p>
                 </button>
             </div>
-            <section class="home-section home-continue-learning" id="homeContinueLearning" hidden>
-                <h2 class="home-section-title">Continue learning</h2>
-                <p class="home-section-sub">Recent decks with cards — open or resume practice.</p>
-                <div class="home-recent-decks" id="homeRecentDecks"></div>
-            </section>
+            
         </main>
 
         <!-- Words Category Screen -->
@@ -1562,6 +1578,11 @@
                 <div class="typing-question">
                     <h3>Question:</h3>
                     <div class="question-content" id="typingQuestion"></div>
+                    <div class="inline-font-controls">
+                        <span class="ifc-label">Prompt</span>
+                        <button type="button" class="ifc-btn" id="promptFontMinus">&#8722;</button>
+                        <button type="button" class="ifc-btn" id="promptFontPlus">+</button>
+                    </div>
                 </div>
                 <div class="typing-answer-section">
                     <textarea id="typingAnswer" class="typing-textarea" placeholder="Type your answer here..."></textarea>
